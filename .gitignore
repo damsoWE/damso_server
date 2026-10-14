@@ -55,3 +55,4 @@ gradle.properties
 
 ### 기획 원본 (비공개) ###
 docs/*.pdf
+docs/speckit-guide.md
