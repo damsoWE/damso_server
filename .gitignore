@@ -36,10 +36,22 @@ out/
 ### VS Code ###
 .vscode/
 
-## Agents
+### Agent 개인 설정 ###
+.mcp.json
 .claude/settings.local.json
+.codex/
 
-
-# 환경변수 파일
+### Secrets ###
 .env
+.env.*
+!.env.example
+*.pem
+*.key
+*.jks
+*.keystore
+application-local.yml
+application-prod.yml
 gradle.properties
+
+### 기획 원본 (비공개) ###
+docs/*.pdf

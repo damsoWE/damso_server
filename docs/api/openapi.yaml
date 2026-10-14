@@ -1,0 +1,10 @@
+openapi: 3.0.3
+info:
+  title: DAMSO API
+  version: 0.0.0
+  description: 담소 통합 API 명세 (원본). 변경 시 이 파일을 먼저 수정하고 api-vX.Y 태그를 찍는다.
+servers:
+  - url: http://localhost:8080
+paths: {}
+components:
+  schemas: {}
