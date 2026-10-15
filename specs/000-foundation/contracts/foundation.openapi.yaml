@@ -1,0 +1,155 @@
+openapi: 3.0.3
+info:
+  title: DAMSO Foundation Contract
+  version: 0.1.0
+  description: |
+    공통 기반이 모든 API에 제공하는 약속.
+    - 인증: Authorization 헤더의 Bearer 토큰(HS256). 쿠키·세션 없음.
+    - 모든 오류는 ErrorResponse 형식. 스택트레이스·예외명·내부 경로·SQL 없음.
+    - 식별자는 UUID만 노출.
+    리뷰 후 docs/api/openapi.yaml의 components로 통합한다.
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: http://localhost:8080
+
+security:
+  - bearerAuth: []
+
+paths:
+  /actuator/health:
+    get:
+      operationId: getHealth
+      summary: 서버 상태 확인 (유일한 공개 경로)
+      security: []
+      responses:
+        '200':
+          description: 정상
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [UP]
+                required: [status]
+                additionalProperties: false
+        '503':
+          description: 비정상
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [DOWN]
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Uuid:
+      type: string
+      format: uuid
+      description: 모든 리소스 식별자. 순번 ID는 노출하지 않는다.
+      example: 3f2c9a1e-8b7d-4c5e-9f0a-1b2c3d4e5f60
+
+    ErrorCode:
+      type: string
+      enum:
+        - INVALID_INPUT
+        - UNAUTHORIZED
+        - FORBIDDEN
+        - NOT_FOUND
+        - METHOD_NOT_ALLOWED
+        - CONFLICT
+        - PAYLOAD_TOO_LARGE
+        - UNSUPPORTED_MEDIA_TYPE
+        - INTERNAL_ERROR
+      description: 기능별 코드는 각 기능 contract에서 추가한다. 기존 코드의 의미는 바꾸지 않는다.
+
+    FieldError:
+      type: object
+      properties:
+        field:
+          type: string
+          example: content
+        reason:
+          type: string
+          description: 고정 문구. 입력값을 포함하지 않는다.
+          example: 최대 2000자입니다
+      required: [field, reason]
+      additionalProperties: false
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          $ref: '#/components/schemas/ErrorCode'
+        message:
+          type: string
+          description: 코드별 고정 문구.
+          example: 입력값이 올바르지 않습니다.
+        fieldErrors:
+          type: array
+          description: code가 INVALID_INPUT일 때만 존재.
+          items:
+            $ref: '#/components/schemas/FieldError'
+      required: [code, message]
+      additionalProperties: false
+
+  responses:
+    InvalidInput:
+      description: 입력 검증 실패
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example:
+            code: INVALID_INPUT
+            message: 입력값이 올바르지 않습니다.
+            fieldErrors:
+              - { field: content, reason: 최대 2000자입니다 }
+    Unauthorized:
+      description: 토큰 없음·위조·만료
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { code: UNAUTHORIZED, message: 인증이 필요합니다. }
+    Forbidden:
+      description: 권한 없음
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { code: FORBIDDEN, message: 권한이 없습니다. }
+    NotFound:
+      description: 대상 없음
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { code: NOT_FOUND, message: 요청한 대상을 찾을 수 없습니다. }
+    Conflict:
+      description: 동시 수정 충돌
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { code: CONFLICT, message: 다른 요청과 충돌했습니다. 다시 시도해 주세요. }
+    PayloadTooLarge:
+      description: 요청 크기 64KB 초과
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { code: PAYLOAD_TOO_LARGE, message: 요청 크기가 너무 큽니다. }
+    InternalError:
+      description: 그 외 모든 오류 (상세 원인 비노출)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { code: INTERNAL_ERROR, message: 일시적인 오류가 발생했습니다. }
