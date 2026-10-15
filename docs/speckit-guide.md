@@ -75,17 +75,21 @@ npx -y @redocly/cli@1.34.5 build-docs specs/NNN-기능명/contracts/<파일>.yam
 - [ ] 문의·답변 본문이 필요 없는 곳에 들어가 있지 않나
 - [ ] 연락처(전화번호·주소) 필드가 없나
 
-확인이 끝나면:
+확인이 끝나면 기능 브랜치에서 명세를 합친다:
 
-```bash
-# contracts 내용을 docs/api/openapi.yaml에 합친 뒤
-git add docs/api/openapi.yaml
-git commit -m "API 명세: F1 인증·회원가입"
-git tag api-v0.1                 # 명세가 바뀔 때마다 숫자를 올린다
-git push origin api-v0.1
+1. contracts 내용을 `docs/api/openapi.yaml`에 합친다.
+2. `info.version`을 다음 버전으로 올린다 (예: `0.1.0` → `0.2.0`, 태그는 `api-v0.2`가 된다).
+3. 커밋한다 (예: `git commit -m "API 명세: F1 인증·회원가입"`).
+
+**태그는 PR이 main에 merge된 뒤에** main에서 찍는다. 손으로 찍지 말고 명령을 쓴다:
+
+```
+/api-release api-v0.2
 ```
 
-→ 프론트 팀에 "api-v0.1 나왔어요"라고 공지한다. **API를 바꿀 땐 항상 openapi.yaml 먼저 → 공지 → 코드** 순서.
+이 명령이 형식 검사 → 버전 일치 확인 → 이전 태그와 비교 요약 → **확인 질문** → 태그 푸시 → **프론트 공지 문구 생성**까지 해 준다. 공지 문구를 프론트 팀에 그대로 보내면, 프론트는 `/fetch-api api-v0.2`로 받는다.
+
+**API를 바꿀 땐 항상 openapi.yaml 먼저 → 공지 → 코드** 순서.
 
 ### 6. 작업 목록 — `/speckit-tasks` → `/speckit-analyze`
 
@@ -124,9 +128,9 @@ git push -u origin feat/F1-auth
 
 ### 프론트 팀원은
 
-> 프론트 레포(`damsoWE/damso_app`)는 아직 환경 구축 전이다. 구축 후 이 절을 보완한다.
+> 프론트 레포: `damsoWE/damso_app`. 두 레포 모두 비공개라 처음 한 번 `gh auth login`이 필요하다.
 
-1. 백엔드의 `api-vX.Y` 공지를 받으면 그 태그의 `docs/api/openapi.yaml`을 받는다.
+1. 백엔드의 `api-vX.Y` 공지를 받으면 프론트 레포에서 `/fetch-api api-vX.Y`를 실행한다. 명세를 받아 오고, 바뀐 점과 고칠 파일을 요약해 준다.
 2. 프론트 spec에는 **대응하는 백엔드 spec 경로**(예: `damso_server/specs/001-…`)를 꼭 적는다. 번호가 레포마다 따로 매겨지기 때문.
 3. 실서버가 나오기 전엔 mock으로 개발한다. 정상 응답만 넣지 말고 401(토큰 만료)·403(남의 문의)·정제 진행 중·"원문 확인 필요"·긴급 문의 케이스를 꼭 넣는다.
 
