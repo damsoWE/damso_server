@@ -1,0 +1,48 @@
+# 민감 값은 ${DAMSO_*} 환경변수 참조만 둔다 (constitution 원칙 VIII).
+# 필수 시크릿 검증: damso.global.config.SecretsValidator
+spring:
+  application:
+    name: damso
+  datasource:
+    url: ${DAMSO_DB_URL}
+    username: ${DAMSO_DB_USERNAME}
+    password: ${DAMSO_DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+
+damso:
+  crypto:
+    column-key: ${DAMSO_COLUMN_ENCRYPTION_KEY}
+  jwt:
+    secret: ${DAMSO_JWT_SECRET}
+  openai:
+    api-key: ${DAMSO_OPENAI_API_KEY}
+
+server:
+  error:
+    include-stacktrace: never
+    include-message: never
+    include-binding-errors: never
+    include-exception: false
+    whitelabel:
+      enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      # 쿠버네티스 프로브 그룹 목록을 응답에 넣지 않는다 (contract: status만)
+      probes:
+        enabled: false
+
+logging:
+  level:
+    org.hibernate.SQL: OFF
+    org.hibernate.orm.jdbc.bind: OFF
+    org.springframework.web: INFO

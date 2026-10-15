@@ -53,6 +53,7 @@
 | 백엔드: 토큰 | 검증 측: HS256 고정·`alg=none` 거부·`exp` 필수. 발급·회전은 F1 | ✅ |
 | 백엔드: 낙관적 락 | `@Version` + `CONFLICT` 변환 | ✅ |
 | 백엔드: 암호화·SecureRandom | AES-256-GCM, IV는 `SecureRandom` | ✅ |
+| 아키텍처: 헥사고날·의존 방향 | 공통 기반은 `damso.common`, 도메인 패키지 없음. `common`은 어떤 도메인 패키지도 참조하지 않음 | ✅ |
 | 개발 흐름: contracts 사람 리뷰 | `contracts/foundation.openapi.yaml` 리뷰 후 `docs/api/openapi.yaml`에 통합 | ⏳ 리뷰 대기 |
 
 **설계 후 재점검(Phase 1 이후)**: 위반 없음. CSRF 비활성은 원칙 위반이 아니라 "쿠키 미사용"의 결과이며 research R8에 근거를 남겼다. Complexity Tracking 해당 없음.
@@ -87,7 +88,7 @@ src/main/resources/
 
 src/main/java/damso/
 ├── DamsoApplication.java
-└── global/                         # 공통 기반 (기능 코드는 damso.<도메인> 패키지)
+└── common/                         # 공통 기반 (constitution 아키텍처: damso.common)
     ├── config/
     │   ├── SecretsValidator.java          # 기동 전 시크릿 검증 (R7)
     │   ├── JpaAuditingConfig.java
@@ -96,7 +97,7 @@ src/main/java/damso/
     │   ├── ErrorCode.java
     │   ├── ErrorResponse.java
     │   ├── BusinessException.java         # 기능 코드가 ErrorCode로 던지는 예외
-    │   ├── GlobalExceptionHandler.java    # @RestControllerAdvice
+    │   ├── GlobalExceptionHandler.java    # @RestControllerAdvice (모든 웹 어댑터 공통)
     │   └── JsonErrorController.java       # /error 잔여 경로
     ├── security/
     │   ├── SecurityConfig.java            # 기본 거부, STATELESS, 공개 경로 목록
@@ -111,15 +112,19 @@ src/main/java/damso/
         └── SensitiveTextConverter.java    # autoApply
 
 src/test/java/damso/
-├── global/error/                   # SC-001
-├── global/config/                  # SC-002 (기동 거부)
-├── global/security/                # SC-003
-├── global/crypto/                  # SC-004·005 (Testcontainers)
-├── global/entity/                  # SC-006 (Testcontainers)
+├── common/error/                   # SC-001
+├── common/config/                  # SC-002 (기동 거부)
+├── common/security/                # SC-003
+├── common/crypto/                  # SC-004·005 (Testcontainers)
+├── common/entity/                  # SC-006 (Testcontainers)
 └── support/                        # 테스트 전용 엔티티·컨트롤러·토큰 발급기
 ```
 
-**Structure Decision**: 단일 Spring Boot 프로젝트. 공통 기반은 `damso.global`에 두고, 기능은 이후 `damso.<도메인>`(예: `damso.auth`, `damso.inquiry`)에 둔다. 테스트 전용 엔티티·컨트롤러는 `src/test`에만 둬서 운영 코드에 진단용 경로가 남지 않게 한다(체크리스트 캡슐화 2).
+**Structure Decision**: 단일 Spring Boot 프로젝트, constitution "아키텍처"의 **헥사고날(도메인별 육각형) + 실용형 JPA**를 따른다.
+- 이번 기능은 도메인이 아니라 공통 기반이라 `damso.common`에 둔다. 포트·어댑터 계층이 필요 없는 횡단 관심사(에러 형식, 보안 필터, 암호화 컨버터, 엔티티 기반)만 있다.
+- 이후 기능은 `damso.<도메인>.{domain, application.port.in, application.port.out, application.service, adapter.in.web, adapter.out.persistence}`에 둔다. 도메인 엔티티는 `damso.common.entity.BaseEntity`를 상속하고, 민감 필드는 `damso.common.crypto.SensitiveText` 타입을 쓴다.
+- `GlobalExceptionHandler`는 모든 웹 어댑터에 공통으로 적용되므로 `common.error`에 둔다.
+- 테스트 전용 엔티티·컨트롤러는 `src/test`에만 둬서 운영 코드에 진단용 경로가 남지 않게 한다(체크리스트 캡슐화 2).
 
 ## Complexity Tracking
 
