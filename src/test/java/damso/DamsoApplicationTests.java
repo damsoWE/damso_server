@@ -1,10 +1,10 @@
 package damso;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class DamsoApplicationTests {
+import damso.support.IntegrationTestSupport;
+
+class DamsoApplicationTests extends IntegrationTestSupport {
 
 	@Test
 	void contextLoads() {

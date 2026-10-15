@@ -82,6 +82,27 @@
 - **암호화**: 문의·답변 본문은 AES-256 기반 컬럼 암호화를 적용한다. 토큰·키·IV 생성에는 `SecureRandom`을 사용한다.
 - **보안약점 관리**: 행정안전부 「소프트웨어 개발보안 가이드」(2021) 구현단계 49개 항목을 `docs/security-checklist.md`에서 조치/미조치/해당없음 3단으로 관리한다.
 
+## 아키텍처
+
+- **헥사고날(포트·어댑터) 구조**를 따른다. 패키지는 도메인별 육각형으로 나눈다.
+  ```
+  damso.<도메인>
+  ├── domain                    # 엔티티·값 객체·도메인 규칙
+  ├── application
+  │   ├── port.in               # 유스케이스 인터페이스
+  │   ├── port.out              # 저장소·외부 시스템 인터페이스
+  │   └── service               # 유스케이스 구현
+  └── adapter
+      ├── in.web                # 컨트롤러·요청/응답 DTO
+      └── out.persistence       # 리포지토리 구현 (외부 시스템은 out.<시스템명>)
+  damso.common                  # 여러 도메인이 쓰는 공통 기반 (에러·보안·암호화·엔티티 기반)
+  ```
+- **의존 방향**은 adapter → application → domain이다. domain과 application은 adapter 패키지를 참조하지 MUST NOT 한다.
+- **실용형 JPA**: 도메인 엔티티에 JPA 어노테이션을 허용하며 공통 `BaseEntity`를 상속한다. 별도 영속성 모델·매퍼는 두지 않는다.
+- 웹 어댑터는 엔티티를 응답으로 직접 내보내지 MUST NOT 한다. 요청·응답은 DTO로 변환한다.
+- 외부 시스템(LLM, 푸시 등) 호출은 `application.port.out` 인터페이스를 통해서만 한다. 외부 LLM용 출력 포트의 구현은 가명화 게이트웨이를 거쳐야 MUST 한다(원칙 II).
+- 다른 도메인의 기능은 그 도메인의 `port.in`으로만 사용하고, 다른 도메인의 리포지토리를 직접 호출하지 않는다.
+
 ## 개발 흐름과 품질 게이트
 
 - **기획서 취급**: `docs/아기하마_개발기획서.pdf`는 참고 자료이며 개발 중 바뀔 수 있다. 기획서와 달라지는 결정은 `docs/decisions.md`에 `날짜 | 원래 → 변경 | 이유`로 기록해야 MUST 한다. 이 constitution의 원칙은 기획서 변경으로 바뀌지 않는다.
@@ -99,4 +120,4 @@
 - **버전 정책**: 원칙 삭제·재정의는 MAJOR, 원칙·섹션 추가나 실질적 확장은 MINOR, 문구 정리는 PATCH로 올린다.
 - **준수 점검**: `/speckit-plan`의 Constitution Check와 PR 리뷰에서 원칙 준수를 확인한다. 위반이 불가피하면 plan의 Complexity Tracking에 사유를 적고 리뷰어 승인을 받는다.
 
-**Version**: 1.1.0 | **Ratified**: 2026-10-14 | **Last Amended**: 2026-10-15
+**Version**: 1.2.0 | **Ratified**: 2026-10-14 | **Last Amended**: 2026-10-15
