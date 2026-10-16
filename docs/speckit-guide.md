@@ -20,13 +20,20 @@
 
 > 기능 하나(F1, F2 …)마다 아래 순서를 한 바퀴 돈다. **한 기능은 한 사람이 끝까지** 맡는다.
 
-### 0. 시작 전
+### 0. 시작 전 — 이슈 만들고 브랜치 연결
+
+> 규칙 원본: `.claude/skills/git-conventions/SKILL.md`. **main에 직접 푸시하지 않는다.**
+
+1. GitHub에서 이슈를 만든다 — New issue → **"기능 요청"** 템플릿, 제목 `[Feat] F1 인증·회원가입·학급 연결`
+2. 이슈와 연결된 브랜치를 만든다 (기능은 `features/…`, 수정은 `fix/…`):
 
 ```bash
 git switch main
 git pull
-git switch -c feat/F1-auth        # 기능마다 브랜치를 새로 만든다
+gh issue develop <이슈 번호> --name features/f1-auth-signup --base main --checkout
 ```
+
+이슈 화면의 "Development"에 브랜치가 보이면 연결된 것이다.
 
 ### 1. 무엇을 만들지 확인 — `docs/features.md`
 
@@ -79,7 +86,7 @@ npx -y @redocly/cli@1.34.5 build-docs specs/NNN-기능명/contracts/<파일>.yam
 
 1. contracts 내용을 `docs/api/openapi.yaml`에 합친다.
 2. `info.version`을 다음 버전으로 올린다 (예: `0.1.0` → `0.2.0`, 태그는 `api-v0.2`가 된다).
-3. 커밋한다 (예: `git commit -m "API 명세: F1 인증·회원가입"`).
+3. 커밋한다 (예: `git commit -m "Feat : F1 API 명세 추가"`).
 
 **태그는 PR이 main에 merge된 뒤에** main에서 찍는다. 손으로 찍지 말고 명령을 쓴다:
 
@@ -119,11 +126,12 @@ npx -y @redocly/cli@1.34.5 build-docs specs/NNN-기능명/contracts/<파일>.yam
 
 ```bash
 git add .
-git commit -m "F1 인증·회원가입·학급 연결 구현"   # 커밋 전에 Gitleaks가 자동 검사한다
-git push -u origin feat/F1-auth
+git commit -m "Feat : F1 인증·회원가입·학급 연결 구현"   # 커밋 전에 Gitleaks가 자동 검사한다
+git push -u origin features/f1-auth-signup
 ```
 
-- GitHub에서 PR을 만든다 → 팀원 리뷰 → CI(Gitleaks) 통과 → main에 merge.
+- 커밋 메시지는 `타입 : 내용` (콜론 앞뒤 공백). 타입은 `Feat`(기능), `Fix`(수정), `Docs`(문서), `Chore`(설정·빌드·템플릿). AI 기여자 표시는 넣지 않는다.
+- GitHub에서 PR을 만든다 → 제목 `[Feat] …`, 본문은 PR 템플릿을 채우고 `Closes #<이슈 번호>` 추가 → 리뷰 → CI(Gitleaks) 통과 → main에 merge.
 - Gitleaks가 커밋을 막으면 비밀번호·키가 들어간 것이다. **그 값을 지우고 `.env`로 옮긴다.** 이미 push했다면 팀에 바로 알리고 키를 교체한다.
 
 ### 프론트 팀원은
