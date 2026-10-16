@@ -22,7 +22,7 @@ to the user's commands and avoid proactive modifications or additions.
 | Security principles (immutable, override the planning doc) | `.specify/memory/constitution.md` |
 | Planning doc (reference only, may change during development) | `docs/아기하마_개발기획서.pdf` |
 | IA / User Flow | `docs/소개딩_IA.pdf` |
-| Design (draft) | [Figma](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/?node-id=11-2) — reference by frame link (node-id) |
+| Design (draft) | [Figma](https://www.figma.com/design/LAQp2ZzMBavuZjjtH1bXFH/%EB%8B%B4%EC%86%8C-%EB%94%94%EC%9E%90%EC%9D%B8?node-id=102-2) — reference by frame link (node-id) |
 | API contract (source of truth) | `docs/api/openapi.yaml` |
 | Deviations from the planning doc | `docs/decisions.md` |
 | Security weakness checklist | `docs/security-checklist.md` |
