@@ -20,9 +20,39 @@
 
 > 기능 하나(F1, F2 …)마다 아래 순서를 한 바퀴 돈다. **한 기능은 한 사람이 끝까지** 맡는다.
 
-### 0. 시작 전 — 이슈 만들고 브랜치 연결
+### 0. 시작 전 — 이슈 만들고 브랜치 연결 (`/new-issue`)
 
 > 규칙 원본: `.claude/skills/git-conventions/SKILL.md`. **main에 직접 푸시하지 않는다.**
+> 명령 정의: `.claude/commands/new-issue.md`. 처음 한 번 `gh auth login`이 필요하다.
+
+맡은 기능 번호를 넣어 실행한다.
+
+```
+/new-issue F1
+```
+
+명령이 하는 일:
+
+1. `docs/features.md`의 F1 섹션과 상태 표를 읽어 **"기능 요청" 템플릿 형식의 이슈 초안**을 만든다 — 제목 `[Feat] F1 인증·회원가입·학급 연결`, 본문(어떤 기능인가요 · 작업 상세 체크리스트 · 유의사항), 라벨, 브랜치 이름.
+2. 초안을 보여 주고 **승인을 받은 뒤에만** 이슈를 만든다. 이슈는 팀 전체에 보이니 내용을 읽고 승인한다. features.md에 없는 내용은 지어내지 않고 `TODO`로 남긴다.
+3. main을 최신으로 받고, **이슈와 연결된 브랜치**(`features/f1-…`)를 만들어 체크아웃한다.
+
+끝나면 이슈 화면의 "Development"에 브랜치가 보이는지 확인하고 1단계로 간다.
+
+| 하고 싶은 것 | 입력 |
+|---|---|
+| 기능 전체 | `/new-issue F1` |
+| 기능의 일부만 | `/new-issue F1 — 초대코드 검증 API만` |
+| 버그 수정 (`fix/…` 브랜치) | `/new-issue fix 로그인 잠금 횟수 초기화 오류` |
+| 문서·설정 작업 | `/new-issue Docs speckit 가이드 수정` · `/new-issue Chore 이슈 템플릿 수정` |
+| 브랜치 없이 이슈만 | 명령 뒤나 초안 확인 때 "이슈만"이라고 말한다 |
+
+- 커밋 안 된 변경이 있으면 브랜치를 만들기 전에 멈추고 묻는다. 먼저 정리하고 다시 실행한다.
+- 이 명령은 **커밋·푸시·PR을 하지 않는다.** 그건 10단계에서 한다.
+- 이슈 번호는 PR 본문의 `Closes #<이슈 번호>`에 쓰니 기억해 둔다.
+
+<details>
+<summary>명령을 못 쓸 때 — 손으로 만들기</summary>
 
 1. GitHub에서 이슈를 만든다 — New issue → **"기능 요청"** 템플릿, 제목 `[Feat] F1 인증·회원가입·학급 연결`
 2. 이슈와 연결된 브랜치를 만든다 (기능은 `features/…`, 수정은 `fix/…`):
@@ -33,7 +63,7 @@ git pull
 gh issue develop <이슈 번호> --name features/f1-auth-signup --base main --checkout
 ```
 
-이슈 화면의 "Development"에 브랜치가 보이면 연결된 것이다.
+</details>
 
 ### 1. 무엇을 만들지 확인 — `docs/features.md`
 
@@ -207,6 +237,7 @@ specify → clarify → plan → tasks → analyze → implement → converge
 
 | 스킬 | 언제 | 입력 | 산출물 |
 |---|---|---|---|
+| `/new-issue` | 기능·수정 작업 시작 전 (specify 전) | F번호 또는 작업 설명 | GitHub 이슈 + 이슈와 연결된 브랜치 |
 | `/speckit-constitution` | 레포당 1회, 원칙 바꿀 때(팀 합의 후) | 원칙 목록 | `.specify/memory/constitution.md` |
 | `/speckit-specify` | 새 기능 시작 | features.md 섹션 | `specs/NNN-기능명/spec.md`, `checklists/requirements.md` |
 | `/speckit-clarify` | spec에 모호한 곳이 있을 때 | 없음 (질문에 답) | spec.md에 결정 반영 (최대 5문항) |
