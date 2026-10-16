@@ -39,8 +39,9 @@ to the user's commands and avoid proactive modifications or additions.
 | Task breakdown | `/speckit-tasks` |
 | Cross-artifact check | `/speckit-analyze` |
 | Implementation | `/speckit-implement` |
+| Issue · branch · commit · PR | `git-conventions` (`.claude/skills/git-conventions/SKILL.md`) |
 
-Skill definitions: `.claude/skills/speckit-*/SKILL.md`.
+Skill definitions: `.claude/skills/*/SKILL.md`.
 
 ## General Rules
 
@@ -50,6 +51,9 @@ Skill definitions: `.claude/skills/speckit-*/SKILL.md`.
   external systems, or DB schema changes.
 - Do not delete files or run destructive Git commands without user approval.
 - Only run git push or git commit when explicitly requested by the user.
+- Follow `.claude/skills/git-conventions/SKILL.md` for every issue, branch
+  (`features/…`, `fix/…`), commit (`Feat : …`, `Fix : …`, `Docs : …`, `Chore : …`), and PR. Never
+  push to `main` directly.
 
 ## Verification
 
