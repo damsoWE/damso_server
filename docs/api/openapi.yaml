@@ -1,13 +1,13 @@
 openapi: 3.0.3
 info:
   title: DAMSO API
-  version: 0.1.0
+  version: 0.2.0
   description: |
     담소 통합 API 명세 (원본). 변경 시 이 파일을 먼저 수정하고 api-vX.Y 태그를 찍는다.
     - 인증: Authorization 헤더의 Bearer 토큰(HS256). 쿠키·세션 없음.
     - 모든 오류는 ErrorResponse 형식. 스택트레이스·예외명·내부 경로·SQL 없음.
     - 식별자는 UUID만 노출.
-    출처: specs/000-foundation (공통 기반)
+    출처: specs/000-foundation (공통 기반), specs/001-auth-signup (F1 인증·회원가입·학급 연결)
   license:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -17,6 +17,19 @@ servers:
 
 security:
   - bearerAuth: []
+
+tags:
+  - name: auth
+    description: 가입·로그인·세션·비밀번호 (로그인 전 단계는 공개)
+  - name: me
+    description: 마이페이지 (모든 역할)
+  - name: parent
+    description: 학부모 전용
+  - name: teacher
+    description: 교사 전용
+  - name: admin
+    description: 슈퍼 관리자 전용. 민원 내용 접근 경로 없음
+
 
 paths:
   /actuator/health:
@@ -48,6 +61,529 @@ paths:
                     type: string
                     enum: [DOWN]
 
+  # ───────────── auth (공개) ─────────────
+  /api/v1/auth/signup:
+    post:
+      tags: [auth]
+      operationId: startSignup
+      summary: 가입 1단계 — 초대 코드 검증 후 이메일 인증 코드 발송
+      description: |
+        초대 코드가 역할과 연결 대상을 정한다(요청에 역할·학급·학생 필드 없음, FR-015).
+        이미 가입된 이메일이어도 같은 202 응답을 주고, 그 주소로 안내 메일만 보낸다(가입 여부 추측 차단).
+        초대 코드 실패는 이메일 기준으로 센다. 5회 실패 시 10분 잠금.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SignupRequest' }
+      responses:
+        '202':
+          description: 인증 코드 발송(또는 안내 메일 발송)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PendingSignupResponse' }
+        '400':
+          description: 입력 검증 실패(INVALID_INPUT) 또는 초대 코드 무효(INVALID_INVITE_CODE, 사유 구분 없음)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              examples:
+                invalidCode: { value: { code: INVALID_INVITE_CODE, message: 코드를 확인해 주세요. } }
+        '429': { $ref: '#/components/responses/TooManyAttempts' }
+
+  /api/v1/auth/signup/verify:
+    post:
+      tags: [auth]
+      operationId: verifySignup
+      summary: 가입 2단계 — 인증 코드 확인, 계정 확정·연결·로그인
+      description: |
+        한 트랜잭션에서 계정 생성 → 초대 코드 사용 처리 → 담임/보호자 연결 → 연결 이력 기록 → 토큰 발급.
+        그 사이 초대 코드가 재발행·만료·사용되었으면 INVALID_INVITE_CODE.
+        같은 초대 코드로 동시에 확정하면 1건만 성공한다(SC-008).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VerifySignupRequest' }
+      responses:
+        '201':
+          description: 가입 완료, 로그인 상태
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenResponse' }
+        '400':
+          description: INVALID_INPUT · INVALID_VERIFICATION_CODE · INVALID_INVITE_CODE
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '429': { $ref: '#/components/responses/TooManyAttempts' }
+
+  /api/v1/auth/signup/resend:
+    post:
+      tags: [auth]
+      operationId: resendSignupCode
+      summary: 가입 인증 코드 재발송 (이전 코드 무효, 60초 1회·시간당 5회)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                pendingSignupId: { $ref: '#/components/schemas/Uuid' }
+              required: [pendingSignupId]
+              additionalProperties: false
+      responses:
+        '202': { description: 재발송 요청 접수 (대기 건이 없어도 같은 응답) }
+        '429': { $ref: '#/components/responses/TooManyAttempts' }
+
+  /api/v1/auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: 로그인 (기기마다 별도 세션)
+      description: |
+        없는 이메일·틀린 비밀번호·탈퇴 계정 모두 INVALID_CREDENTIALS(FR-023).
+        연속 실패 3회부터 대기: 30초·1분·2분·5분·10분(상한). 대기 중 시도는 비밀번호가 맞아도 429(FR-024).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: 로그인 성공
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenResponse' }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+        '401':
+          description: INVALID_CREDENTIALS
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example: { code: INVALID_CREDENTIALS, message: 이메일 또는 비밀번호가 올바르지 않습니다. }
+        '429': { $ref: '#/components/responses/TooManyAttempts' }
+
+  /api/v1/auth/token/refresh:
+    post:
+      tags: [auth]
+      operationId: refreshToken
+      summary: 세션 갱신 — 갱신 토큰 1회 회전, 세션 만료 14일 연장
+      description: |
+        이미 사용된 갱신 토큰이 오면 그 세션(기기)만 폐기하고 401(FR-025, FR-025a).
+        만료·폐기·없는 토큰 모두 UNAUTHORIZED(사유 구분 없음).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken: { type: string, maxLength: 64 }
+              required: [refreshToken]
+              additionalProperties: false
+      responses:
+        '200':
+          description: 새 토큰 쌍
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/v1/auth/password-reset:
+    post:
+      tags: [auth]
+      operationId: requestPasswordReset
+      summary: 재설정 코드 요청 (가입 여부와 관계없이 같은 응답)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { $ref: '#/components/schemas/Email' }
+              required: [email]
+              additionalProperties: false
+      responses:
+        '202': { description: "\"입력한 이메일로 안내를 보냈습니다\" — 가입된 이메일일 때만 실제 발송" }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+
+  /api/v1/auth/password-reset/verify:
+    post:
+      tags: [auth]
+      operationId: verifyPasswordResetCode
+      summary: 재설정 코드 확인 (코드를 소모하지 않음, 실패 횟수는 셈)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ResetCodeRequest' }
+      responses:
+        '204': { description: 코드 유효 — 새 비밀번호 화면으로 }
+        '400':
+          description: INVALID_VERIFICATION_CODE (없음·만료·사용됨·미가입 구분 없음)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '429': { $ref: '#/components/responses/TooManyAttempts' }
+
+  /api/v1/auth/password-reset/confirm:
+    post:
+      tags: [auth]
+      operationId: confirmPasswordReset
+      summary: 새 비밀번호 설정 — 코드 소모, 모든 기기 로그아웃
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ResetCodeRequest'
+                - type: object
+                  properties:
+                    newPassword: { $ref: '#/components/schemas/Password' }
+                  required: [newPassword]
+      responses:
+        '204': { description: 변경 완료. 해당 계정의 모든 세션 폐기(FR-031) }
+        '400':
+          description: INVALID_INPUT(비밀번호 정책) · INVALID_VERIFICATION_CODE
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '429': { $ref: '#/components/responses/TooManyAttempts' }
+
+  # ───────────── auth (인증 필요) ─────────────
+  /api/v1/auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: 이 기기만 로그아웃 (접근 토큰의 세션 폐기)
+      responses:
+        '204': { description: 로그아웃. 다른 기기의 세션은 유지(FR-026) }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ───────────── me ─────────────
+  /api/v1/me:
+    get:
+      tags: [me]
+      operationId: getMe
+      summary: 내 정보
+      description: |
+        마이페이지의 연결된 학급은 역할별 API를 함께 불러 보여 준다(FR-037).
+        교사는 GET /api/v1/teacher/classroom, 학부모는 GET /api/v1/parent/children.
+      responses:
+        '200':
+          description: 본인 정보 (본인 이메일만 포함)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    patch:
+      tags: [me]
+      operationId: updateMe
+      summary: 이름 수정
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { $ref: '#/components/schemas/PersonName' }
+              required: [name]
+              additionalProperties: false
+      responses:
+        '200':
+          description: 수정됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MeResponse' }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/v1/me/withdrawal:
+    post:
+      tags: [me]
+      operationId: withdraw
+      summary: 회원 탈퇴 (현재 비밀번호 재확인)
+      description: |
+        이메일·이름 비식별화, 모든 세션 폐기, 담임/보호자 연결 해제, 연결 이력 기록(FR-038, FR-038a).
+        슈퍼 관리자는 탈퇴할 수 없다(FORBIDDEN) — 서버에서 관리한다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password: { type: string, minLength: 1, maxLength: 64 }
+              required: [password]
+              additionalProperties: false
+      responses:
+        '204': { description: 탈퇴 완료 }
+        '401':
+          description: UNAUTHORIZED · INVALID_CREDENTIALS(비밀번호 불일치)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ───────────── parent ─────────────
+  /api/v1/parent/children:
+    get:
+      tags: [parent]
+      operationId: listMyChildren
+      summary: 연결된 자녀 목록 + 각 담임 공개 프로필 (홈·마이페이지)
+      responses:
+        '200':
+          description: 본인이 보호자인 학생만
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ChildResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [parent]
+      operationId: linkChild
+      summary: 자녀 추가 — 학부모 초대 코드 입력 (실패 횟수는 계정 기준)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                inviteCode: { $ref: '#/components/schemas/InviteCodeInput' }
+              required: [inviteCode]
+              additionalProperties: false
+      responses:
+        '201':
+          description: 연결됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChildResponse' }
+        '400':
+          description: INVALID_INPUT · INVALID_INVITE_CODE (교사 코드·이미 보호자 있는 학생 포함, 사유 구분 없음)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '429': { $ref: '#/components/responses/TooManyAttempts' }
+
+  # ───────────── teacher ─────────────
+  /api/v1/teacher/profile:
+    get:
+      tags: [teacher]
+      operationId: getMyTeacherProfile
+      summary: 내 공개 프로필
+      responses:
+        '200':
+          description: 공개 프로필
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TeacherProfile' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    put:
+      tags: [teacher]
+      operationId: updateMyTeacherProfile
+      summary: 공개 프로필 수정 (표시 이름 + 소개 60자)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TeacherProfile' }
+      responses:
+        '200':
+          description: 수정됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TeacherProfile' }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/teacher/classroom:
+    get:
+      tags: [teacher]
+      operationId: getMyClassroom
+      summary: 담당 학급과 학생별 학부모 연결 현황 (학부모 이메일·이름 없음)
+      responses:
+        '200':
+          description: 본인이 담임인 학급만
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TeacherClassroomResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ───────────── admin ─────────────
+  /api/v1/admin/classrooms:
+    get:
+      tags: [admin]
+      operationId: listClassrooms
+      summary: 학급 목록
+      responses:
+        '200':
+          description: 학급 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AdminClassroom' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [admin]
+      operationId: createClassroom
+      summary: 학급 생성
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                grade: { type: integer, minimum: 1, maximum: 6 }
+                classNumber: { type: integer, minimum: 1, maximum: 20 }
+              required: [grade, classNumber]
+              additionalProperties: false
+      responses:
+        '201':
+          description: 생성됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminClassroom' }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+
+  /api/v1/admin/classrooms/{classroomId}/students:
+    parameters:
+      - { name: classroomId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    get:
+      tags: [admin]
+      operationId: listStudents
+      summary: 학급 학생 명단과 보호자 연결 여부
+      responses:
+        '200':
+          description: 학생 목록
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/StudentSummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [admin]
+      operationId: registerStudents
+      summary: 학생 이름 등록 (한 번에 최대 40명)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                names:
+                  type: array
+                  minItems: 1
+                  maxItems: 40
+                  items: { $ref: '#/components/schemas/PersonName' }
+              required: [names]
+              additionalProperties: false
+      responses:
+        '201':
+          description: 등록된 학생
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/StudentSummary' }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/admin/classrooms/{classroomId}/teacher-invite:
+    parameters:
+      - { name: classroomId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    post:
+      tags: [admin]
+      operationId: issueTeacherInvite
+      summary: 교사 초대 코드 발행·재발행 (이전 미사용 코드 즉시 무효)
+      responses:
+        '201':
+          description: 발행됨. code 원문은 이 응답에서만 보인다
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IssuedInviteCode' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: CLASSROOM_HAS_TEACHER
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /api/v1/admin/students/{studentId}/parent-invite:
+    parameters:
+      - { name: studentId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    post:
+      tags: [admin]
+      operationId: issueParentInvite
+      summary: 학부모 초대 코드 발행·재발행 (학생 1명당 활성 코드 1개)
+      responses:
+        '201':
+          description: 발행됨. code 원문은 이 응답에서만 보인다
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IssuedInviteCode' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: STUDENT_HAS_GUARDIAN
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  /api/v1/admin/invite-codes:
+    get:
+      tags: [admin]
+      operationId: listInviteCodes
+      summary: 발행 현황 (원문 없음)
+      parameters:
+        - { name: classroomId, in: query, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+      responses:
+        '200':
+          description: 해당 학급의 교사·학부모 코드 이력
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/InviteCodeStatus' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
 components:
   securitySchemes:
     bearerAuth:
@@ -74,7 +610,13 @@ components:
         - PAYLOAD_TOO_LARGE
         - UNSUPPORTED_MEDIA_TYPE
         - INTERNAL_ERROR
-      description: 기능별 코드는 각 기능 contract에서 추가한다. 기존 코드의 의미는 바꾸지 않는다.
+        - INVALID_INVITE_CODE
+        - INVALID_VERIFICATION_CODE
+        - INVALID_CREDENTIALS
+        - TOO_MANY_ATTEMPTS
+        - CLASSROOM_HAS_TEACHER
+        - STUDENT_HAS_GUARDIAN
+      description: 기능별 코드는 각 기능 contract에서 추가한다. 기존 코드의 의미는 바꾸지 않는다. F1이 6개(INVALID_INVITE_CODE 이하)를 추가했다.
 
     FieldError:
       type: object
@@ -104,6 +646,176 @@ components:
           items:
             $ref: '#/components/schemas/FieldError'
       required: [code, message]
+      additionalProperties: false
+
+    Email:
+      type: string
+      format: email
+      maxLength: 254
+      description: 대소문자 구분 없음(서버가 소문자로 정규화)
+    Password:
+      type: string
+      minLength: 8
+      maxLength: 64
+      description: 영문 1자 이상 + 숫자 1자 이상
+    PersonName:
+      type: string
+      minLength: 1
+      maxLength: 20
+    InviteCodeInput:
+      type: string
+      minLength: 10
+      maxLength: 10
+      pattern: '^[A-HJKMNP-Za-hjkmnp-z2-9]{10}$'
+      description: 영문 대문자+숫자 10자리(0·O·1·I·L 제외). 소문자 입력은 대문자로 정규화
+    VerificationCode:
+      type: string
+      pattern: '^[0-9]{6}$'
+    Role:
+      type: string
+      enum: [SUPER_ADMIN, TEACHER, PARENT]
+
+    SignupRequest:
+      type: object
+      properties:
+        inviteCode: { $ref: '#/components/schemas/InviteCodeInput' }
+        name: { $ref: '#/components/schemas/PersonName' }
+        email: { $ref: '#/components/schemas/Email' }
+        password: { $ref: '#/components/schemas/Password' }
+        termsAgreed:
+          type: boolean
+          description: true여야 한다
+      required: [inviteCode, name, email, password, termsAgreed]
+      additionalProperties: false
+    PendingSignupResponse:
+      type: object
+      properties:
+        pendingSignupId: { $ref: '#/components/schemas/Uuid' }
+        codeExpiresInSeconds: { type: integer, example: 600 }
+      required: [pendingSignupId, codeExpiresInSeconds]
+      additionalProperties: false
+    VerifySignupRequest:
+      type: object
+      properties:
+        pendingSignupId: { $ref: '#/components/schemas/Uuid' }
+        code: { $ref: '#/components/schemas/VerificationCode' }
+      required: [pendingSignupId, code]
+      additionalProperties: false
+    LoginRequest:
+      type: object
+      properties:
+        email: { $ref: '#/components/schemas/Email' }
+        password: { type: string, minLength: 1, maxLength: 64 }
+      required: [email, password]
+      additionalProperties: false
+    ResetCodeRequest:
+      type: object
+      properties:
+        email: { $ref: '#/components/schemas/Email' }
+        code: { $ref: '#/components/schemas/VerificationCode' }
+      required: [email, code]
+    TokenResponse:
+      type: object
+      properties:
+        accessToken: { type: string, description: 'JWT, 15분' }
+        accessTokenExpiresInSeconds: { type: integer, example: 900 }
+        refreshToken: { type: string, description: 1회용 opaque 값. 갱신마다 바뀐다 }
+        refreshTokenExpiresInSeconds: { type: integer, example: 1209600, description: '14일, 갱신마다 다시 시작' }
+        role: { $ref: '#/components/schemas/Role' }
+      required: [accessToken, accessTokenExpiresInSeconds, refreshToken, refreshTokenExpiresInSeconds, role]
+      additionalProperties: false
+
+    MeResponse:
+      type: object
+      properties:
+        userId: { $ref: '#/components/schemas/Uuid' }
+        name: { type: string }
+        email: { type: string, description: 본인 이메일 }
+        role: { $ref: '#/components/schemas/Role' }
+      required: [userId, name, email, role]
+      additionalProperties: false
+
+    ClassroomRef:
+      type: object
+      properties:
+        classroomId: { $ref: '#/components/schemas/Uuid' }
+        grade: { type: integer }
+        classNumber: { type: integer }
+      required: [classroomId, grade, classNumber]
+      additionalProperties: false
+    TeacherProfile:
+      type: object
+      properties:
+        displayName: { type: string, minLength: 1, maxLength: 20 }
+        introduction: { type: string, maxLength: 60 }
+      required: [displayName, introduction]
+      additionalProperties: false
+    ChildResponse:
+      type: object
+      properties:
+        studentId: { $ref: '#/components/schemas/Uuid' }
+        studentName: { type: string }
+        classroom: { $ref: '#/components/schemas/ClassroomRef' }
+        teacher:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/TeacherProfile'
+          nullable: true
+          description: 담임 공개 프로필. 담임이 아직 없으면 null. 이메일 없음
+      required: [studentId, studentName, classroom, teacher]
+      additionalProperties: false
+    StudentSummary:
+      type: object
+      properties:
+        studentId: { $ref: '#/components/schemas/Uuid' }
+        name: { type: string }
+        guardianLinked: { type: boolean }
+      required: [studentId, name, guardianLinked]
+      additionalProperties: false
+    TeacherClassroomResponse:
+      type: object
+      properties:
+        classroom: { $ref: '#/components/schemas/ClassroomRef' }
+        students:
+          type: array
+          items: { $ref: '#/components/schemas/StudentSummary' }
+      required: [classroom, students]
+      additionalProperties: false
+
+    AdminClassroom:
+      type: object
+      properties:
+        classroomId: { $ref: '#/components/schemas/Uuid' }
+        grade: { type: integer }
+        classNumber: { type: integer }
+        homeroomAssigned: { type: boolean, description: 담임 연결 여부(교사 이름·이메일 없음) }
+        studentCount: { type: integer }
+      required: [classroomId, grade, classNumber, homeroomAssigned, studentCount]
+      additionalProperties: false
+    IssuedInviteCode:
+      type: object
+      properties:
+        inviteCodeId: { $ref: '#/components/schemas/Uuid' }
+        code: { type: string, example: 'K7M3QX9PRT', description: 원문. 이 응답에서 한 번만 제공 }
+        expiresAt: { type: string, format: date-time }
+      required: [inviteCodeId, code, expiresAt]
+      additionalProperties: false
+    InviteCodeStatus:
+      type: object
+      properties:
+        inviteCodeId: { $ref: '#/components/schemas/Uuid' }
+        kind: { type: string, enum: [TEACHER, PARENT] }
+        studentId:
+          type: string
+          format: uuid
+          nullable: true
+          description: 학부모 코드일 때만
+        studentName: { type: string, nullable: true }
+        status: { type: string, enum: [UNUSED, USED, EXPIRED, REVOKED] }
+        issuedAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        usedAt: { type: string, format: date-time, nullable: true }
+      required: [inviteCodeId, kind, studentId, studentName, status, issuedAt, expiresAt, usedAt]
       additionalProperties: false
 
   responses:
@@ -153,3 +865,13 @@ components:
         application/json:
           schema: { $ref: '#/components/schemas/ErrorResponse' }
           example: { code: INTERNAL_ERROR, message: 일시적인 오류가 발생했습니다. }
+    TooManyAttempts:
+      description: 잠금·대기 중 (TOO_MANY_ATTEMPTS)
+      headers:
+        Retry-After:
+          description: 다시 시도할 수 있을 때까지 남은 초
+          schema: { type: integer, minimum: 1, maximum: 600 }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { code: TOO_MANY_ATTEMPTS, message: 잠시 후 다시 시도해 주세요. }

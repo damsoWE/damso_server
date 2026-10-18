@@ -93,13 +93,17 @@
   │   ├── port.out              # 저장소·외부 시스템 인터페이스
   │   └── service               # 유스케이스 구현
   └── adapter
-      ├── in.web                # 컨트롤러·요청/응답 DTO
+      ├── in.controller         # 컨트롤러 (…Controller)
+      │   └── dto
+      │       ├── request       # 요청 DTO (…RequestDTO)
+      │       └── response      # 응답 DTO (…ResponseDTO)
       └── out.persistence       # 리포지토리 구현 (외부 시스템은 out.<시스템명>)
   damso.common                  # 여러 도메인이 쓰는 공통 기반 (에러·보안·암호화·엔티티 기반)
   ```
 - **의존 방향**은 adapter → application → domain이다. domain과 application은 adapter 패키지를 참조하지 MUST NOT 한다.
 - **실용형 JPA**: 도메인 엔티티에 JPA 어노테이션을 허용하며 공통 `BaseEntity`를 상속한다. 별도 영속성 모델·매퍼는 두지 않는다.
-- 웹 어댑터는 엔티티를 응답으로 직접 내보내지 MUST NOT 한다. 요청·응답은 DTO로 변환한다.
+- 컨트롤러 어댑터는 엔티티를 응답으로 직접 내보내지 MUST NOT 한다. 요청·응답은 DTO로 변환한다.
+- **컨트롤러·DTO 이름**: 컨트롤러 클래스는 `…Controller`로 끝내고 `adapter.in.controller`에 둔다. DTO는 컨트롤러 안의 중첩 타입으로 두지 MUST NOT 하며, `adapter.in.controller.dto`의 별도 파일로 두되, 요청 DTO는 `dto.request`에 `…RequestDTO`로, 응답 DTO는 `dto.response`에 `…ResponseDTO`로 둔다.
 - 외부 시스템(LLM, 푸시 등) 호출은 `application.port.out` 인터페이스를 통해서만 한다. 외부 LLM용 출력 포트의 구현은 가명화 게이트웨이를 거쳐야 MUST 한다(원칙 II).
 - 다른 도메인의 기능은 그 도메인의 `port.in`으로만 사용하고, 다른 도메인의 리포지토리를 직접 호출하지 않는다.
 
@@ -120,4 +124,4 @@
 - **버전 정책**: 원칙 삭제·재정의는 MAJOR, 원칙·섹션 추가나 실질적 확장은 MINOR, 문구 정리는 PATCH로 올린다.
 - **준수 점검**: `/speckit-plan`의 Constitution Check와 PR 리뷰에서 원칙 준수를 확인한다. 위반이 불가피하면 plan의 Complexity Tracking에 사유를 적고 리뷰어 승인을 받는다.
 
-**Version**: 1.2.0 | **Ratified**: 2026-10-14 | **Last Amended**: 2026-10-15
+**Version**: 1.3.0 | **Ratified**: 2026-10-14 | **Last Amended**: 2026-10-18
