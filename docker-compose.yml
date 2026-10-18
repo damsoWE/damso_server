@@ -1,0 +1,75 @@
+# 로컬 개발용: PostgreSQL · Redis · Mailpit(메일 확인) · 앱
+#
+# 사용법
+#   1) .env.example을 .env로 복사해 값을 채운다 (.env는 커밋하지 않는다)
+#   2) 인프라만:  docker compose up -d postgres redis mailpit      (앱은 IDE/gradlew bootRun으로)
+#      전부:      docker compose up -d --build
+#   3) 메일함:    http://localhost:8025   API 문서/상태: http://localhost:8080/actuator/health
+#
+# .env의 DAMSO_DB_USERNAME / DAMSO_DB_PASSWORD로 PostgreSQL이 만들어진다.
+# 앱 컨테이너에서는 호스트가 서비스 이름(postgres·redis·mailpit)이라 아래에서 덮어쓴다.
+# 키(COLUMN_ENCRYPTION_KEY, CODE_HASH_KEY)를 바꾸면 기존 DB 데이터를 읽을 수 없으니
+# 바꿔야 하면 `docker compose down -v`로 볼륨을 지우고 새로 시작한다.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: damso
+      POSTGRES_USER: ${DAMSO_DB_USERNAME}
+      POSTGRES_PASSWORD: ${DAMSO_DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d damso"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # 웹 화면
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # 컨테이너 안에서는 localhost가 아니라 서비스 이름으로 접속한다 (env_file 값을 덮어쓴다)
+      DAMSO_DB_URL: jdbc:postgresql://postgres:5432/damso
+      DAMSO_REDIS_HOST: redis
+      DAMSO_REDIS_PORT: "6379"
+      DAMSO_MAIL_HOST: mailpit
+      DAMSO_MAIL_PORT: "1025"
+      DAMSO_MAIL_STARTTLS: "false"
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
