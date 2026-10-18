@@ -21,7 +21,6 @@ import damso.common.crypto.SensitiveText;
 import damso.support.IntegrationTestSupport;
 import damso.support.SecretNote;
 import damso.support.SecretNoteRepository;
-import damso.support.TestJwtIssuer;
 
 /** US6 / SC-006: UUID v4 식별자, 감사 시각·버전 자동, 동시 수정 충돌 → 409. */
 class BaseEntityTest extends IntegrationTestSupport {
@@ -68,7 +67,7 @@ class BaseEntityTest extends IntegrationTestSupport {
 	@Test
 	void conflictIsReportedAs409() throws Exception {
 		MockHttpServletResponse response = mockMvc.perform(get("/test/errors/conflict")
-				.header(HttpHeaders.AUTHORIZATION, bearer(TestJwtIssuer.valid("TEACHER"))))
+				.header(HttpHeaders.AUTHORIZATION, bearer(validToken("TEACHER"))))
 				.andReturn().getResponse();
 		assertThat(response.getStatus()).isEqualTo(409);
 		assertSafeErrorResponse(response.getContentAsString(), "CONFLICT");

@@ -27,7 +27,17 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 public class SecurityConfig {
 
 	/** 인증 없이 허용되는 경로. 기능에서 공개 경로가 필요하면 여기에 명시적으로 추가한다. */
-	static final String[] PUBLIC_PATHS = { "/actuator/health" };
+	static final String[] PUBLIC_PATHS = {
+			"/actuator/health",
+			// F1: 로그인 전 단계만 하나씩 명시한다 (와일드카드 금지, 로그아웃은 인증 필요)
+			"/api/v1/auth/signup",
+			"/api/v1/auth/signup/verify",
+			"/api/v1/auth/signup/resend",
+			"/api/v1/auth/login",
+			"/api/v1/auth/token/refresh",
+			"/api/v1/auth/password-reset",
+			"/api/v1/auth/password-reset/verify",
+			"/api/v1/auth/password-reset/confirm" };
 
 	@Bean
 	SecurityFilterChain securityFilterChain(HttpSecurity http,
@@ -45,6 +55,10 @@ public class SecurityConfig {
 				// 오류 디스패치는 원래 응답 코드를 유지한다 (인증된 요청의 500이 401로 바뀌지 않도록)
 				.dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
 				.requestMatchers(PUBLIC_PATHS).permitAll()
+				// 역할별 경로. 건별 소유권은 서비스에서 한 번 더 검증한다 (원칙 VII)
+				.requestMatchers("/api/v1/admin/**").hasRole("SUPER_ADMIN")
+				.requestMatchers("/api/v1/teacher/**").hasRole("TEACHER")
+				.requestMatchers("/api/v1/parent/**").hasRole("PARENT")
 				.anyRequest().authenticated())
 			.exceptionHandling(exceptions -> exceptions
 				.authenticationEntryPoint(authenticationEntryPoint)

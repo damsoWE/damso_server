@@ -17,7 +17,6 @@ import damso.common.crypto.SensitiveText;
 import damso.support.IntegrationTestSupport;
 import damso.support.SecretNote;
 import damso.support.SecretNoteRepository;
-import damso.support.TestJwtIssuer;
 
 /** US5 / SC-005: 민감 값은 어떤 로그 경로로도 원문이 남지 않는다. */
 @ExtendWith(OutputCaptureExtension.class)
@@ -44,7 +43,7 @@ class SensitiveLoggingTest extends IntegrationTestSupport {
 	@Test
 	void requestBodyIsNotLoggedWhenHandlingFails(CapturedOutput output) throws Exception {
 		mockMvc.perform(post("/test/errors/sensitive-body")
-				.header(HttpHeaders.AUTHORIZATION, bearer(TestJwtIssuer.valid("PARENT")))
+				.header(HttpHeaders.AUTHORIZATION, bearer(validToken("PARENT")))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"content\":\"" + MARKER + "\"}"));
 
@@ -54,7 +53,7 @@ class SensitiveLoggingTest extends IntegrationTestSupport {
 	@Test
 	void brokenJsonBodyIsNotLogged(CapturedOutput output) throws Exception {
 		mockMvc.perform(post("/test/errors/body")
-				.header(HttpHeaders.AUTHORIZATION, bearer(TestJwtIssuer.valid("PARENT")))
+				.header(HttpHeaders.AUTHORIZATION, bearer(validToken("PARENT")))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("{\"content\": " + MARKER + " }"));
 

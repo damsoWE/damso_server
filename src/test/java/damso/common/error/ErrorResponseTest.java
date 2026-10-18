@@ -7,18 +7,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import jakarta.servlet.RequestDispatcher;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
 import damso.support.IntegrationTestSupport;
-import damso.support.TestJwtIssuer;
 
 /** US1 / SC-001: 오류를 유발해도 공통 형식이고 내부 정보가 보이지 않는다. */
 class ErrorResponseTest extends IntegrationTestSupport {
 
-	private final String token = bearer(TestJwtIssuer.valid("TEACHER"));
+	private String token;
+
+	@BeforeEach
+	void issueToken() {
+		token = bearer(validToken("TEACHER"));
+	}
 
 	@Test
 	void unexpectedExceptionIsInternalErrorAndNotRewrittenTo401() throws Exception {

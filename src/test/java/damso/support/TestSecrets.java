@@ -13,6 +13,7 @@ public final class TestSecrets {
 	private static final SecureRandom RANDOM = new SecureRandom();
 	private static final byte[] JWT_KEY = randomBytes(32);
 	private static final byte[] COLUMN_KEY = randomBytes(32);
+	private static final byte[] CODE_HASH_KEY = randomBytes(32);
 
 	static {
 		System.setProperty("DAMSO_DB_URL", "jdbc:postgresql://overridden-by-testcontainers/damso");
@@ -21,6 +22,13 @@ public final class TestSecrets {
 		System.setProperty("DAMSO_COLUMN_ENCRYPTION_KEY", Base64.getEncoder().encodeToString(COLUMN_KEY));
 		System.setProperty("DAMSO_JWT_SECRET", Base64.getEncoder().encodeToString(JWT_KEY));
 		System.setProperty("DAMSO_OPENAI_API_KEY", "test-not-a-real-key");
+		System.setProperty("DAMSO_CODE_HASH_KEY", Base64.getEncoder().encodeToString(CODE_HASH_KEY));
+		// 메일은 테스트에서 가짜 포트로 대체되고, Redis 접속은 Testcontainers @ServiceConnection이 덮어쓴다.
+		System.setProperty("DAMSO_MAIL_HOST", "localhost");
+		System.setProperty("DAMSO_MAIL_PORT", "2525");
+		System.setProperty("DAMSO_MAIL_FROM", "no-reply@damso.test");
+		System.setProperty("DAMSO_REDIS_HOST", "overridden-by-testcontainers");
+		System.setProperty("DAMSO_REDIS_PORT", "6379");
 	}
 
 	private TestSecrets() {
@@ -37,6 +45,10 @@ public final class TestSecrets {
 
 	public static byte[] columnKey() {
 		return COLUMN_KEY.clone();
+	}
+
+	public static byte[] codeHashKey() {
+		return CODE_HASH_KEY.clone();
 	}
 
 	public static byte[] randomBytes(int length) {

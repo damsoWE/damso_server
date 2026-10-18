@@ -18,8 +18,9 @@ public final class TestJwtIssuer {
 	private TestJwtIssuer() {
 	}
 
-	public static String valid(String role) {
-		return signed(TestSecrets.jwtKey(), role, Instant.now().plusSeconds(600), true);
+	/** 유효한 서명·만료이고 sid가 가리키는 세션이 살아 있으면 통과하는 토큰. */
+	public static String valid(String role, UUID sessionId) {
+		return signed(TestSecrets.jwtKey(), role, Instant.now().plusSeconds(600), true, sessionId);
 	}
 
 	public static String expired(String role) {
@@ -35,12 +36,16 @@ public final class TestJwtIssuer {
 	}
 
 	public static String unsigned(String role) {
-		return new PlainJWT(claims(role, Instant.now().plusSeconds(600), true)).serialize();
+		return new PlainJWT(claims(role, Instant.now().plusSeconds(600), true, UUID.randomUUID())).serialize();
 	}
 
 	private static String signed(byte[] key, String role, Instant exp, boolean withIat) {
+		return signed(key, role, exp, withIat, UUID.randomUUID());
+	}
+
+	private static String signed(byte[] key, String role, Instant exp, boolean withIat, UUID sessionId) {
 		try {
-			SignedJWT jwt = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claims(role, exp, withIat));
+			SignedJWT jwt = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claims(role, exp, withIat, sessionId));
 			jwt.sign(new MACSigner(key));
 			return jwt.serialize();
 		}
@@ -49,10 +54,11 @@ public final class TestJwtIssuer {
 		}
 	}
 
-	private static JWTClaimsSet claims(String role, Instant exp, boolean withIat) {
+	private static JWTClaimsSet claims(String role, Instant exp, boolean withIat, UUID sessionId) {
 		JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
 				.subject(UUID.randomUUID().toString())
-				.claim("role", role);
+				.claim("role", role)
+				.claim("sid", sessionId.toString());
 		if (exp != null) {
 			builder.expirationTime(Date.from(exp));
 		}
