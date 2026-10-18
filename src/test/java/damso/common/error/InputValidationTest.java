@@ -10,7 +10,6 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import damso.support.IntegrationTestSupport;
-import damso.support.TestJwtIssuer;
 import tools.jackson.databind.JsonNode;
 
 /** US7 / FR-023~025: 진입 지점 검증, 필드별 고정 사유, 입력값 비반환, 64KB 초과 거부. */
@@ -60,7 +59,7 @@ class InputValidationTest extends IntegrationTestSupport {
 
 	private MockHttpServletResponse postJson(String json) throws Exception {
 		return mockMvc.perform(post("/test/validation")
-				.header(HttpHeaders.AUTHORIZATION, bearer(TestJwtIssuer.valid("PARENT")))
+				.header(HttpHeaders.AUTHORIZATION, bearer(validToken("PARENT")))
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(json)).andReturn().getResponse();
 	}

@@ -17,7 +17,16 @@ public enum ErrorCode {
 	CONFLICT(HttpStatus.CONFLICT, "다른 요청과 충돌했습니다. 다시 시도해 주세요."),
 	PAYLOAD_TOO_LARGE(HttpStatus.CONTENT_TOO_LARGE, "요청 크기가 너무 큽니다."),
 	UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "지원하지 않는 형식입니다."),
-	INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "일시적인 오류가 발생했습니다.");
+	INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "일시적인 오류가 발생했습니다."),
+
+	// F1 (specs/001-auth-signup). 기존 코드 뒤에 둔다 — fromStatus는 선언 순서대로 찾으므로
+	// 400·401·409는 계속 위의 공통 코드로 대응된다.
+	INVALID_INVITE_CODE(HttpStatus.BAD_REQUEST, "코드를 확인해 주세요."),
+	INVALID_VERIFICATION_CODE(HttpStatus.BAD_REQUEST, "인증 코드가 올바르지 않거나 만료되었습니다."),
+	INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."),
+	TOO_MANY_ATTEMPTS(HttpStatus.TOO_MANY_REQUESTS, "잠시 후 다시 시도해 주세요."),
+	CLASSROOM_HAS_TEACHER(HttpStatus.CONFLICT, "이미 담임이 연결된 학급입니다."),
+	STUDENT_HAS_GUARDIAN(HttpStatus.CONFLICT, "이미 보호자가 연결된 학생입니다.");
 
 	private final HttpStatus status;
 	private final String message;

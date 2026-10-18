@@ -19,9 +19,17 @@ import org.springframework.util.StringUtils;
 public class SecretsValidator implements EnvironmentPostProcessor, Ordered {
 
 	static final List<String> REQUIRED = List.of(
-			"DAMSO_DB_URL", "DAMSO_DB_USERNAME", "DAMSO_DB_PASSWORD", "DAMSO_OPENAI_API_KEY");
+			"DAMSO_DB_URL", "DAMSO_DB_USERNAME", "DAMSO_DB_PASSWORD", "DAMSO_OPENAI_API_KEY",
+			"DAMSO_MAIL_HOST", "DAMSO_MAIL_FROM", "DAMSO_REDIS_HOST");
 
-	static final List<String> REQUIRED_KEYS = List.of("DAMSO_COLUMN_ENCRYPTION_KEY", "DAMSO_JWT_SECRET");
+	static final List<String> REQUIRED_KEYS = List.of(
+			"DAMSO_COLUMN_ENCRYPTION_KEY", "DAMSO_JWT_SECRET", "DAMSO_CODE_HASH_KEY");
+
+	static final List<String> REQUIRED_PORTS = List.of("DAMSO_MAIL_PORT", "DAMSO_REDIS_PORT");
+
+	static final String SUPER_ADMIN_EMAIL = "DAMSO_SUPER_ADMIN_EMAIL";
+
+	static final String SUPER_ADMIN_PASSWORD = "DAMSO_SUPER_ADMIN_PASSWORD";
 
 	static final int MIN_KEY_BYTES = 32;
 
@@ -58,7 +66,32 @@ public class SecretsValidator implements EnvironmentPostProcessor, Ordered {
 				problems.add(name + "(키 길이 부족)");
 			}
 		}
+		for (String name : REQUIRED_PORTS) {
+			String value = env.getProperty(name);
+			if (!StringUtils.hasText(value)) {
+				problems.add(name + "(누락)");
+			}
+			else if (!isValidPort(value.trim())) {
+				problems.add(name + "(형식 오류)");
+			}
+		}
+		// 슈퍼 관리자는 둘 다 있거나 둘 다 없어야 한다. 값은 출력하지 않는다.
+		boolean hasEmail = StringUtils.hasText(env.getProperty(SUPER_ADMIN_EMAIL));
+		boolean hasPassword = StringUtils.hasText(env.getProperty(SUPER_ADMIN_PASSWORD));
+		if (hasEmail != hasPassword) {
+			problems.add((hasEmail ? SUPER_ADMIN_PASSWORD : SUPER_ADMIN_EMAIL) + "(쌍 누락)");
+		}
 		return problems;
+	}
+
+	private static boolean isValidPort(String value) {
+		try {
+			int port = Integer.parseInt(value);
+			return port >= 1 && port <= 65535;
+		}
+		catch (NumberFormatException ex) {
+			return false;
+		}
 	}
 
 	/** application*.yml 로드 이후에 실행해 모든 프로퍼티 소스를 본다. */

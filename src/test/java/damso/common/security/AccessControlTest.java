@@ -39,7 +39,7 @@ class AccessControlTest extends IntegrationTestSupport {
 
 	@Test
 	void validTokenIsAccepted() throws Exception {
-		MockHttpServletResponse response = call(get("/test/auth/any"), TestJwtIssuer.valid("PARENT"));
+		MockHttpServletResponse response = call(get("/test/auth/any"), validToken("PARENT"));
 		assertThat(response.getStatus()).isEqualTo(200);
 		assertNoSessionCookie(response);
 	}
@@ -66,23 +66,23 @@ class AccessControlTest extends IntegrationTestSupport {
 
 	@Test
 	void wrongRoleIsForbidden() throws Exception {
-		expectError(call(get("/test/auth/teacher-only"), TestJwtIssuer.valid("PARENT")), 403, "FORBIDDEN");
+		expectError(call(get("/test/auth/teacher-only"), validToken("PARENT")), 403, "FORBIDDEN");
 	}
 
 	@Test
 	void unknownRoleGetsNoAuthority() throws Exception {
-		expectError(call(get("/test/auth/teacher-only"), TestJwtIssuer.valid("ADMIN")), 403, "FORBIDDEN");
+		expectError(call(get("/test/auth/teacher-only"), validToken("ADMIN")), 403, "FORBIDDEN");
 	}
 
 	@Test
 	void rightRoleIsAllowed() throws Exception {
-		assertThat(call(get("/test/auth/teacher-only"), TestJwtIssuer.valid("TEACHER")).getStatus()).isEqualTo(200);
+		assertThat(call(get("/test/auth/teacher-only"), validToken("TEACHER")).getStatus()).isEqualTo(200);
 	}
 
 	@ParameterizedTest
 	@ValueSource(strings = { "/actuator/env", "/actuator/beans", "/actuator/configprops" })
 	void diagnosticEndpointsAreNotExposedEvenWhenAuthenticated(String path) throws Exception {
-		expectError(call(get(path), TestJwtIssuer.valid("SUPER_ADMIN")), 404, "NOT_FOUND");
+		expectError(call(get(path), validToken("SUPER_ADMIN")), 404, "NOT_FOUND");
 	}
 
 	private MockHttpServletResponse call(MockHttpServletRequestBuilder request, String token) throws Exception {

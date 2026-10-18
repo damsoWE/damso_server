@@ -1,5 +1,5 @@
 # 민감 값은 ${DAMSO_*} 환경변수 참조만 둔다 (constitution 원칙 VIII).
-# 필수 시크릿 검증: damso.global.config.SecretsValidator
+# 필수 시크릿 검증: damso.common.config.SecretsValidator
 spring:
   application:
     name: damso
@@ -10,15 +10,48 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: none
+      # F1 팀 결정: 마이그레이션 도구 없이 엔티티 매핑으로 테이블 생성 (specs/001-auth-signup/research.md R1)
+      ddl-auto: update
+  jackson:
+    deserialization:
+      # 계약(additionalProperties: false)대로 알 수 없는 필드는 거부한다. 연락처 같은 필드를 몰래 받지 않는다
+      fail-on-unknown-properties: true
+  data:
+    redis:
+      host: ${DAMSO_REDIS_HOST}
+      port: ${DAMSO_REDIS_PORT}
+      password: ${DAMSO_REDIS_PASSWORD:}
+      # Redis는 실패 횟수·발송 제한 TTL 키에만 쓴다. Spring Data Redis 리포지토리는 쓰지 않는다
+      repositories:
+        enabled: false
+  mail:
+    host: ${DAMSO_MAIL_HOST}
+    port: ${DAMSO_MAIL_PORT}
+    username: ${DAMSO_MAIL_USERNAME:}
+    password: ${DAMSO_MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${DAMSO_MAIL_STARTTLS:true}
+          starttls:
+            enable: ${DAMSO_MAIL_STARTTLS:true}
 
 damso:
   crypto:
     column-key: ${DAMSO_COLUMN_ENCRYPTION_KEY}
+    code-hash-key: ${DAMSO_CODE_HASH_KEY}
   jwt:
     secret: ${DAMSO_JWT_SECRET}
   openai:
     api-key: ${DAMSO_OPENAI_API_KEY}
+  mail:
+    from: ${DAMSO_MAIL_FROM}
+  auth:
+    access-token-ttl: 15m
+    session-ttl: 14d
+  super-admin:
+    email: ${DAMSO_SUPER_ADMIN_EMAIL:}
+    password: ${DAMSO_SUPER_ADMIN_PASSWORD:}
 
 server:
   error:
@@ -40,6 +73,10 @@ management:
       # 쿠버네티스 프로브 그룹 목록을 응답에 넣지 않는다 (contract: status만)
       probes:
         enabled: false
+  health:
+    # SMTP 연결을 health 호출마다 시도하지 않는다 (메일 서버 장애가 서버 상태 DOWN으로 번지지 않게)
+    mail:
+      enabled: false
 
 logging:
   level:

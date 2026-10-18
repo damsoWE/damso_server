@@ -12,7 +12,9 @@ import jakarta.validation.Path;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
@@ -40,6 +42,19 @@ public class GlobalExceptionHandler {
 
 	private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+	/** 잠금·대기 중 (R15). 남은 시간은 Retry-After 헤더(초)로 알린다. 본문은 공통 형식 그대로. */
+	@ExceptionHandler(TooManyAttemptsException.class)
+	ResponseEntity<ErrorResponse> handleTooManyAttempts(TooManyAttemptsException ex) {
+		return ResponseEntity.status(ErrorCode.TOO_MANY_ATTEMPTS.status())
+				.header(HttpHeaders.RETRY_AFTER, String.valueOf(ex.retryAfterSeconds()))
+				.body(ErrorResponse.of(ErrorCode.TOO_MANY_ATTEMPTS));
+	}
+
+	@ExceptionHandler(InvalidInputException.class)
+	ResponseEntity<ErrorResponse> handleInvalidInput(InvalidInputException ex) {
+		return invalid(List.of(new ErrorResponse.FieldError(ex.field(), ex.reason())));
+	}
+
 	@ExceptionHandler(BusinessException.class)
 	ResponseEntity<ErrorResponse> handleBusiness(BusinessException ex) {
 		return respond(ex.errorCode());
@@ -51,8 +66,12 @@ public class GlobalExceptionHandler {
 		return respond(ErrorCode.FORBIDDEN);
 	}
 
-	/** 낙관적 락 실패 — 같은 버전을 기준으로 한 두 번째 수정 (FR-010). */
-	@ExceptionHandler({ OptimisticLockingFailureException.class, OptimisticLockException.class })
+	/**
+	 * 낙관적 락 실패 — 같은 버전을 기준으로 한 두 번째 수정 (FR-010).
+	 * 유니크 제약 위반도 같은 충돌로 본다(동시에 같은 학급을 만들거나 같은 대상의 코드를 발행한 경우).
+	 */
+	@ExceptionHandler({ OptimisticLockingFailureException.class, OptimisticLockException.class,
+			DataIntegrityViolationException.class })
 	ResponseEntity<ErrorResponse> handleConflict(Exception ex) {
 		return respond(ErrorCode.CONFLICT);
 	}
