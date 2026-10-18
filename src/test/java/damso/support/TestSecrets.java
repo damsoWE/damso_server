@@ -1,5 +1,6 @@
 package damso.support;
 
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
 
@@ -23,6 +24,9 @@ public final class TestSecrets {
 		System.setProperty("DAMSO_JWT_SECRET", Base64.getEncoder().encodeToString(JWT_KEY));
 		System.setProperty("DAMSO_OPENAI_API_KEY", "test-not-a-real-key");
 		System.setProperty("DAMSO_CODE_HASH_KEY", Base64.getEncoder().encodeToString(CODE_HASH_KEY));
+		// 실제 Firebase 값이 아닌 모양만 맞춘 JSON. 테스트는 PushSenderPort를 가짜로 바꿔 FCM에 접속하지 않는다.
+		System.setProperty("DAMSO_FCM_CREDENTIALS", Base64.getEncoder().encodeToString(
+				"{\"type\":\"service_account\",\"project_id\":\"damso-test\"}".getBytes(StandardCharsets.UTF_8)));
 		// 메일은 테스트에서 가짜 포트로 대체되고, Redis 접속은 Testcontainers @ServiceConnection이 덮어쓴다.
 		System.setProperty("DAMSO_MAIL_HOST", "localhost");
 		System.setProperty("DAMSO_MAIL_PORT", "2525");

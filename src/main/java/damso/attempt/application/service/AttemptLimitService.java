@@ -1,8 +1,11 @@
 package damso.attempt.application.service;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import damso.attempt.application.port.in.AttemptLimitUseCase;
@@ -22,10 +25,14 @@ public class AttemptLimitService implements AttemptLimitUseCase {
 
 	private final Clock clock;
 
-	public AttemptLimitService(AttemptLimitPort port, CodeHasher hasher, Clock clock) {
+	private final Duration inquirySubmitInterval;
+
+	public AttemptLimitService(AttemptLimitPort port, CodeHasher hasher, Clock clock,
+			@Value("${damso.inquiry.submit-interval:60s}") Duration inquirySubmitInterval) {
 		this.port = port;
 		this.hasher = hasher;
 		this.clock = clock;
+		this.inquirySubmitInterval = inquirySubmitInterval;
 	}
 
 	@Override
@@ -59,6 +66,13 @@ public class AttemptLimitService implements AttemptLimitUseCase {
 		if (waitSeconds > 0) {
 			throw new TooManyAttemptsException(waitSeconds);
 		}
+	}
+
+	@Override
+	public long reserveInquirySubmit(UUID parentId) {
+		long waitMillis = port.reserveRate(AttemptKind.INQUIRY_SUBMIT, hasher.hash(parentId.toString()),
+				clock.instant(), inquirySubmitInterval, inquirySubmitInterval, AttemptPolicy.INQUIRY_MAX_PER_WINDOW);
+		return waitMillis <= 0 ? 0 : ceilSeconds(waitMillis);
 	}
 
 	private static long ceilSeconds(long millis) {

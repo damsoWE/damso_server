@@ -1,8 +1,10 @@
 package damso.attempt.application.port.out;
 
+import java.time.Duration;
 import java.time.Instant;
 
 import damso.attempt.domain.AttemptKind;
+import damso.attempt.domain.AttemptPolicy;
 import damso.attempt.domain.AttemptRule;
 import damso.attempt.domain.AttemptState;
 
@@ -16,7 +18,16 @@ public interface AttemptLimitPort {
 
 	void reset(AttemptKind kind, String subjectHash);
 
+	/**
+	 * 요청 한 건을 예약한다. 최소 간격(minGap)과 윈도(window) 안 최대 건수(max)를 모두 지켜야 허용된다.
+	 * 허용되면 0, 거부되면 기다려야 하는 밀리초.
+	 */
+	long reserveRate(AttemptKind kind, String subjectHash, Instant now, Duration minGap, Duration window, int max);
+
 	/** 메일 발송 한 건을 예약한다. 허용되면 0, 거부되면 기다려야 하는 밀리초. */
-	long reserveMailSend(String subjectHash, Instant now);
+	default long reserveMailSend(String subjectHash, Instant now) {
+		return reserveRate(AttemptKind.MAIL_SEND, subjectHash, now, AttemptPolicy.MAIL_MIN_GAP,
+				AttemptPolicy.MAIL_WINDOW, AttemptPolicy.MAIL_MAX_PER_WINDOW);
+	}
 
 }
