@@ -49,6 +49,14 @@ damso:
   auth:
     access-token-ttl: 15m
     session-ttl: 14d
+  fcm:
+    credentials: ${DAMSO_FCM_CREDENTIALS}
+  notification:
+    dispatch-interval: 10s
+    urgent-reminder-interval: 1h
+    retry-delays: 1m,5m,15m
+  inquiry:
+    submit-interval: 60s
   super-admin:
     email: ${DAMSO_SUPER_ADMIN_EMAIL:}
     password: ${DAMSO_SUPER_ADMIN_PASSWORD:}
