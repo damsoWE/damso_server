@@ -7,6 +7,7 @@ public enum AttemptKind {
 	INVITE_CODE,
 	SIGNUP_CODE,
 	RESET_CODE,
-	MAIL_SEND
+	MAIL_SEND,
+	INQUIRY_SUBMIT
 
 }

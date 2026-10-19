@@ -1,5 +1,6 @@
 package damso.attempt.adapter.out.redis;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +21,7 @@ import damso.common.error.BusinessException;
 import damso.common.error.ErrorCode;
 
 /**
- * 실패 횟수·대기·메일 발송 제한을 Redis TTL 키로 둔다 (research R7).
+ * 실패 횟수·대기·발송·제출 제한을 Redis TTL 키로 둔다 (research R7).
  * 증가와 대기 시각 계산은 Lua 스크립트 한 번으로 원자 처리한다.
  * 대기 판정은 앱 Clock 기준 시각(값)을 비교하고, Redis TTL은 오래된 키 정리에만 쓴다.
  * Redis에 닿을 수 없으면 요청을 거부한다(fail-closed) — 제한 없이 통과시키면 무차별 대입 방어가 꺼진다.
@@ -35,7 +36,7 @@ public class RedisAttemptLimitAdapter implements AttemptLimitPort {
 	@SuppressWarnings("rawtypes")
 	private final DefaultRedisScript<List> recordFailureScript = script("redis/attempt_record_failure.lua", List.class);
 
-	private final DefaultRedisScript<Long> mailSendScript = script("redis/mail_send.lua", Long.class);
+	private final DefaultRedisScript<Long> rateLimitScript = script("redis/rate_limit.lua", Long.class);
 
 	public RedisAttemptLimitAdapter(StringRedisTemplate redis) {
 		this.redis = redis;
@@ -80,13 +81,14 @@ public class RedisAttemptLimitAdapter implements AttemptLimitPort {
 	}
 
 	@Override
-	public long reserveMailSend(String subjectHash, Instant now) {
+	public long reserveRate(AttemptKind kind, String subjectHash, Instant now, Duration minGap, Duration window,
+			int max) {
 		try {
-			Long wait = redis.execute(mailSendScript, List.of(key(AttemptKind.MAIL_SEND, subjectHash)),
+			Long wait = redis.execute(rateLimitScript, List.of(key(kind, subjectHash)),
 					String.valueOf(now.toEpochMilli()),
-					String.valueOf(AttemptPolicy.MAIL_MIN_GAP.toMillis()),
-					String.valueOf(AttemptPolicy.MAIL_WINDOW.toMillis()),
-					String.valueOf(AttemptPolicy.MAIL_MAX_PER_WINDOW),
+					String.valueOf(minGap.toMillis()),
+					String.valueOf(window.toMillis()),
+					String.valueOf(max),
 					UUID.randomUUID().toString());
 			return wait == null ? 0 : wait;
 		}

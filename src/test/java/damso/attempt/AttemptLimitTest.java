@@ -171,6 +171,28 @@ class AttemptLimitTest extends IntegrationTestSupport {
 	}
 
 	@Test
+	void inquirySubmitIsLimitedToOnePerMinutePerParent() {
+		UUID parent = UUID.randomUUID();
+		assertThat(attempts.reserveInquirySubmit(parent)).isZero();
+		assertThat(attempts.reserveInquirySubmit(parent)).isBetween(59L, 60L);
+		// 다른 학부모는 영향 없음
+		assertThat(attempts.reserveInquirySubmit(UUID.randomUUID())).isZero();
+		clock.advance(Duration.ofSeconds(30));
+		assertThat(attempts.reserveInquirySubmit(parent)).isBetween(29L, 30L);
+		clock.advance(Duration.ofSeconds(31));
+		assertThat(attempts.reserveInquirySubmit(parent)).isZero();
+	}
+
+	@Test
+	void inquirySubmitKeyDoesNotContainTheParentId() {
+		UUID parent = UUID.randomUUID();
+		attempts.reserveInquirySubmit(parent);
+		var keys = redis.keys("damso:attempt:INQUIRY_SUBMIT:*");
+		assertThat(keys).isNotEmpty();
+		assertThat(keys).noneMatch(key -> key.contains(parent.toString()));
+	}
+
+	@Test
 	void unreachableRedisRejectsTheRequestInsteadOfSkippingTheLimit() {
 		LettuceConnectionFactory factory = new LettuceConnectionFactory(new RedisStandaloneConfiguration("localhost", 1));
 		factory.afterPropertiesSet();

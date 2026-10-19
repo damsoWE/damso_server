@@ -1,6 +1,7 @@
 package damso.common.config;
 
 import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
 
@@ -10,6 +11,10 @@ import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertyResolver;
 import org.springframework.util.StringUtils;
+
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * 필수 시크릿을 프로퍼티 바인딩 이전에 검사하고, 문제가 있으면 기동을 거부한다 (constitution 원칙 VIII).
@@ -26,6 +31,8 @@ public class SecretsValidator implements EnvironmentPostProcessor, Ordered {
 			"DAMSO_COLUMN_ENCRYPTION_KEY", "DAMSO_JWT_SECRET", "DAMSO_CODE_HASH_KEY");
 
 	static final List<String> REQUIRED_PORTS = List.of("DAMSO_MAIL_PORT", "DAMSO_REDIS_PORT");
+
+	static final String FCM_CREDENTIALS = "DAMSO_FCM_CREDENTIALS";
 
 	static final String SUPER_ADMIN_EMAIL = "DAMSO_SUPER_ADMIN_EMAIL";
 
@@ -75,6 +82,7 @@ public class SecretsValidator implements EnvironmentPostProcessor, Ordered {
 				problems.add(name + "(형식 오류)");
 			}
 		}
+		checkFcmCredentials(env.getProperty(FCM_CREDENTIALS), problems);
 		// 슈퍼 관리자는 둘 다 있거나 둘 다 없어야 한다. 값은 출력하지 않는다.
 		boolean hasEmail = StringUtils.hasText(env.getProperty(SUPER_ADMIN_EMAIL));
 		boolean hasPassword = StringUtils.hasText(env.getProperty(SUPER_ADMIN_PASSWORD));
@@ -82,6 +90,31 @@ public class SecretsValidator implements EnvironmentPostProcessor, Ordered {
 			problems.add((hasEmail ? SUPER_ADMIN_PASSWORD : SUPER_ADMIN_EMAIL) + "(쌍 누락)");
 		}
 		return problems;
+	}
+
+	/** Base64로 디코딩한 JSON에 "type":"service_account"가 있어야 한다. 값은 메시지에 넣지 않는다. */
+	private static void checkFcmCredentials(String value, List<String> problems) {
+		if (!StringUtils.hasText(value)) {
+			problems.add(FCM_CREDENTIALS + "(누락)");
+			return;
+		}
+		String json;
+		try {
+			json = new String(Base64.getDecoder().decode(value.trim()), StandardCharsets.UTF_8);
+		}
+		catch (IllegalArgumentException ex) {
+			problems.add(FCM_CREDENTIALS + "(형식 오류)");
+			return;
+		}
+		try {
+			JsonNode type = new ObjectMapper().readTree(json).get("type");
+			if (type == null || !"service_account".equals(type.asString())) {
+				problems.add(FCM_CREDENTIALS + "(형식 오류)");
+			}
+		}
+		catch (JacksonException ex) {
+			problems.add(FCM_CREDENTIALS + "(형식 오류)");
+		}
 	}
 
 	private static boolean isValidPort(String value) {

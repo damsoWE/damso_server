@@ -4,11 +4,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 import java.time.Clock;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 import com.jayway.jsonpath.JsonPath;
+import tools.jackson.databind.ObjectMapper;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,13 +46,20 @@ import damso.school.domain.Student;
  * 시간은 MutableClock, 메일은 FakeVerificationMailPort로 바꿔 두고, 테스트마다 모든 테이블을 비운다.
  * Docker가 실행 중이어야 한다.
  */
-@SpringBootTest(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
+// 알림 발송기(@Scheduled)는 테스트 중 저절로 돌지 않게 하고(테스트가 직접 호출), 스키마는 매번 새로 만든다
+@SpringBootTest(properties = { "spring.jpa.hibernate.ddl-auto=create-drop", "damso.notification.dispatch-interval=1h" })
 @AutoConfigureMockMvc
 @Import(TestSupportConfig.class)
 public abstract class IntegrationTestSupport {
 
 	/** 테스트 계정 공통 비밀번호(정책 통과). 실제 비밀번호가 아니라 테스트 데이터다. */
 	protected static final String TEST_PASSWORD = "Passw0rd" + "9x";
+
+	/** 긴급 표현 목록(urgent/expressions.txt)에 있는 표현이 든 대표 문장. */
+	protected static final String URGENT_SAMPLE = "우리 아이가 죽고 싶다는 말을 했어요.";
+
+	/** 긴급 표현이 하나도 없는 일반 문의 문장. */
+	protected static final String NORMAL_SAMPLE = "내일 현장체험학습 준비물이 무엇인지 알려 주세요.";
 
 	static {
 		TestSecrets.init();
@@ -96,6 +106,9 @@ public abstract class IntegrationTestSupport {
 	protected FakeVerificationMailPort mail;
 
 	@Autowired
+	protected FakePushSender pushes;
+
+	@Autowired
 	protected ClassroomPort classroomPort;
 
 	@Autowired
@@ -113,6 +126,7 @@ public abstract class IntegrationTestSupport {
 		}
 		clock.reset();
 		mail.clear();
+		pushes.clear();
 	}
 
 	/** 테스트마다 모든 테이블을 비워 서로 영향을 주지 않게 한다(학년·반 유니크 등 충돌 방지). */
@@ -236,6 +250,51 @@ public abstract class IntegrationTestSupport {
 	protected MockHttpServletResponse verifySignup(String pendingSignupId, String code) throws Exception {
 		return send(json(post("/api/v1/auth/signup/verify"),
 				"{\"pendingSignupId\":\"" + pendingSignupId + "\",\"code\":\"" + code + "\"}"), null);
+	}
+
+	// ---- 문의·알림 (F2) ----
+
+	private static final ObjectMapper JSON = new ObjectMapper();
+
+	/** 문의 제출 요청. 새 Idempotency-Key를 붙인다. 같은 키로 다시 보내려면 키를 받는 오버로드를 쓴다. */
+	protected MockHttpServletResponse submitInquiry(String token, UUID studentId, String content) throws Exception {
+		return submitInquiry(token, studentId, content, UUID.randomUUID());
+	}
+
+	protected MockHttpServletResponse submitInquiry(String token, UUID studentId, String content, UUID idempotencyKey)
+			throws Exception {
+		String body = JSON.writeValueAsString(Map.of("studentId", studentId.toString(), "content", content));
+		return send(json(post("/api/v1/parent/inquiries"), body).header("Idempotency-Key", idempotencyKey.toString()),
+				token);
+	}
+
+	/** 교사·학급·학생·학부모를 F1 가입 흐름으로 한 번에 만든다(교사는 담임). */
+	protected record Scenario(Classroom classroom, Student student, SignedUp teacher, SignedUp parent) {
+	}
+
+	protected Scenario teacherWithClassroom() throws Exception {
+		return teacherWithClassroom(1, 1);
+	}
+
+	protected Scenario teacherWithClassroom(int grade, int classNumber) throws Exception {
+		Classroom classroom = newClassroom(grade, classNumber);
+		Student student = newStudent(classroom, "김하나");
+		SignedUp teacher = signUpWith(issueTeacherCode(classroom), "최선생");
+		SignedUp parent = signUpWith(issueParentCode(student), "박부모");
+		return new Scenario(classroom, student, teacher, parent);
+	}
+
+	/** 접근 토큰의 sid(세션 UUID). */
+	protected static UUID sessionIdOf(String accessToken) throws Exception {
+		String payload = new String(Base64.getUrlDecoder().decode(accessToken.split("[.]")[1]));
+		return UUID.fromString(JSON.readTree(payload).get("sid").asString());
+	}
+
+	/** 기기를 DB에 직접 등록한다(등록 API를 거치지 않는다). */
+	protected void registerDevice(UUID userId, UUID sessionId, String token) {
+		jdbc.update("insert into device_registration (id, created_at, updated_at, version, user_id, session_id, "
+				+ "token, platform, active) values (?, now(), now(), 0, ?, ?, ?, 'ANDROID', true)",
+				UUID.randomUUID(), userId, sessionId, token);
 	}
 
 	/** 가입 완료된 사용자. */

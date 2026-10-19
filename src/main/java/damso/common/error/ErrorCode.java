@@ -26,7 +26,11 @@ public enum ErrorCode {
 	INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."),
 	TOO_MANY_ATTEMPTS(HttpStatus.TOO_MANY_REQUESTS, "잠시 후 다시 시도해 주세요."),
 	CLASSROOM_HAS_TEACHER(HttpStatus.CONFLICT, "이미 담임이 연결된 학급입니다."),
-	STUDENT_HAS_GUARDIAN(HttpStatus.CONFLICT, "이미 보호자가 연결된 학생입니다.");
+	STUDENT_HAS_GUARDIAN(HttpStatus.CONFLICT, "이미 보호자가 연결된 학생입니다."),
+
+	// F2 (specs/002-inquiry-intake-urgent). 역시 기존 코드 뒤에 둔다.
+	NO_HOMEROOM_TEACHER(HttpStatus.CONFLICT, "담임 선생님이 아직 연결되지 않았습니다."),
+	INQUIRY_CONTENT_UNAVAILABLE(HttpStatus.CONFLICT, "아직 열람할 수 없는 문의입니다.");
 
 	private final HttpStatus status;
 	private final String message;

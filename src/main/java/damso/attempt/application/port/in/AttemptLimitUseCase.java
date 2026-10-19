@@ -1,5 +1,7 @@
 package damso.attempt.application.port.in;
 
+import java.util.UUID;
+
 import damso.attempt.domain.AttemptKind;
 
 /**
@@ -20,5 +22,11 @@ public interface AttemptLimitUseCase {
 
 	/** reserveMailSend가 거부되면 TooManyAttemptsException. */
 	void ensureMailSendAllowed(String subject);
+
+	/**
+	 * 일반 문의 제출 한 건을 예약한다(학부모 UUID 기준 60초 1건). 허용되면 0, 거부되면 기다려야 하는 초(올림).
+	 * 거부는 예외가 아니라 반환값이다. 저장소 장애는 BusinessException(INTERNAL_ERROR)로 전파되며 호출자가 정책을 정한다.
+	 */
+	long reserveInquirySubmit(UUID parentId);
 
 }

@@ -1,0 +1,15 @@
+.git
+.gradle
+build
+.idea
+.claude
+.agents
+.specify
+.github
+specs
+docs
+.env
+.env.*
+!.env.example
+*.md
+*.log
