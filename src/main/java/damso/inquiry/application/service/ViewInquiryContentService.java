@@ -4,7 +4,7 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataAccessException;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,8 +59,9 @@ public class ViewInquiryContentService implements ViewInquiryContentUseCase {
 		try {
 			confirmation.confirmIfDelivered(inquiryId);
 		}
-		catch (DataAccessException ex) {
+		catch (OptimisticLockingFailureException ex) {
 			// 다른 열람이 먼저 확인 처리했다(낙관적 락 충돌). 이미 확인된 것으로 보고 열람은 계속한다.
+			// 그 밖의 데이터 접근 오류(DB 장애·이력 저장 실패)는 잡지 않는다 — 전파되어 본문이 나가지 않는다.
 			log.debug("문의 확인 전이 충돌 (inquiry={}, type={})", inquiryId, ex.getClass().getSimpleName());
 		}
 		return new InquiryContentView(inquiryId, inquiry.getContent().reveal());
