@@ -23,6 +23,8 @@ public final class TestSecrets {
 		System.setProperty("DAMSO_COLUMN_ENCRYPTION_KEY", Base64.getEncoder().encodeToString(COLUMN_KEY));
 		System.setProperty("DAMSO_JWT_SECRET", Base64.getEncoder().encodeToString(JWT_KEY));
 		System.setProperty("DAMSO_OPENAI_API_KEY", "test-not-a-real-key");
+		// 테스트는 ExternalAiPort를 가짜로 바꿔 외부 AI에 접속하지 않는다
+		System.setProperty("DAMSO_OPENAI_MODEL", "test-model");
 		System.setProperty("DAMSO_CODE_HASH_KEY", Base64.getEncoder().encodeToString(CODE_HASH_KEY));
 		// 실제 Firebase 값이 아닌 모양만 맞춘 JSON. 테스트는 PushSenderPort를 가짜로 바꿔 FCM에 접속하지 않는다.
 		System.setProperty("DAMSO_FCM_CREDENTIALS", Base64.getEncoder().encodeToString(

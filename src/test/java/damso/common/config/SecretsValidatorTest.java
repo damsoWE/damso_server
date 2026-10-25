@@ -29,7 +29,7 @@ class SecretsValidatorTest {
 	@ValueSource(strings = { "DAMSO_DB_URL", "DAMSO_DB_USERNAME", "DAMSO_DB_PASSWORD",
 			"DAMSO_COLUMN_ENCRYPTION_KEY", "DAMSO_JWT_SECRET", "DAMSO_OPENAI_API_KEY",
 			"DAMSO_CODE_HASH_KEY", "DAMSO_MAIL_HOST", "DAMSO_MAIL_PORT", "DAMSO_MAIL_FROM",
-			"DAMSO_REDIS_HOST", "DAMSO_REDIS_PORT", "DAMSO_FCM_CREDENTIALS" })
+			"DAMSO_REDIS_HOST", "DAMSO_REDIS_PORT", "DAMSO_FCM_CREDENTIALS", "DAMSO_OPENAI_MODEL" })
 	void refusesWhenAnySecretIsMissing(String name) {
 		MockEnvironment env = complete();
 		env.setProperty(name, "");
@@ -140,6 +140,7 @@ class SecretsValidatorTest {
 				.withProperty("DAMSO_COLUMN_ENCRYPTION_KEY", KEY_32)
 				.withProperty("DAMSO_JWT_SECRET", KEY_32)
 				.withProperty("DAMSO_OPENAI_API_KEY", "openai-key-value")
+				.withProperty("DAMSO_OPENAI_MODEL", "model-name-value")
 				.withProperty("DAMSO_CODE_HASH_KEY", KEY_32)
 				.withProperty("DAMSO_MAIL_HOST", "smtp.example")
 				.withProperty("DAMSO_MAIL_PORT", "587")

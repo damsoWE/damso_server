@@ -30,7 +30,12 @@ public enum ErrorCode {
 
 	// F2 (specs/002-inquiry-intake-urgent). 역시 기존 코드 뒤에 둔다.
 	NO_HOMEROOM_TEACHER(HttpStatus.CONFLICT, "담임 선생님이 아직 연결되지 않았습니다."),
-	INQUIRY_CONTENT_UNAVAILABLE(HttpStatus.CONFLICT, "아직 열람할 수 없는 문의입니다.");
+	INQUIRY_CONTENT_UNAVAILABLE(HttpStatus.CONFLICT, "아직 열람할 수 없는 문의입니다."),
+
+	// F3 (specs/003-pseudonymization-pipeline). 역시 기존 코드 뒤에 둔다.
+	// INQUIRY_CONTENT_UNAVAILABLE은 F3부터 응답하지 않지만(일반 문의 원문 열람 허용) 의미를 바꾸지 않도록 남긴다.
+	REFINEMENT_NOT_READY(HttpStatus.CONFLICT, "아직 정리된 내용이 없습니다."),
+	REFINEMENT_RETRY_UNAVAILABLE(HttpStatus.CONFLICT, "다시 정리할 수 없는 문의입니다.");
 
 	private final HttpStatus status;
 	private final String message;

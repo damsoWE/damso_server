@@ -145,4 +145,59 @@ class InquirySensitiveLoggingTest extends IntegrationTestSupport {
 		assertThat(logs).contains("Unhandled exception");
 	}
 
+	/**
+	 * F3 T054 / SC-002·009, 원칙 II·VI: 정리 성공·형식 위반·응답 없음·교사 재시도·위기 분류·번역본·원문 열람 경로 전체에서
+	 * 문의 본문, 가린 본문, 정리 결과(제목·사실관계·요청사항), 학생·보호자·교사 이름, 전화번호가 로그에 남지 않는다.
+	 */
+	@Test
+	void refinementPathsNeverLogContentMaskedTextResultsOrNames(CapturedOutput output) throws Exception {
+		String parentName = "로그보호자" + "ZXQ";
+		String teacherName = "로그담임" + "ZXQ";
+		String phone = "010-9876-" + "5432";
+		String body = "로그검사정리본문ZXQ" + "7394 " + STUDENT_NAME + " " + phone;
+		String refinedTitle = "로그정리제목ZXQ" + "7395";
+		String refinedFacts = "로그정리사실ZXQ" + "7396";
+		String refinedRequests = "로그정리요청ZXQ" + "7397";
+		List<String> secrets = List.of(body, STUDENT_NAME, parentName, teacherName, phone, refinedTitle, refinedFacts,
+				refinedRequests, "[STUDENT_1]", "[PHONE_1]");
+
+		Classroom classroom = newClassroom();
+		Student student = newStudent(classroom, STUDENT_NAME);
+		SignedUp teacher = signUpWith(issueTeacherCode(classroom), teacherName);
+		SignedUp parent = signUpWith(issueParentCode(student), parentName);
+
+		// 정리 성공 → 번역본·원문 열람
+		fakeAi.replyNext(damso.support.FakeExternalAi.refinementJson(refinedTitle, refinedFacts + " [STUDENT_1]",
+				refinedRequests, "LOW", List.of()));
+		String refined = read(submitInquiry(parent.accessToken(), student.getId(), body), "$.inquiryId");
+		send(get("/api/v1/teacher/inquiries"), teacher.accessToken());
+		send(get("/api/v1/teacher/inquiries/" + refined + "/refinement"), teacher.accessToken());
+		send(get("/api/v1/teacher/inquiries/" + refined + "/content"), teacher.accessToken());
+
+		// 형식 위반 → 자동 재시도도 응답 없음 → 원문 확인 필요 → 교사 재시도(예외)
+		clock.advance(Duration.ofSeconds(61));
+		fakeAi.replyNext("{\"title\":\"" + refinedTitle + "\",\"facts\":\"" + refinedFacts + "\"}");
+		fakeAi.noResponseNext();
+		String failed = read(submitInquiry(parent.accessToken(), student.getId(), body + " 2"), "$.inquiryId");
+		send(get("/api/v1/teacher/inquiries/" + failed + "/refinement"), teacher.accessToken());
+		fakeAi.throwNext();
+		send(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+				.post("/api/v1/teacher/inquiries/" + failed + "/refinement/retry"), teacher.accessToken());
+		send(get("/api/v1/teacher/inquiries/" + failed + "/content"), teacher.accessToken());
+
+		// 긴급 문의의 위기 분류(성공·실패)
+		fakeAi.replyNext(damso.support.FakeExternalAi.crisisJson("ABUSE"));
+		submitInquiry(parent.accessToken(), student.getId(), URGENT_BODY + " " + STUDENT_NAME);
+		fakeAi.replyNext("{\"crisisType\":\"" + refinedTitle + "\"}");
+		submitInquiry(parent.accessToken(), student.getId(), URGENT_BODY + " 다시 " + phone);
+
+		String logs = output.getAll();
+		for (String secret : secrets) {
+			assertThat(logs).as("secret of length %d", secret.length()).doesNotContain(secret);
+		}
+		// 정리 결과와 실패는 작업 UUID·결과 코드로만 남는다
+		assertThat(logs).contains("result=REFINED").contains("result=NEEDS_ORIGINAL").contains("result=CLASSIFIED")
+				.contains("result=UNCLASSIFIED");
+	}
+
 }

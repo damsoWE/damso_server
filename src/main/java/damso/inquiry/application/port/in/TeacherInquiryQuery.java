@@ -5,12 +5,17 @@ import java.util.List;
 import java.util.UUID;
 
 import damso.inquiry.domain.InquiryStage;
+import damso.inquiry.domain.RefinementStatus;
 
-/** 교사가 담당 학급의 문의를 보는 조회. 본문은 어디에도 없다(원문은 ViewInquiryContentUseCase로만, 감사 기록과 함께). */
+/**
+ * 교사가 담당 학급의 문의를 보는 조회. 본문·번역본은 어디에도 없다
+ * (원문은 ViewInquiryContentUseCase로만 감사 기록과 함께, 번역본은 ViewRefinementUseCase로만).
+ */
 public interface TeacherInquiryQuery {
 
+	/** refinementStatus는 일반 문의의 정리 상태, 긴급 문의는 null(F3). */
 	record InquirySummary(UUID inquiryId, UUID studentId, String studentName, boolean urgent, String title,
-			InquiryStage stage, Instant submittedAt) {
+			InquiryStage stage, RefinementStatus refinementStatus, Instant submittedAt) {
 
 		/** 학생 이름이 로그·예외에 섞이지 않도록 가린다. */
 		@Override
@@ -23,8 +28,10 @@ public interface TeacherInquiryQuery {
 	record InquiryPage(List<InquirySummary> items, int page, int size, long totalElements) {
 	}
 
+	/** retryAvailable: 원문 확인 필요(NEEDS_ORIGINAL)이고 아직 교사 재시도를 쓰지 않았으면 true(F3). */
 	record InquiryDetail(UUID inquiryId, UUID studentId, String studentName, boolean urgent, String title,
-			InquiryStage stage, Instant submittedAt, List<StageEventView> timeline) {
+			InquiryStage stage, RefinementStatus refinementStatus, boolean retryAvailable, Instant submittedAt,
+			List<StageEventView> timeline) {
 
 		@Override
 		public String toString() {

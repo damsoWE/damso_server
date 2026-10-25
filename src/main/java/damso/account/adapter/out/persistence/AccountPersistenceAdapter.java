@@ -1,6 +1,8 @@
 package damso.account.adapter.out.persistence;
 
 import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -51,6 +53,11 @@ class AccountPersistenceAdapter implements UserAccountPort, SessionPort, Pending
 	@Override
 	public Optional<UserAccount> findById(UUID id) {
 		return accounts.findById(id);
+	}
+
+	@Override
+	public List<UserAccount> findAllByIds(Collection<UUID> ids) {
+		return ids.isEmpty() ? List.of() : accounts.findAllById(ids);
 	}
 
 	@Override

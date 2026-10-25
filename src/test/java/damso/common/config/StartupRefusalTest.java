@@ -41,7 +41,8 @@ class StartupRefusalTest {
 				.hasStackTraceContaining("DAMSO_OPENAI_API_KEY(누락)")
 				.hasStackTraceContaining("DAMSO_CODE_HASH_KEY(누락)")
 				.hasStackTraceContaining("DAMSO_REDIS_HOST(누락)")
-				.hasStackTraceContaining("DAMSO_FCM_CREDENTIALS(누락)");
+				.hasStackTraceContaining("DAMSO_FCM_CREDENTIALS(누락)")
+				.hasStackTraceContaining("DAMSO_OPENAI_MODEL(누락)");
 		assertThat(output.getAll()).doesNotContain("very-secret-db-password").doesNotContain(shortKey);
 	}
 
