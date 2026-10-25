@@ -85,7 +85,7 @@ class RefinementResultTest {
 				"\"" + masked.text().value() + "\"", "\"\"", "\"LOW\"", "[]"), masked.map());
 
 		assertThat(result).isPresent();
-		assertThat(result.get().facts()).isEqualTo("［STUDENT_1］ 라고 썼어요 김민준이");
+		assertThat(result.get().facts()).isEqualTo("［STUDENT_1］ 라고 썼어요 민준이");
 	}
 
 }

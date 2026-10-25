@@ -27,7 +27,8 @@ class RefineInquiryGatewayServiceTest {
 	@BeforeEach
 	void setUp() {
 		ai = new FakeExternalAi();
-		gateway = new RefineInquiryGatewayService(ai, task -> "고정 지시", () -> List.of("한양초등학교", "한양초"));
+		gateway = new RefineInquiryGatewayService(
+				new MaskedAiCall(ai, task -> "고정 지시", () -> List.of("한양초등학교", "한양초")));
 	}
 
 	@Test
@@ -37,8 +38,8 @@ class RefineInquiryGatewayServiceTest {
 		assertThat(ai.calls()).hasSize(1);
 		assertThat(ai.calls().get(0).userText()).isEqualTo("[SCHOOL_1] [CLASS_1] [STUDENT_1]이 엄마 [GUARDIAN_1]입니다.");
 		assertThat(outcome.succeeded()).isTrue();
-		// 기본 가짜 응답은 가린 본문을 facts로 돌려준다 → 복원되어 원래 이름으로 보인다
-		assertThat(outcome.result().facts()).isEqualTo("한양초등학교 3학년 2반 김민준이 엄마 박지영입니다.");
+		// 기본 가짜 응답은 가린 본문을 facts로 돌려준다 → 본 표기 그대로 복원된다(정식 이름으로 바꾸지 않는다)
+		assertThat(outcome.result().facts()).isEqualTo("한양초 3학년 2반 민준이 엄마 박지영입니다.");
 	}
 
 	@Test

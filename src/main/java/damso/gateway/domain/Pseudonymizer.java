@@ -1,6 +1,5 @@
 package damso.gateway.domain;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
@@ -14,13 +13,16 @@ import java.util.stream.Collectors;
  * 문의 본문의 식별정보를 토큰으로 바꾼다 (원칙 II, research R2·R3). 외부 의존 없는 순수 함수다.
  * <ol>
  * <li>입력에 이미 있는 토큰 모양 문자열([STUDENT_1] 등)은 대괄호를 전각(［ ］)으로 바꿔 무력화한다 — 학부모가 쓴 글이 복원 단계에서
- * 다른 사람 이름으로 바뀌지 않게.</li>
- * <li>1차 사전: 학생·보호자·교사 이름(성+이름, 3자 이름은 이름 2자도), 학급(학년·반 표기 변형), 학교 용어. 한 사람(한 대상)은 표기가
- * 달라도 같은 토큰이고, 긴 표기부터 한 번에 바꾼다(겹침 없음).</li>
- * <li>2차 패턴: 주민등록번호 형태, 전화번호, 이메일, 주소(아파트 동·호, 도로명, 지번). 같은 값은 같은 토큰.</li>
+ * 다른 값으로 바뀌지 않게.</li>
+ * <li>2차 패턴을 먼저: 주민등록번호 형태, 전화번호, 이메일, 주소(아파트 동·호, 도로명, 지번). 사전 표기("1-1" 같은 학급 표기)가
+ * 번호 안을 먼저 바꿔 번호 패턴이 깨지는 일을 막는다.</li>
+ * <li>1차 사전: 학생·보호자·교사 이름(성+이름, 3자 이름은 이름 2자도), 학급(학년·반 표기 변형), 학교 용어. 이미 들어간 토큰은 건너뛰고,
+ * 숫자로 시작·끝나는 표기는 숫자 경계, 영문으로 시작·끝나는 표기는 영문·숫자 경계를 건다("2반"이 "12반" 안에서, "EN"이 토큰 안에서
+ * 매치되지 않게). 긴 표기부터 한 번에 바꾼다.</li>
  * </ol>
+ * 토큰은 표기마다 따로 매기고(같은 표기는 같은 토큰), 복원하면 본 표기 그대로 돌아온다 — "하나만"이 "이하나만"으로, "2학년"이
+ * "2학년 3반"으로 바뀌어 번역본의 뜻이 달라지지 않게(자체 코드 리뷰, 방향 A).
  * 사전에 없는 이름(다른 반 친구 등)과 패턴에 맞지 않는 식별정보는 가려지지 않는다 — 알려진 한계(research R2).
- * 과잉 가림은 안전한 쪽이라 받아들인다(예: 이름 "하나"가 일반 낱말 "하나"도 가린다).
  */
 public final class Pseudonymizer {
 
@@ -54,29 +56,114 @@ public final class Pseudonymizer {
 
 	}
 
-	/** 사전의 한 항목: 문의에 나타날 수 있는 표기(surface)와 그것이 가리키는 대상(entity). */
-	record Entry(String surface, String entity, TokenKind kind, String canonical) {
+	/**
+	 * 한 명단으로 만든 1차 사전. 표기 → 종류와, 경계를 건 표기 정규식을 한 번만 만들어 가명화와 자기 점검(MaskingVerifier)에 함께 쓴다.
+	 * 이름을 담고 있으므로 toString은 표기 수만 보여 준다.
+	 */
+	public static final class Dictionary {
+
+		private final Map<String, TokenKind> kindBySurface;
+
+		/** 표기만 찾는 정규식. 사전이 비면 null. */
+		private final Pattern surfaces;
+
+		/** 토큰을 먼저 알아보고(건너뛰기) 표기를 찾는 정규식. 사전이 비면 null. */
+		private final Pattern tokensOrSurfaces;
+
+		private Dictionary(Map<String, TokenKind> kindBySurface) {
+			this.kindBySurface = kindBySurface;
+			if (kindBySurface.isEmpty()) {
+				this.surfaces = null;
+				this.tokensOrSurfaces = null;
+				return;
+			}
+			String alternation = kindBySurface.keySet().stream()
+					.sorted(Comparator.comparingInt(String::length).reversed())
+					.map(Dictionary::bounded)
+					.collect(Collectors.joining("|"));
+			this.surfaces = Pattern.compile(alternation);
+			this.tokensOrSurfaces = Pattern.compile("(" + TokenKind.TOKEN.pattern() + ")|(?:" + alternation + ")");
+		}
+
+		public static Dictionary of(Roster roster) {
+			Map<String, TokenKind> kinds = new LinkedHashMap<>();
+			addPeople(kinds, roster.studentNames(), TokenKind.STUDENT);
+			addPeople(kinds, roster.guardianNames(), TokenKind.GUARDIAN);
+			addPeople(kinds, roster.teacherNames(), TokenKind.TEACHER);
+			if (roster.grade() > 0 && roster.classNumber() > 0) {
+				int grade = roster.grade();
+				int number = roster.classNumber();
+				for (String surface : List.of(grade + "학년 " + number + "반", grade + "학년" + number + "반",
+						grade + "-" + number + "반", grade + "-" + number, grade + "학년", number + "반")) {
+					kinds.putIfAbsent(surface, TokenKind.CLASS);
+				}
+			}
+			for (String term : roster.schoolTerms()) {
+				if (term != null && !term.isBlank()) {
+					kinds.putIfAbsent(term.strip(), TokenKind.SCHOOL);
+				}
+			}
+			return new Dictionary(kinds);
+		}
+
+		/** 같은 표기가 여러 사람에 속하면(동명이인) 먼저 나온 종류로 묶는다 — 어느 쪽이든 가려진다. */
+		private static void addPeople(Map<String, TokenKind> kinds, List<String> names, TokenKind kind) {
+			for (String raw : names) {
+				if (raw == null) {
+					continue;
+				}
+				String name = raw.strip();
+				if (name.length() < 2) {
+					continue;
+				}
+				kinds.putIfAbsent(name, kind);
+				if (name.length() == 3) {
+					kinds.putIfAbsent(name.substring(1), kind);
+				}
+			}
+		}
+
+		/** 숫자로 시작·끝나면 숫자 경계, 영문으로 시작·끝나면 영문·숫자 경계를 건다. */
+		private static String bounded(String surface) {
+			char first = surface.charAt(0);
+			char last = surface.charAt(surface.length() - 1);
+			String before = Character.isDigit(first) ? "(?<!\\d)" : isAsciiLetter(first) ? "(?<![A-Za-z0-9])" : "";
+			String after = Character.isDigit(last) ? "(?!\\d)" : isAsciiLetter(last) ? "(?![A-Za-z0-9])" : "";
+			return before + Pattern.quote(surface) + after;
+		}
+
+		private static boolean isAsciiLetter(char c) {
+			return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+		}
+
+		/** 표기만 찾는 정규식. 사전이 비면 null. */
+		Pattern surfacePattern() {
+			return surfaces;
+		}
+
+		@Override
+		public String toString() {
+			return "Dictionary[surfaces=" + kindBySurface.size() + "]";
+		}
+
 	}
 
 	private Pseudonymizer() {
 	}
 
 	public static Masked mask(String text, Roster roster) {
-		String neutralized = neutralizeTokens(text);
+		return mask(text, Dictionary.of(roster));
+	}
+
+	public static Masked mask(String text, Dictionary dictionary) {
+		String masked = neutralizeTokens(text);
 		Map<String, String> originalByToken = new LinkedHashMap<>();
 		Map<TokenKind, Integer> counters = new EnumMap<>(TokenKind.class);
-
-		String primary = replacePrimary(neutralized, dictionary(roster), originalByToken, counters);
-		String masked = primary;
 		for (SecondaryPattern secondary : SECONDARY) {
 			masked = replaceSecondary(masked, secondary, originalByToken, counters);
 		}
+		masked = replacePrimary(masked, dictionary, originalByToken, counters);
 		return new Masked(new MaskedText(masked), new PseudonymMap(originalByToken));
-	}
-
-	/** 사전의 모든 표기. 가린 뒤 자기 점검(MaskingVerifier)이 같은 목록으로 남은 값을 찾는다. */
-	static List<String> surfaces(Roster roster) {
-		return dictionary(roster).stream().map(Entry::surface).distinct().toList();
 	}
 
 	static String neutralizeTokens(String text) {
@@ -91,68 +178,24 @@ public final class Pseudonymizer {
 		return out.toString();
 	}
 
-	static List<Entry> dictionary(Roster roster) {
-		List<Entry> entries = new ArrayList<>();
-		addPeople(entries, roster.studentNames(), TokenKind.STUDENT);
-		addPeople(entries, roster.guardianNames(), TokenKind.GUARDIAN);
-		addPeople(entries, roster.teacherNames(), TokenKind.TEACHER);
-		if (roster.grade() > 0 && roster.classNumber() > 0) {
-			int grade = roster.grade();
-			int number = roster.classNumber();
-			String canonical = grade + "학년 " + number + "반";
-			for (String surface : List.of(canonical, grade + "학년" + number + "반", grade + "-" + number + "반",
-					grade + "-" + number, grade + "학년", number + "반")) {
-				entries.add(new Entry(surface, "CLASS", TokenKind.CLASS, canonical));
-			}
-		}
-		if (!roster.schoolTerms().isEmpty()) {
-			String canonical = roster.schoolTerms().get(0);
-			for (String term : roster.schoolTerms()) {
-				entries.add(new Entry(term, "SCHOOL", TokenKind.SCHOOL, canonical));
-			}
-		}
-		return entries;
-	}
-
-	private static void addPeople(List<Entry> entries, List<String> names, TokenKind kind) {
-		for (String raw : names) {
-			if (raw == null) {
-				continue;
-			}
-			String name = raw.strip();
-			if (name.length() < 2) {
-				continue;
-			}
-			String entity = kind + ":" + name;
-			entries.add(new Entry(name, entity, kind, name));
-			if (name.length() == 3) {
-				entries.add(new Entry(name.substring(1), entity, kind, name));
-			}
-		}
-	}
-
-	private static String replacePrimary(String text, List<Entry> entries, Map<String, String> originalByToken,
+	private static String replacePrimary(String text, Dictionary dictionary, Map<String, String> originalByToken,
 			Map<TokenKind, Integer> counters) {
-		if (entries.isEmpty()) {
+		if (dictionary.tokensOrSurfaces == null) {
 			return text;
 		}
-		// 같은 표기가 여러 대상에 속하면(동명이인) 먼저 나온 대상 하나로 묶는다 — 어느 쪽이든 가려진다
-		Map<String, Entry> bySurface = new LinkedHashMap<>();
-		for (Entry entry : entries) {
-			bySurface.putIfAbsent(entry.surface(), entry);
-		}
-		String alternation = bySurface.keySet().stream()
-				.sorted(Comparator.comparingInt(String::length).reversed())
-				.map(Pattern::quote)
-				.collect(Collectors.joining("|"));
-		Matcher matcher = Pattern.compile(alternation).matcher(text);
-		Map<String, String> tokenByEntity = new LinkedHashMap<>();
+		Matcher matcher = dictionary.tokensOrSurfaces.matcher(text);
+		Map<String, String> tokenBySurface = new LinkedHashMap<>();
 		StringBuilder out = new StringBuilder();
 		while (matcher.find()) {
-			Entry entry = bySurface.get(matcher.group());
-			String token = tokenByEntity.computeIfAbsent(entry.entity(), entity -> {
-				String created = next(entry.kind(), counters);
-				originalByToken.put(created, entry.canonical());
+			if (matcher.group(1) != null) {
+				// 2차 패턴이 넣은 토큰은 그대로 둔다
+				matcher.appendReplacement(out, Matcher.quoteReplacement(matcher.group()));
+				continue;
+			}
+			String surface = matcher.group();
+			String token = tokenBySurface.computeIfAbsent(surface, found -> {
+				String created = next(dictionary.kindBySurface.get(found), counters);
+				originalByToken.put(created, found);
 				return created;
 			});
 			matcher.appendReplacement(out, Matcher.quoteReplacement(token));

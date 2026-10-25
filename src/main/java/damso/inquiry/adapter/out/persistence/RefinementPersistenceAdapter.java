@@ -80,6 +80,14 @@ class RefinementPersistenceAdapter implements RefinementJobPort, RefinementAttem
 		return due.map(jobs::saveAndFlush);
 	}
 
+	@Override
+	@Transactional(propagation = Propagation.REQUIRES_NEW)
+	public Optional<RefinementJob> claimNextDue(Instant now, Duration lease) {
+		List<RefinementJob> due = jobs.lockDue(now, 1);
+		due.forEach(job -> job.claim(now.plus(lease)));
+		return jobs.saveAllAndFlush(due).stream().findFirst();
+	}
+
 	// RefinementAttemptPort
 
 	@Override

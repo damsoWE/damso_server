@@ -54,11 +54,54 @@ class PseudonymizerTest {
 	}
 
 	@Test
-	void samePersonInDifferentFormsGetsTheSameTokenAndRestoresToTheFullName() {
-		Masked masked = Pseudonymizer.mask("김민준 엄마예요. 민준이가 아파요.", ROSTER);
+	void eachSurfaceGetsItsOwnTokenAndRestoresExactlyAsWritten() {
+		// 방향 A(자체 코드 리뷰): 표기마다 토큰을 따로 두고 본 표기 그대로 되돌린다 — 정식 이름으로 바꿔 뜻이 달라지지 않게
+		Masked masked = Pseudonymizer.mask("김민준 엄마예요. 민준이가 아파요. 김민준 약을 챙겨 주세요.", ROSTER);
 
-		assertThat(masked.text().value()).isEqualTo("[STUDENT_1] 엄마예요. [STUDENT_1]이가 아파요.");
-		assertThat(masked.map().restore("[STUDENT_1]이가 아파요")).isEqualTo("김민준이가 아파요");
+		assertThat(masked.text().value())
+				.isEqualTo("[STUDENT_1] 엄마예요. [STUDENT_2]이가 아파요. [STUDENT_1] 약을 챙겨 주세요.");
+		assertThat(masked.map().restore("[STUDENT_2]이가 아파요")).isEqualTo("민준이가 아파요");
+		assertThat(masked.map().restore("[STUDENT_1] 엄마")).isEqualTo("김민준 엄마");
+	}
+
+	@Test
+	void anOrdinaryWordEqualToAGivenNameIsRestoredUnchanged() {
+		Roster roster = Roster.of(List.of("이하나"), List.of(), List.of(), 0, 0);
+		Masked masked = Pseudonymizer.mask("하나만 부탁드려요", roster);
+
+		assertThat(masked.text().value()).isEqualTo("[STUDENT_1]만 부탁드려요");
+		assertThat(masked.map().restore(masked.text().value())).isEqualTo("하나만 부탁드려요");
+	}
+
+	@Test
+	void classSurfacesInsideNumbersNeverBreakPhoneOrIdPatterns() {
+		// "1-1"·"4-5" 같은 학급 표기가 번호 안을 먼저 바꾸면 번호 패턴이 깨져 그대로 나간다(자체 코드 리뷰 1번)
+		Roster firstOne = Roster.of(List.of(), List.of(), List.of(), 1, 1);
+		Roster fourFive = Roster.of(List.of(), List.of(), List.of(), 4, 5);
+
+		assertThat(Pseudonymizer.mask("주민번호 900101-1234567", firstOne).text().value())
+				.isEqualTo("주민번호 [ID_NUMBER_1]");
+		assertThat(Pseudonymizer.mask("전화 010-1234-5678", fourFive).text().value()).isEqualTo("전화 [PHONE_1]");
+		assertThat(Pseudonymizer.mask("1-1 반이고 010-1111-1234", firstOne).text().value())
+				.isEqualTo("[CLASS_1] 반이고 [PHONE_1]");
+	}
+
+	@Test
+	void classSurfacesRespectDigitBoundariesAndRestoreAsWritten() {
+		Roster twoThree = Roster.of(List.of(), List.of(), List.of(), 2, 3);
+		Masked masked = Pseudonymizer.mask("13반 친구가 작년 2학년 때 3반이었어요", twoThree);
+
+		assertThat(masked.text().value()).isEqualTo("13반 친구가 작년 [CLASS_1] 때 [CLASS_2]이었어요");
+		assertThat(masked.map().restore(masked.text().value())).isEqualTo("13반 친구가 작년 2학년 때 3반이었어요");
+	}
+
+	@Test
+	void asciiNamesMatchOnlyAsWholeWordsAndNeverInsideTokens() {
+		Roster roster = Roster.of(List.of("김민준"), List.of(), List.of("EN"), 0, 0);
+		Masked masked = Pseudonymizer.mask("EN 선생님, OPEN 시간, 김민준, en@x.co", roster);
+
+		assertThat(masked.text().value()).isEqualTo("[TEACHER_1] 선생님, OPEN 시간, [STUDENT_1], [EMAIL_1]");
+		assertThat(MaskingVerifier.verify(masked.text(), roster)).isEmpty();
 	}
 
 	@Test
@@ -72,11 +115,11 @@ class PseudonymizerTest {
 	}
 
 	@Test
-	void classAndSchoolVariantsShareOneToken() {
+	void classAndSchoolVariantsAreMaskedAndRestoredAsWritten() {
 		Masked masked = Pseudonymizer.mask("한양초등학교 3학년 2반, 한양초 3-2반", ROSTER);
 
-		assertThat(masked.text().value()).isEqualTo("[SCHOOL_1] [CLASS_1], [SCHOOL_1] [CLASS_1]");
-		assertThat(masked.map().restore("[SCHOOL_1] [CLASS_1]")).isEqualTo("한양초등학교 3학년 2반");
+		assertThat(masked.text().value()).isEqualTo("[SCHOOL_1] [CLASS_1], [SCHOOL_2] [CLASS_2]");
+		assertThat(masked.map().restore("[SCHOOL_2] [CLASS_2]")).isEqualTo("한양초 3-2반");
 	}
 
 	@Test
@@ -91,7 +134,7 @@ class PseudonymizerTest {
 		Masked masked = Pseudonymizer.mask("[STUDENT_1]이라고 써 봤어요. 민준이", ROSTER);
 
 		assertThat(masked.text().value()).isEqualTo("［STUDENT_1］이라고 써 봤어요. [STUDENT_1]이");
-		assertThat(masked.map().restore(masked.text().value())).isEqualTo("［STUDENT_1］이라고 써 봤어요. 김민준이");
+		assertThat(masked.map().restore(masked.text().value())).isEqualTo("［STUDENT_1］이라고 써 봤어요. 민준이");
 	}
 
 	@Test

@@ -62,6 +62,7 @@ PENDING ──자동 2회 실패──→ NEEDS_ORIGINAL ──교사 재시도 
 | `locked_until` | timestamptz, NULL 허용 | `RUNNING` 임대 만료. 지나면 다른 실행기가 다시 집는다 |
 | `attempt_count` | int | 지금까지의 시도 수(자동·교사 합계) |
 | `teacher_retry_used` | boolean | 교사 재시도를 썼는지. `REFINE`만 |
+| `claim_count` | int, 기본 0 | 확보된 횟수. 5를 넘으면 외부 AI 없이 실패로 끝낸다(자체 코드 리뷰) |
 
 - 유니크: `(inquiry_id, kind)`.
 - 인덱스: `(status, scheduled_at)`(실행 대상 확보).

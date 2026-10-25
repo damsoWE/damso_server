@@ -96,6 +96,46 @@ class RefinementDispatchTest extends IntegrationTestSupport {
 	}
 
 	@Test
+	void theSafetyNetClaimsAndFinishesJobsOneAtATime() throws Exception {
+		Scenario s = teacherWithClassroom();
+		UUID first = submitGeneral(s);
+		clock.advance(Duration.ofSeconds(61));
+		UUID second = submitGeneral(s);
+		clock.advance(Duration.ofSeconds(61));
+		UUID third = submitGeneral(s);
+
+		assertThat(runRefinement()).isEqualTo(3);
+
+		for (UUID id : List.of(first, second, third)) {
+			assertThat(jdbc.queryForObject("select status from refinement_job where inquiry_id = ?", String.class, id))
+					.isEqualTo("DONE");
+			assertThat(jdbc.queryForObject("select claim_count from refinement_job where inquiry_id = ?",
+					Integer.class, id)).isEqualTo(1);
+		}
+		assertThat(fakeAi.callsOf(AiTask.REFINE)).hasSize(3);
+	}
+
+	@Test
+	void aJobWhoseResultKeepsFailingToApplyIsGivenUpWithoutCallingTheAiAgain() throws Exception {
+		// 반영이 거듭 실패해 같은 작업이 계속 다시 확보되는 상황: 확보 횟수가 상한을 넘으면 외부 AI 없이 실패로 끝낸다(자체 코드 리뷰 3번)
+		Scenario s = teacherWithClassroom();
+		UUID id = submitGeneral(s);
+		jdbc.update("update refinement_job set status = 'RUNNING', locked_until = ?, claim_count = 5 "
+				+ "where inquiry_id = ?", java.sql.Timestamp.from(clock.instant().minusSeconds(1)), id);
+
+		assertThat(runRefinement()).isEqualTo(1);
+
+		assertThat(fakeAi.calls()).isEmpty();
+		assertThat(jdbc.queryForObject("select status from refinement_job where inquiry_id = ?", String.class, id))
+				.isEqualTo("FAILED");
+		assertThat(jdbc.queryForObject("select refinement_status from inquiry where id = ?", String.class, id))
+				.isEqualTo("NEEDS_ORIGINAL");
+		assertThat(jdbc.queryForObject("select count(*) from notification_request where kind = 'GENERAL'",
+				Integer.class)).as("원문 확인 필요로 확정됐으니 교사에게 알린다").isEqualTo(1);
+		assertThat(runRefinement()).isZero();
+	}
+
+	@Test
 	void aJobStuckInRunningIsRetakenAfterTheLeaseExpires() throws Exception {
 		Scenario s = teacherWithClassroom();
 		UUID id = submitGeneral(s);

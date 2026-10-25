@@ -1,6 +1,7 @@
 package damso.inquiry.domain;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import jakarta.persistence.Column;
@@ -47,8 +48,12 @@ public class RefinementJob extends BaseEntity {
 	@Column(name = "attempt_count", nullable = false)
 	private int attemptCount;
 
-	@Column(name = "teacher_retry_used", nullable = false)
+	@Column(name = "teacher_retry_used", nullable = false, columnDefinition = "boolean default false")
 	private boolean teacherRetryUsed;
+
+	/** 확보된 횟수. 반영이 계속 실패해 같은 작업이 끝없이 다시 실행되지 않게 상한을 두는 데 쓴다(자체 코드 리뷰). */
+	@Column(name = "claim_count", nullable = false, columnDefinition = "integer default 0")
+	private int claimCount;
 
 	protected RefinementJob() {
 	}
@@ -67,11 +72,20 @@ public class RefinementJob extends BaseEntity {
 		return new RefinementJob(inquiryId, RefinementJobKind.CLASSIFY_CRISIS, now);
 	}
 
-	/** 실행할 작업으로 확보한다. 대기 중이거나, 실행 중이지만 임대가 끝난 작업만. */
+	/**
+	 * 실행할 작업으로 확보한다. 대기 중이거나, 실행 중이지만 임대가 끝난 작업만. 임대 만료 시각은 DB 정밀도(마이크로초)로 맞춰 두어,
+	 * 반영할 때 "아직 내가 잡은 작업인지"를 이 값으로 비교할 수 있게 한다.
+	 */
 	public void claim(Instant lockedUntil) {
 		require(status == RefinementJobStatus.PENDING || status == RefinementJobStatus.RUNNING);
 		this.status = RefinementJobStatus.RUNNING;
-		this.lockedUntil = lockedUntil;
+		this.lockedUntil = lockedUntil.truncatedTo(ChronoUnit.MICROS);
+		this.claimCount++;
+	}
+
+	/** 이 임대로 확보한 작업이 아직 그대로인지(다른 실행기가 임대 만료 뒤 다시 잡지 않았는지). */
+	public boolean isHeldBy(Instant lease) {
+		return status == RefinementJobStatus.RUNNING && lease != null && lease.equals(lockedUntil);
 	}
 
 	/** 시도 한 번을 센다(자동·자동 재시도·교사). */
@@ -131,6 +145,10 @@ public class RefinementJob extends BaseEntity {
 
 	public int getAttemptCount() {
 		return attemptCount;
+	}
+
+	public int getClaimCount() {
+		return claimCount;
 	}
 
 	/** 교사 재시도를 썼는지. 다시 열린 작업을 실행 중이면 이번 실행이 교사 재시도다. */

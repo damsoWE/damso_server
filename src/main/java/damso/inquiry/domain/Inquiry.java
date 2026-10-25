@@ -69,7 +69,8 @@ public class Inquiry extends BaseEntity {
 	private RefinementStatus refinementStatus;
 
 	/** 접수 때 학부모에게 "응답 가능 시간에 전달됩니다"를 보였는지. 학부모 응답(첫 응답·재전송·상세)은 이 값으로 만든다(F3 R10). */
-	@Column(name = "deferred_notice", nullable = false, updatable = false)
+	// 기본값을 컬럼에 둔다 — 행이 있는 DB에 자동 스키마 갱신으로 NOT NULL 컬럼을 더할 때 실패하지 않게(자체 코드 리뷰)
+	@Column(name = "deferred_notice", nullable = false, updatable = false, columnDefinition = "boolean default false")
 	private boolean deferredNotice;
 
 	@Column(name = "notification_deferred", nullable = false)
