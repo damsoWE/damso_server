@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
  * <ol>
  * <li>입력에 이미 있는 토큰 모양 문자열([STUDENT_1] 등)은 대괄호를 전각(［ ］)으로 바꿔 무력화한다 — 학부모가 쓴 글이 복원 단계에서
  * 다른 값으로 바뀌지 않게.</li>
- * <li>2차 패턴을 먼저: 주민등록번호 형태, 전화번호, 이메일, 주소(아파트 동·호, 도로명, 지번). 사전 표기("1-1" 같은 학급 표기)가
+ * <li>2차 패턴을 먼저: 주민등록번호 형태, 전화번호, 이메일, 주소(행정구역, 공동주택 이름, 아파트 동·호, 도로명, 지번). 사전 표기("1-1" 같은 학급 표기)가
  * 번호 안을 먼저 바꿔 번호 패턴이 깨지는 일을 막는다.</li>
  * <li>1차 사전: 학생·보호자·교사 이름(성+이름, 3자 이름은 이름 2자도), 학급(학년·반 표기 변형), 학교 용어. 이미 들어간 토큰은 건너뛰고,
  * 숫자로 시작·끝나는 표기는 숫자 경계, 영문으로 시작·끝나는 표기는 영문·숫자 경계를 건다("2반"이 "12반" 안에서, "EN"이 토큰 안에서
@@ -29,13 +29,39 @@ public final class Pseudonymizer {
 	/** 숫자 뒤에 오면 시간·수량·학년 같은 말이라 주소로 보지 않는다. */
 	private static final String NOT_A_QUANTITY = "(?!\\s?(?:시|분|초|일|월|년|명|개|번(?!지)|번째|학년|반|살|등|교시|층|원|권|장|회|차))";
 
-	/** 2차 패턴. 순서가 중요하다(주민번호를 전화번호보다 먼저). */
+	/** 광역시·도 이름(줄임·정식 표기). 뒤에 시·군·구가 하나 이상 와야 주소로 본다("대구 친구"·"경기 결과"는 주소가 아니다). */
+	private static final String PROVINCE = "(?:서울|부산|대구|인천|광주|대전|울산|세종|경기|강원|충북|충남|전북|전남|경북|경남|제주"
+			+ "|충청북|충청남|전라북|전라남|경상북|경상남)(?:특별자치시|특별자치도|특별시|광역시|시|도)?";
+
+	/**
+	 * 시·군·구. 앞 글자가 두 자 이상이어야 하고("친구"·"도구"·"다시"는 주소가 아니다), 한 글자 구는 중·동·서·남·북구만 받는다.
+	 * "남자친구"·"동네축구" 같은 합성어와 시각("다섯시")은 뺀다.
+	 */
+	private static final String CITY_DISTRICT = "(?:(?![가-힣]{0,3}(?:친구|도구|가구|입구|출구|연구|요구|야구|축구|농구|배구|탁구|족구)"
+			+ "(?![가-힣]))(?![가-힣]{0,2}(?:다섯|여섯|일곱|여덟|아홉|열한|열두)시)[가-힣]{2,4}(?:시|군|구)|[중동서남북]구)";
+
+	/** 읍·면·동·리(동 뒤 "1가" 같은 표기 포함). 뒤에 지번이 붙으면 함께 가린다("역삼동 123-4"). */
+	private static final String TOWN = "[가-힣]{1,5}(?:동|읍|면|리)(?:\\d{1,2}가)?(?:\\s?\\d{1,5}(?:-\\d{1,5})?(?:번지)?(?!\\d)"
+			+ NOT_A_QUANTITY + ")?";
+
+	/** 공동주택 이름: 이름에 붙은 종류("한빛아파트")나 브랜드("래미안"), 뒤의 동·호수까지 한 덩어리로 가린다. */
+	private static final String APARTMENT = "(?:[가-힣A-Za-z0-9]{1,15}(?:아파트|빌라|맨션|오피스텔|하이츠|빌리지|캐슬|팰리스)"
+			+ "|[가-힣A-Za-z0-9]{0,10}(?:래미안|푸르지오|힐스테이트|아이파크|e편한세상|더샵))"
+			+ "(?:\\s?\\d{1,4}동)?(?:\\s?\\d{1,4}호)?(?!\\d)";
+
+	/** 2차 패턴. 순서가 중요하다(주민번호를 전화번호보다 먼저, 공동주택 이름을 동·호수보다 먼저). */
 	static final List<SecondaryPattern> SECONDARY = List.of(
 			new SecondaryPattern(TokenKind.ID_NUMBER, Pattern.compile("(?<!\\d)\\d{6}[- ]?[1-8]\\d{6}(?!\\d)")),
 			new SecondaryPattern(TokenKind.PHONE,
 					Pattern.compile("(?<!\\d)(?:01[016789]|0[2-6]\\d?)[-. ]?\\d{3,4}[-. ]?\\d{4}(?!\\d)")),
 			new SecondaryPattern(TokenKind.EMAIL,
 					Pattern.compile("[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}")),
+			// 행정구역: "서울 강남구 역삼동", "경기도 성남시 분당구", 광역시·도 없이 "강남구 역삼동"·"성남시 분당구"
+			new SecondaryPattern(TokenKind.ADDRESS, Pattern.compile("(?<![가-힣])" + PROVINCE + "(?:\\s?"
+					+ CITY_DISTRICT + "){1,2}(?:\\s?" + TOWN + ")?")),
+			new SecondaryPattern(TokenKind.ADDRESS, Pattern.compile("(?<![가-힣])" + CITY_DISTRICT + "\\s(?:"
+					+ CITY_DISTRICT + "(?:\\s" + TOWN + ")?|" + TOWN + ")")),
+			new SecondaryPattern(TokenKind.ADDRESS, Pattern.compile(APARTMENT)),
 			new SecondaryPattern(TokenKind.ADDRESS, Pattern.compile("(?<!\\d)\\d{1,4}동\\s?\\d{1,4}호")),
 			new SecondaryPattern(TokenKind.ADDRESS,
 					Pattern.compile("[가-힣A-Za-z0-9]*[가-힣](?:로|길)\\s?\\d{1,5}(?:-\\d{1,5})?(?:번길\\s?\\d{1,5})?(?!\\d)"

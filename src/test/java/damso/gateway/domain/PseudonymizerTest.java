@@ -53,6 +53,31 @@ class PseudonymizerTest {
 		}
 	}
 
+	@ParameterizedTest
+	@MethodSource("ordinarySentences")
+	void ordinaryWordsThatLookLikeAddressPartsAreNotMasked(String input) {
+		// 주소 패턴을 넓힌 뒤(PR #8 리뷰): 주소로 잘못 가리면 번역본에 "(연락처 생략)"이 들어가 뜻이 바뀐다
+		assertThat(Pseudonymizer.mask(input, Roster.of(List.of(), List.of(), List.of(), 0, 0)).text().value())
+				.isEqualTo(input);
+	}
+
+	static Stream<String> ordinarySentences() {
+		return Stream.of("친구 운동 끝나고 데리러 갈게요.", "남자친구 이동 문제로 연락드려요.", "대구 친구들이 놀러 왔어요.",
+				"다섯시 운동 끝나면 하원해요.", "오후다섯시 이동 수업이에요.", "연구 활동 보고서를 냈어요.", "경기 도중에 다쳤어요.",
+				"아파트 놀이터에서 다쳤어요.", "우리 동네는 조용해요.", "서울 여행을 다녀왔어요.", "동네축구 활동이 있어요.");
+	}
+
+	@Test
+	void addressContextIsMaskedAsOneTokenAndPassesTheSelfCheck() {
+		Roster roster = Roster.of(List.of(), List.of(), List.of(), 0, 0);
+		Masked masked = Pseudonymizer.mask("서울시 강남구 역삼동 한빛아파트 101동 202호에 살아요.", roster);
+
+		assertThat(masked.text().value()).isEqualTo("[ADDRESS_1] [ADDRESS_2]에 살아요.");
+		assertThat(MaskingVerifier.verify(masked.text(), roster)).isEmpty();
+		assertThat(masked.map().restoreWithoutContacts(masked.text().value()))
+				.isEqualTo("(연락처 생략) (연락처 생략)에 살아요.");
+	}
+
 	@Test
 	void eachSurfaceGetsItsOwnTokenAndRestoresExactlyAsWritten() {
 		// 방향 A(자체 코드 리뷰): 표기마다 토큰을 따로 두고 본 표기 그대로 되돌린다 — 정식 이름으로 바꿔 뜻이 달라지지 않게
