@@ -85,7 +85,8 @@ public class FakeExternalAi implements ExternalAiPort {
 	public static String refinementJson(String title, String facts, String requests, String level,
 			List<String> labels) {
 		return JSON.writeValueAsString(Map.of("title", title, "facts", facts, "requests", requests, "emotionLevel",
-				level, "emotionLabels", labels));
+				level, "emotionLabels", labels, "threatToTeacher", false, "threatToStudent", false, "abuseTowardTeacher",
+				false, "abuseTowardStudent", false));
 	}
 
 	public static String crisisJson(String type) {

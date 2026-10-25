@@ -16,9 +16,23 @@ class RefinementResultTest {
 	private static final PseudonymMap MAP = Pseudonymizer.mask("김민준 3학년 2반",
 			Roster.of(List.of("김민준"), List.of(), List.of(), 3, 2)).map();
 
+	private static final String NO_CONDUCT = ",\"threatToTeacher\":false,\"threatToStudent\":false,"
+			+ "\"abuseTowardTeacher\":false,\"abuseTowardStudent\":false";
+
 	private static String json(String title, String facts, String requests, String level, String labels) {
+		return json(title, facts, requests, level, labels, NO_CONDUCT);
+	}
+
+	private static String json(String title, String facts, String requests, String level, String labels,
+			String conduct) {
 		return "{\"title\":" + title + ",\"facts\":" + facts + ",\"requests\":" + requests + ",\"emotionLevel\":" + level
-				+ ",\"emotionLabels\":" + labels + "}";
+				+ ",\"emotionLabels\":" + labels + conduct + "}";
+	}
+
+	private static String conduct(boolean threatToTeacher, boolean threatToStudent, boolean abuseTowardTeacher,
+			boolean abuseTowardStudent) {
+		return ",\"threatToTeacher\":" + threatToTeacher + ",\"threatToStudent\":" + threatToStudent
+				+ ",\"abuseTowardTeacher\":" + abuseTowardTeacher + ",\"abuseTowardStudent\":" + abuseTowardStudent;
 	}
 
 	private static boolean valid(String json) {
@@ -68,12 +82,50 @@ class RefinementResultTest {
 		assertThat(valid(json("\"[STUDENT_9] 문의\"", "\"사실\"", "\"\"", "\"LOW\"", "[]"))).isFalse();
 		assertThat(valid(json("\"제목\"", "\"[PHONE_1]로 연락\"", "\"\"", "\"LOW\"", "[]"))).isFalse();
 		assertThat(valid("{\"title\":\"제목\",\"facts\":\"사실\",\"requests\":\"\",\"emotionLevel\":\"LOW\","
-				+ "\"emotionLabels\":[],\"advice\":\"이렇게 답하세요\"}")).isFalse();
+				+ "\"emotionLabels\":[]" + NO_CONDUCT + ",\"advice\":\"이렇게 답하세요\"}")).isFalse();
 		assertThat(valid("{\"title\":\"제목\",\"facts\":\"사실\",\"requests\":\"\",\"emotionLevel\":\"LOW\"}")).isFalse();
+		assertThat(valid(json("\"제목\"", "\"사실\"", "\"\"", "\"LOW\"", "[]"))).isTrue();
+		assertThat(valid(json("\"제목\"", "\"사실\"", "\"\"", "\"LOW\"", "[]", ""))).isFalse();
+		assertThat(valid(json("\"제목\"", "\"사실\"", "\"\"", "\"LOW\"", "[]",
+				NO_CONDUCT.replace("\"threatToTeacher\":false", "\"threatToTeacher\":\"false\"")))).isFalse();
 		assertThat(valid(json("1", "\"사실\"", "\"\"", "\"LOW\"", "[]"))).isFalse();
 		assertThat(valid(json("\"제목\"", "\"사실\"", "\"\"", "\"LOW\"", "[1]"))).isFalse();
 		assertThat(valid("not json")).isFalse();
 		assertThat(valid("[]")).isFalse();
+	}
+
+	@Test
+	void conductFlagsAppendServerFixedSentencesInOrder() {
+		// 위협·폭언·비하 문장은 모델이 쓰지 않고 서버가 고정 문장으로 붙인다 — 오귀속·문구 편차 방지(실호출 점검 2026-10-25)
+		var all = RefineInquiryGatewayServiceParseProbe.parse(json("\"[STUDENT_1] 문의\"",
+				"\"[STUDENT_1]이 다쳤다고 전했다.\"", "\"\"", "\"HIGH\"", "[]", conduct(true, true, true, true)), MAP);
+
+		assertThat(all).isPresent();
+		assertThat(all.get().facts()).isEqualTo("김민준이 다쳤다고 전했다. 교사에게 위협성 발언을 했다. 학생에게 위협성 발언을 했다. "
+				+ "교사를 향한 폭언이 있었다. 다른 학생을 향한 비하 표현이 있었다.");
+
+		var none = RefineInquiryGatewayServiceParseProbe.parse(json("\"문의\"", "\"사실.\"", "\"\"", "\"LOW\"", "[]"),
+				MAP);
+		assertThat(none.get().facts()).isEqualTo("사실.");
+	}
+
+	@Test
+	void threatOnlyInquiryMayHaveEmptyModelFactsButNotWithoutAnyFlag() {
+		var threatOnly = RefineInquiryGatewayServiceParseProbe.parse(
+				json("\"문의\"", "\"\"", "\"\"", "\"HIGH\"", "[]", conduct(true, false, false, false)), MAP);
+
+		assertThat(threatOnly).isPresent();
+		assertThat(threatOnly.get().facts()).isEqualTo("교사에게 위협성 발언을 했다.");
+		assertThat(valid(json("\"문의\"", "\"  \"", "\"\"", "\"HIGH\"", "[]"))).isFalse();
+	}
+
+	@Test
+	void appendedSentencesCountTowardTheFactsLimit() {
+		String facts990 = "\"" + "가".repeat(990) + "\"";
+
+		assertThat(valid(json("\"제목\"", facts990, "\"\"", "\"LOW\"", "[]"))).isTrue();
+		assertThat(valid(json("\"제목\"", facts990, "\"\"", "\"LOW\"", "[]", conduct(false, false, true, false))))
+				.isFalse();
 	}
 
 	@Test

@@ -17,6 +17,7 @@ import damso.gateway.domain.EmotionLabel;
 import damso.gateway.domain.GatewayFailure;
 import damso.gateway.domain.PseudonymMap;
 import damso.gateway.domain.RefinementResult;
+import damso.gateway.domain.RefinementResult.Conduct;
 import damso.gateway.domain.RefinementResult.Valid;
 import damso.gateway.domain.Roster;
 
@@ -29,7 +30,11 @@ public class RefineInquiryGatewayService implements RefineInquiryGateway {
 
 	private static final ObjectMapper JSON = new ObjectMapper();
 
-	private static final Set<String> FIELDS = Set.of("title", "facts", "requests", "emotionLevel", "emotionLabels");
+	private static final Set<String> FIELDS = Set.of("title", "facts", "requests", "emotionLevel", "emotionLabels",
+			"threatToTeacher", "threatToStudent", "abuseTowardTeacher", "abuseTowardStudent");
+
+	private static final List<String> CONDUCT_FIELDS = List.of("threatToTeacher", "threatToStudent",
+			"abuseTowardTeacher", "abuseTowardStudent");
 
 	private final MaskedAiCall pipeline;
 
@@ -73,8 +78,15 @@ public class RefineInquiryGatewayService implements RefineInquiryGateway {
 			}
 			labelValues.add(label.asString());
 		}
+		for (String field : CONDUCT_FIELDS) {
+			if (!root.get(field).isBoolean()) {
+				return Optional.empty();
+			}
+		}
+		Conduct conduct = new Conduct(root.get("threatToTeacher").asBoolean(), root.get("threatToStudent").asBoolean(),
+				root.get("abuseTowardTeacher").asBoolean(), root.get("abuseTowardStudent").asBoolean());
 		return RefinementResult.validate(root.get("title").asString(), root.get("facts").asString(),
-				root.get("requests").asString(), root.get("emotionLevel").asString(), labelValues, map);
+				root.get("requests").asString(), root.get("emotionLevel").asString(), labelValues, conduct, map);
 	}
 
 }

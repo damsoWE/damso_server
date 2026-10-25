@@ -91,10 +91,13 @@ class OpenAiClientTest {
 	}
 
 	@Test
-	void refineSchemaRequiresAllFiveFieldsWithFixedEnums() {
+	void refineSchemaRequiresAllFieldsWithFixedEnums() {
 		server.expect(requestTo(OpenAiClient.BASE_URL + OpenAiClient.PATH))
 				.andExpect(jsonPath("$.response_format.json_schema.schema.required",
-						Matchers.containsInAnyOrder("title", "facts", "requests", "emotionLevel", "emotionLabels")))
+						Matchers.containsInAnyOrder("title", "facts", "requests", "emotionLevel", "emotionLabels",
+								"threatToTeacher", "threatToStudent", "abuseTowardTeacher", "abuseTowardStudent")))
+				.andExpect(jsonPath("$.response_format.json_schema.schema.properties.threatToTeacher.type")
+						.value("boolean"))
 				.andExpect(jsonPath("$.response_format.json_schema.schema.properties.emotionLevel.enum",
 						Matchers.contains("LOW", "MEDIUM", "HIGH")))
 				.andExpect(jsonPath("$.response_format.json_schema.schema.properties.emotionLabels.items.enum",

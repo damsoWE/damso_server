@@ -106,14 +106,19 @@ class OpenAiClient implements ExternalAiPort {
 		return switch (task) {
 			case REFINE -> Map.of("name", "inquiry_refinement", "strict", true, "schema", Map.of(
 					"type", "object",
-					"properties", Map.of(
-							"title", Map.of("type", "string"),
-							"facts", Map.of("type", "string"),
-							"requests", Map.of("type", "string"),
-							"emotionLevel", Map.of("type", "string", "enum", names(EmotionLevel.values())),
-							"emotionLabels", Map.of("type", "array", "items",
+					"properties", Map.ofEntries(
+							Map.entry("title", Map.of("type", "string")),
+							Map.entry("facts", Map.of("type", "string")),
+							Map.entry("requests", Map.of("type", "string")),
+							Map.entry("emotionLevel", Map.of("type", "string", "enum", names(EmotionLevel.values()))),
+							Map.entry("emotionLabels", Map.of("type", "array", "items",
 									Map.of("type", "string", "enum", names(EmotionLabel.values())))),
-					"required", List.of("title", "facts", "requests", "emotionLevel", "emotionLabels"),
+							Map.entry("threatToTeacher", Map.of("type", "boolean")),
+							Map.entry("threatToStudent", Map.of("type", "boolean")),
+							Map.entry("abuseTowardTeacher", Map.of("type", "boolean")),
+							Map.entry("abuseTowardStudent", Map.of("type", "boolean"))),
+					"required", List.of("title", "facts", "requests", "emotionLevel", "emotionLabels",
+							"threatToTeacher", "threatToStudent", "abuseTowardTeacher", "abuseTowardStudent"),
 					"additionalProperties", false));
 			case CLASSIFY_CRISIS -> Map.of("name", "crisis_type", "strict", true, "schema", Map.of(
 					"type", "object",

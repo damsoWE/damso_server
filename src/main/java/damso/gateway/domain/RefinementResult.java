@@ -1,5 +1,6 @@
 package damso.gateway.domain;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -36,10 +37,67 @@ public final class RefinementResult {
 
 	}
 
+	/**
+	 * 문의에 위협·폭언·비하가 있었는지(외부 AI의 예/아니오 판정). 문장은 모델이 쓰지 않고 서버가 아래 고정 문장으로 붙인다 —
+	 * 모델이 문장을 지어내다 피해 학생을 가해자로 적는 오귀속이나 문구 편차가 생기지 않게(실호출 점검 2026-10-25).
+	 */
+	public record Conduct(boolean threatToTeacher, boolean threatToStudent, boolean abuseTowardTeacher,
+			boolean abuseTowardStudent) {
+
+		public static final Conduct NONE = new Conduct(false, false, false, false);
+
+		static final String THREAT_TO_TEACHER = "교사에게 위협성 발언을 했다.";
+
+		static final String THREAT_TO_STUDENT = "학생에게 위협성 발언을 했다.";
+
+		static final String ABUSE_TOWARD_TEACHER = "교사를 향한 폭언이 있었다.";
+
+		static final String ABUSE_TOWARD_STUDENT = "다른 학생을 향한 비하 표현이 있었다.";
+
+		/** 사실관계 끝에 붙일 고정 문장들(해당하는 것만, 정해진 순서로). */
+		List<String> sentences() {
+			List<String> sentences = new ArrayList<>();
+			if (threatToTeacher) {
+				sentences.add(THREAT_TO_TEACHER);
+			}
+			if (threatToStudent) {
+				sentences.add(THREAT_TO_STUDENT);
+			}
+			if (abuseTowardTeacher) {
+				sentences.add(ABUSE_TOWARD_TEACHER);
+			}
+			if (abuseTowardStudent) {
+				sentences.add(ABUSE_TOWARD_STUDENT);
+			}
+			return sentences;
+		}
+
+	}
+
 	private RefinementResult() {
 	}
 
 	public static Optional<Valid> validate(String title, String facts, String requests, String level,
+			List<String> labels, PseudonymMap map) {
+		return validate(title, facts, requests, level, labels, Conduct.NONE, map);
+	}
+
+	/**
+	 * 위 규칙에 더해, 위협·폭언·비하 판정이 있으면 사실관계 끝에 서버의 고정 문장을 붙인다. 모델이 쓴 사실관계는 비어 있어도 되지만
+	 * (위협만 있는 글), 고정 문장을 붙인 뒤의 사실관계는 1~1,000자여야 한다.
+	 */
+	public static Optional<Valid> validate(String title, String facts, String requests, String level,
+			List<String> labels, Conduct conduct, PseudonymMap map) {
+		if (conduct == null || facts == null) {
+			return Optional.empty();
+		}
+		List<String> sentences = conduct.sentences();
+		String composedFacts = sentences.isEmpty() ? facts
+				: (facts.strip() + " " + String.join(" ", sentences)).strip();
+		return validateComposed(title, composedFacts, requests, level, labels, map);
+	}
+
+	private static Optional<Valid> validateComposed(String title, String facts, String requests, String level,
 			List<String> labels, PseudonymMap map) {
 		if (title == null || facts == null || requests == null || level == null || labels == null) {
 			return Optional.empty();

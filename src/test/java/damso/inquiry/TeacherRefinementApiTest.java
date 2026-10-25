@@ -44,7 +44,8 @@ class TeacherRefinementApiTest extends IntegrationTestSupport {
 		Scenario s = teacherWithClassroom(3, 2);
 		fakeAi.replyNext("{\"title\":\"[STUDENT_1] 숙제 문의\",\"facts\":\"[CLASS_1] [STUDENT_1]이 숙제를 자주 잊는다.\","
 				+ "\"requests\":\"[TEACHER_1] 선생님이 확인해 주기를 바란다.\",\"emotionLevel\":\"MEDIUM\","
-				+ "\"emotionLabels\":[\"WORRY\"]}");
+				+ "\"emotionLabels\":[\"WORRY\"],\"threatToTeacher\":false,\"threatToStudent\":false,"
+				+ "\"abuseTowardTeacher\":false,\"abuseTowardStudent\":false}");
 		UUID id = submitGeneral(s);
 
 		MockHttpServletResponse response = refinement(s.teacher().accessToken(), id);
@@ -69,7 +70,8 @@ class TeacherRefinementApiTest extends IntegrationTestSupport {
 		// 원칙 I: 외부 AI가 [PHONE_1]을 결과에 남겨도 번역본에는 고정 문구만 저장·표시된다
 		Scenario s = teacherWithClassroom();
 		fakeAi.replyNext("{\"title\":\"[STUDENT_1] 다툼 문의\",\"facts\":\"[STUDENT_1] 보호자가 [PHONE_1]로 연락해 달라고 했다.\","
-				+ "\"requests\":\"\",\"emotionLevel\":\"LOW\",\"emotionLabels\":[]}");
+				+ "\"requests\":\"\",\"emotionLevel\":\"LOW\",\"emotionLabels\":[],\"threatToTeacher\":false,"
+				+ "\"threatToStudent\":false,\"abuseTowardTeacher\":false,\"abuseTowardStudent\":false}");
 		UUID id = submitGeneral(s);
 
 		MockHttpServletResponse response = refinement(s.teacher().accessToken(), id);
