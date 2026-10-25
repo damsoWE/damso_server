@@ -3,6 +3,7 @@ package damso.account.application.port.in;
 import java.util.UUID;
 
 import damso.account.application.service.TokenResult;
+import damso.account.domain.Role;
 
 /**
  * 가입 2단계 (research R5).
@@ -10,6 +11,12 @@ import damso.account.application.service.TokenResult;
  * 계정 생성 → 초대 코드 소모 → 담임/보호자 연결 → 연결 이력 → 로그인 토큰 발급.
  */
 public interface SignupUseCase {
+
+	/**
+	 * 가입 전 초대 코드 확인. 코드가 정하는 역할(TEACHER·PARENT)만 돌려주고 코드를 소모하지 않는다 — 가입 1·2단계가 다시 검증한다.
+	 * 실패는 가입 1단계와 같은 INVALID_INVITE_CODE이며, 같은 이메일 기준 횟수(INVITE_CODE)로 센다.
+	 */
+	Role checkInviteCode(String inviteCode, String email);
 
 	/** 이미 가입된 이메일이어도 같은 결과를 돌려준다(그 주소로 안내 메일만 보낸다). */
 	PendingSignupResult start(StartSignupCommand command);

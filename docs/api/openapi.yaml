@@ -68,6 +68,36 @@ paths:
                     enum: [DOWN]
 
   # ───────────── auth (공개) ─────────────
+  /api/v1/auth/invite-codes/verify:
+    post:
+      tags: [auth]
+      operationId: checkInviteCode
+      summary: 가입 전 초대 코드 확인 — 코드가 정하는 역할만 응답
+      description: |
+        코드가 정하는 역할(TEACHER·PARENT)만 알려 주고 학급·학생 등 연결 대상은 알려 주지 않는다(FR-011a).
+        코드를 소모하지 않는다. 가입 1단계가 코드를 다시 검증하므로, 그사이 재발행·만료·사용되면 가입에서 INVALID_INVITE_CODE가 난다.
+        실패 응답과 실패 횟수는 가입 1단계와 같다. 실패는 email 기준으로 세고 가입 1단계 실패와 합산된다. 5회 실패 시 10분 잠금.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InviteCodeCheckRequest' }
+      responses:
+        '200':
+          description: 쓸 수 있는 코드
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InviteCodeCheckResponse' }
+        '400':
+          description: 입력 검증 실패(INVALID_INPUT) 또는 초대 코드 무효(INVALID_INVITE_CODE, 사유 구분 없음)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              examples:
+                invalidCode: { value: { code: INVALID_INVITE_CODE, message: 코드를 확인해 주세요. } }
+        '429': { $ref: '#/components/responses/TooManyAttempts' }
+
   /api/v1/auth/signup:
     post:
       tags: [auth]
@@ -883,6 +913,21 @@ components:
       type: string
       enum: [SUPER_ADMIN, TEACHER, PARENT]
 
+    InviteCodeCheckRequest:
+      type: object
+      properties:
+        inviteCode: { $ref: '#/components/schemas/InviteCodeInput' }
+        email: { $ref: '#/components/schemas/Email' }
+      required: [inviteCode, email]
+      additionalProperties: false
+    InviteCodeCheckResponse:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [TEACHER, PARENT]
+      required: [role]
+      additionalProperties: false
     SignupRequest:
       type: object
       properties:
