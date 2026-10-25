@@ -25,4 +25,17 @@ public enum TokenKind {
 		return "[" + name() + "_" + number + "]";
 	}
 
+	/**
+	 * 연락처·식별번호(전화·이메일·주소·주민번호)인지. 이 종류는 정리 결과로 복원하지 않고 고정 문구로 남긴다 —
+	 * 정리 결과가 연락처를 새로 만들어 저장하지 않게(원칙 I).
+	 */
+	public boolean isContactOrIdentifier() {
+		return this == PHONE || this == EMAIL || this == ADDRESS || this == ID_NUMBER;
+	}
+
+	/** 복원하지 않는 종류 대신 남기는 고정 문구. */
+	public String withheldLabel() {
+		return this == ID_NUMBER ? "(주민등록번호 생략)" : "(연락처 생략)";
+	}
+
 }

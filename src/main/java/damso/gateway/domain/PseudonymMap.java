@@ -37,14 +37,43 @@ public final class PseudonymMap {
 
 	/** 글 안의 토큰을 원래 값으로 바꾼다. 이 대응표에 없는 토큰 모양 문자열은 그대로 둔다. */
 	public String restore(String text) {
+		return restore(text, false);
+	}
+
+	/**
+	 * 정리 결과를 사람이 읽을 글로 되돌린다. 이름·학교·학급은 원래 표기로 되돌리고, 연락처·식별번호(전화·이메일·주소·주민번호)는
+	 * 되돌리지 않고 고정 문구("(연락처 생략)" 등)로 남긴다 — 정리 결과에 연락처가 새로 저장되지 않게(원칙 I).
+	 */
+	public String restoreWithoutContacts(String text) {
+		return restore(text, true);
+	}
+
+	private String restore(String text, boolean withholdContacts) {
 		Matcher matcher = TokenKind.TOKEN.matcher(text);
 		StringBuilder restored = new StringBuilder();
 		while (matcher.find()) {
-			String original = originalByToken.get(matcher.group());
-			matcher.appendReplacement(restored, Matcher.quoteReplacement(original != null ? original : matcher.group()));
+			String token = matcher.group();
+			String original = originalByToken.get(token);
+			String replacement = original == null ? token : original;
+			if (original != null && withholdContacts) {
+				TokenKind kind = kindOf(matcher.group(1));
+				if (kind != null && kind.isContactOrIdentifier()) {
+					replacement = kind.withheldLabel();
+				}
+			}
+			matcher.appendReplacement(restored, Matcher.quoteReplacement(replacement));
 		}
 		matcher.appendTail(restored);
 		return restored.toString();
+	}
+
+	private static TokenKind kindOf(String name) {
+		for (TokenKind kind : TokenKind.values()) {
+			if (kind.name().equals(name)) {
+				return kind;
+			}
+		}
+		return null;
 	}
 
 	@Override

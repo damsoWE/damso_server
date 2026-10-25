@@ -65,6 +65,20 @@ class TeacherRefinementApiTest extends IntegrationTestSupport {
 	}
 
 	@Test
+	void theTranslationNeverCarriesThePhoneNumberEvenIfTheAiKeepsItsToken() throws Exception {
+		// 원칙 I: 외부 AI가 [PHONE_1]을 결과에 남겨도 번역본에는 고정 문구만 저장·표시된다
+		Scenario s = teacherWithClassroom();
+		fakeAi.replyNext("{\"title\":\"[STUDENT_1] 다툼 문의\",\"facts\":\"[STUDENT_1] 보호자가 [PHONE_1]로 연락해 달라고 했다.\","
+				+ "\"requests\":\"\",\"emotionLevel\":\"LOW\",\"emotionLabels\":[]}");
+		UUID id = submitGeneral(s);
+
+		MockHttpServletResponse response = refinement(s.teacher().accessToken(), id);
+
+		assertThat((String) read(response, "$.facts")).isEqualTo(STUDENT_NAME + " 보호자가 (연락처 생략)로 연락해 달라고 했다.");
+		assertThat(response.getContentAsString()).doesNotContain("010-1234-5678").doesNotContain("[PHONE_");
+	}
+
+	@Test
 	void listAndDetailShowTheRefinedTitleAndStatus() throws Exception {
 		Scenario s = teacherWithClassroom();
 		fakeAi.replyNext(damso.support.FakeExternalAi.refinementJson("준비물 문의", "준비물을 묻는다", "", "LOW",

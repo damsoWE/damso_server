@@ -15,6 +15,8 @@ import java.util.regex.Matcher;
  * <li>emotionLevel은 LOW·MEDIUM·HIGH, emotionLabels는 고정 6개 중 0~2개, 중복 없음</li>
  * </ul>
  * 필드 구성(스키마 밖 필드 금지)은 JSON을 읽는 쪽이 먼저 확인한다.
+ * 복원할 때 이름·학교·학급은 본 표기로 되돌리지만, 연락처·식별번호(전화·이메일·주소·주민번호)는 되돌리지 않고 고정 문구로 남긴다
+ * — 정리 결과가 연락처를 새로 저장하지 않게(원칙 I, 실호출 점검 2026-10-25).
  */
 public final class RefinementResult {
 
@@ -54,9 +56,9 @@ public final class RefinementResult {
 		if (emotionLabels.size() != labels.size()) {
 			return Optional.empty();
 		}
-		String restoredTitle = map.restore(title).strip();
-		String restoredFacts = map.restore(facts).strip();
-		String restoredRequests = map.restore(requests).strip();
+		String restoredTitle = map.restoreWithoutContacts(title).strip();
+		String restoredFacts = map.restoreWithoutContacts(facts).strip();
+		String restoredRequests = map.restoreWithoutContacts(requests).strip();
 		if (!within(restoredTitle, 1, TITLE_MAX) || !within(restoredFacts, 1, TEXT_MAX)
 				|| !within(restoredRequests, 0, TEXT_MAX)) {
 			return Optional.empty();
