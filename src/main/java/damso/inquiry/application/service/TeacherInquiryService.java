@@ -11,8 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 import damso.common.error.BusinessException;
 import damso.common.error.ErrorCode;
 import damso.common.error.InvalidInputException;
+import damso.inquiry.application.port.in.AnswerView;
 import damso.inquiry.application.port.in.StageEventView;
 import damso.inquiry.application.port.in.TeacherInquiryQuery;
+import damso.inquiry.application.port.out.AnswerPort;
 import damso.inquiry.application.port.out.InquiryPort;
 import damso.inquiry.application.port.out.InquiryStageHistoryPort;
 import damso.inquiry.domain.Inquiry;
@@ -34,11 +36,14 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 
 	private final InquiryTargetQuery targets;
 
-	public TeacherInquiryService(InquiryPort inquiries, InquiryStageHistoryPort histories,
-			InquiryTargetQuery targets) {
+	private final AnswerPort answers;
+
+	public TeacherInquiryService(InquiryPort inquiries, InquiryStageHistoryPort histories, InquiryTargetQuery targets,
+			AnswerPort answers) {
 		this.inquiries = inquiries;
 		this.histories = histories;
 		this.targets = targets;
+		this.answers = answers;
 	}
 
 	@Override
@@ -69,8 +74,28 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 		List<StageEventView> timeline = histories.findByInquiry(inquiryId).stream()
 				.map(history -> new StageEventView(history.getStage(), history.getOccurredAt()))
 				.toList();
+		// 재문의 자신의 id로는 이 스레드 상세를 취급하지 않는다(research R1) — 스레드 루트일 때만 묶어서 보여준다.
+		boolean isThreadRoot = inquiry.getThreadRootId() == null;
+		List<FollowUpView> followUps = isThreadRoot ? followUpsOf(inquiry.getId()) : List.of();
+		List<AnswerView> answerViews = isThreadRoot ? answersOf(inquiry.getId()) : List.of();
 		return new InquiryDetail(inquiry.getId(), inquiry.getStudentId(), studentName, inquiry.isUrgent(),
-				displayTitle(inquiry), inquiry.getStage(), inquiry.getSubmittedAt(), timeline);
+				displayTitle(inquiry), inquiry.getStage(), inquiry.getSubmittedAt(), timeline, followUps,
+				answerViews);
+	}
+
+	private List<FollowUpView> followUpsOf(UUID rootId) {
+		return inquiries.findThreadMessages(rootId).stream()
+				.filter(message -> message.getThreadRootId() != null)
+				.map(message -> new FollowUpView(message.getId(), message.isUrgent(), displayTitle(message),
+						message.getStage(), message.getSubmittedAt()))
+				.toList();
+	}
+
+	private List<AnswerView> answersOf(UUID rootId) {
+		return answers.findByThreadRootId(rootId).stream()
+				.map(answer -> new AnswerView(answer.getId(), answer.getContent().reveal(), answer.isReviewed(),
+						answer.getSentAt()))
+				.toList();
 	}
 
 	private static InquirySummary summaryOf(Inquiry inquiry, Map<UUID, String> names) {

@@ -22,15 +22,21 @@ public interface InquiryPort {
 
 	Optional<Inquiry> findByParentAndKey(UUID parentId, UUID idempotencyKey);
 
-	/** 학부모가 작성한 문의, 최신순. */
+	/** 학부모가 작성한 문의(스레드 루트만, 재문의는 각 스레드 상세에서 보인다), 최신순. */
 	List<Inquiry> findByParent(UUID parentId);
 
-	/** 학급의 문의 한 쪽. 긴급이 먼저, 그다음 최신순. page는 0부터. */
+	/** 학급의 문의(스레드 루트만) 한 쪽. 긴급이 먼저, 그다음 최신순. page는 0부터. */
 	List<Inquiry> findByClassroom(UUID classroomId, int page, int size);
 
 	long countByClassroom(UUID classroomId);
 
 	/** 그 교사 앞으로 알림이 미뤄졌고 아직 묶음 알림에 포함되지 않은 문의. */
 	List<Inquiry> findDeferredNotNotified(UUID teacherId);
+
+	/**
+	 * 스레드(루트 또는 재문의) 전체 메시지: id = rootId 또는 thread_root_id = rootId, 제출 시각 오름차순
+	 * (F4, FR-016·017).
+	 */
+	List<Inquiry> findThreadMessages(UUID rootId);
 
 }

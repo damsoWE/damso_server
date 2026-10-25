@@ -22,9 +22,20 @@ public interface ParentInquiryQuery {
 
 	}
 
+	/** 스레드 타임라인에 포함되는 재문의 하나 — 학부모 본인 글이라 본문이 평문으로 보인다(F4). */
+	record FollowUpView(UUID inquiryId, String content, boolean urgent, InquiryStage stage, Instant submittedAt) {
+
+		/** 본문이 로그·예외에 섞이지 않도록 가린다. */
+		@Override
+		public String toString() {
+			return "FollowUpView[inquiryId=" + inquiryId + "]";
+		}
+
+	}
+
 	record InquiryDetail(UUID inquiryId, UUID studentId, String studentName, String content, boolean urgent,
 			InquiryStage stage, Instant submittedAt, List<StageEventView> timeline, List<NoticeCode> notices,
-			List<HotlineCode> hotlines) {
+			List<HotlineCode> hotlines, List<FollowUpView> followUps, List<AnswerView> answers) {
 
 		/** 본문·학생 이름이 로그·예외에 섞이지 않도록 가린다. */
 		@Override

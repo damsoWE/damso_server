@@ -23,12 +23,17 @@ interface SpringDataInquiryRepository extends JpaRepository<Inquiry, UUID> {
 	@Query(value = "select cast(pg_advisory_xact_lock(hashtextextended(:lockKey, 0)) as text)", nativeQuery = true)
 	String lockSubmission(@Param("lockKey") String lockKey);
 
-	List<Inquiry> findByParentIdOrderBySubmittedAtDesc(UUID parentId);
+	/** 스레드 루트만(재문의는 thread_root_id가 있다). */
+	List<Inquiry> findByParentIdAndThreadRootIdIsNullOrderBySubmittedAtDesc(UUID parentId);
 
-	List<Inquiry> findByClassroomId(UUID classroomId, Pageable pageable);
+	/** 스레드 루트만. */
+	List<Inquiry> findByClassroomIdAndThreadRootIdIsNull(UUID classroomId, Pageable pageable);
 
-	long countByClassroomId(UUID classroomId);
+	long countByClassroomIdAndThreadRootIdIsNull(UUID classroomId);
 
 	List<Inquiry> findByTeacherIdAndNotificationDeferredTrueAndDeferredNotifiedAtIsNull(UUID teacherId);
+
+	@Query("select i from Inquiry i where i.id = :rootId or i.threadRootId = :rootId order by i.submittedAt asc")
+	List<Inquiry> findThreadMessages(@Param("rootId") UUID rootId);
 
 }

@@ -1,13 +1,14 @@
 openapi: 3.0.3
 info:
   title: DAMSO API
-  version: 0.3.0
+  version: 0.4.0
   description: |
     담소 통합 API 명세 (원본). 변경 시 이 파일을 먼저 수정하고 api-vX.Y 태그를 찍는다.
     - 인증: Authorization 헤더의 Bearer 토큰(HS256). 쿠키·세션 없음.
     - 모든 오류는 ErrorResponse 형식. 스택트레이스·예외명·내부 경로·SQL 없음.
     - 식별자는 UUID만 노출.
-    출처: specs/000-foundation (공통 기반), specs/001-auth-signup (F1 인증·회원가입·학급 연결), specs/002-inquiry-intake-urgent (F2 문의 접수·긴급 분류)
+    - 답변 점검(F4)은 F3 연동 전까지 임시 상태다 — `available=false`만 돌아오며 전송을 막지 않는다(fail-open). `reviewed`는 "점검을 요청했는지"만 의미하고 "점검 완료"를 보증하지 않는다.
+    출처: specs/000-foundation (공통 기반), specs/001-auth-signup (F1 인증·회원가입·학급 연결), specs/002-inquiry-intake-urgent (F2 문의 접수·긴급 분류), specs/003-answer-review-send (F4 답변 작성·점검·전송)
   license:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -33,8 +34,14 @@ tags:
     description: 학부모 문의 작성·조회
   - name: teacher-inquiry
     description: 교사 문의 목록·원문 열람
+  - name: teacher-answer
+    description: 교사 답변 작성·점검·전송·종료
+  - name: parent-follow-up
+    description: 학부모 재문의
   - name: notification
     description: 기기 등록·교사 알림 설정
+  - name: parent-notification
+    description: 학부모 답변 도착 알림 설정
 
 
 paths:
@@ -665,6 +672,46 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /api/v1/parent/inquiries/{inquiryId}/follow-ups:
+    parameters:
+      - { name: inquiryId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    post:
+      tags: [parent-follow-up]
+      operationId: submitFollowUp
+      summary: 같은 문의 스레드에 재문의
+      description: |
+        최초 문의와 같은 파이프라인(멱등키 → 중복 확인 → 대상 재확인 → 긴급 판정 → 1분 제한 → 저장)을 거친다.
+        담임은 스레드 시작 시점으로 고정하지 않고 매번 다시 조회한다 — 담임이 바뀌었으면 새 담임에게, 담임이 해제·공석이면 409 NO_HOMEROOM_TEACHER로 거부한다.
+        긴급으로 판정되면 1분 제한 없이 즉시 접수되고 F2의 즉시 전달 경로를 그대로 따른다.
+        "답변 완료"로 종료된 문의에는 재문의할 수 없다(409 THREAD_CLOSED).
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: F2 문의 제출과 같은 규칙(재시도 시 같은 값, 다른 내용이면 409 CONFLICT)
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FollowUpRequest' }
+      responses:
+        '201':
+          description: 접수됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/FollowUpSubmitted' }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: THREAD_CLOSED(이미 종료됨) · NO_HOMEROOM_TEACHER(담임 해제·공석) · CONFLICT(같은 키로 다른 내용)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '429': { $ref: '#/components/responses/TooManyAttempts' }
+
   /api/v1/teacher/inquiries:
     get:
       tags: [teacher-inquiry]
@@ -727,6 +774,91 @@ paths:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
               example: { code: INQUIRY_CONTENT_UNAVAILABLE, message: 아직 열람할 수 없는 문의입니다. }
 
+  /api/v1/teacher/inquiries/{inquiryId}/answer-reviews:
+    parameters:
+      - { name: inquiryId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    post:
+      tags: [teacher-answer]
+      operationId: requestAnswerReview
+      summary: 전송 전 답변 점검 (선택, F3 연동 전 임시 상태)
+      description: |
+        답변 초안 + 그 문의(스레드)의 가명화된 맥락을 함께 참고해 오해 소지 표현·근거 누락을 짚어준다.
+        가명화 게이트웨이(F3)가 아직 없어 지금은 항상 available=false를 돌려준다(점검 실패 안내).
+        점검 실패는 에러가 아니다 — 교사는 이 응답과 무관하게 바로 전송할 수 있다(원칙 V, fail-open).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AnswerReviewRequest' }
+      responses:
+        '200':
+          description: 점검 결과(또는 실패 안내)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnswerReviewResult' }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/teacher/inquiries/{inquiryId}/answers:
+    parameters:
+      - { name: inquiryId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    post:
+      tags: [teacher-answer]
+      operationId: sendAnswer
+      summary: 답변 전송 (점검 없이도 가능)
+      description: |
+        현재 담임인 학급의 문의에만 보낼 수 있다. 전송된 답변은 수정·삭제할 수 없다(원칙 III).
+        학부모에게 알림이 가며(설정이 꺼져 있으면 저장만 되고 알림은 가지 않는다), 교사의 이 요청 없이는 어떤 경로로도 발송되지 않는다(원칙 V).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SendAnswerRequest' }
+      responses:
+        '201':
+          description: 전송됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnswerSent' }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: THREAD_CLOSED(이미 "답변 완료"로 종료된 문의)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example: { code: THREAD_CLOSED, message: 이미 종료된 문의입니다. }
+
+  /api/v1/teacher/inquiries/{inquiryId}/close:
+    parameters:
+      - { name: inquiryId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    post:
+      tags: [teacher-answer]
+      operationId: closeInquiry
+      summary: '"답변 완료"로 종료'
+      description: |
+        교사의 명시적 동작으로만 종료된다 — 답변을 보낸다고 자동으로 종료되지 않는다.
+        종료 후 학부모는 이 문의에서 재문의할 수 없고 새 문의를 작성해야 한다.
+      responses:
+        '200':
+          description: 종료됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InquiryClosed' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: INQUIRY_NOT_READY_TO_CLOSE(아직 TEACHER_CONFIRMED에 닿지 않은 문의 — F3 전의 일반 문의 등) 또는 THREAD_CLOSED(이미 종료됨)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example: { code: INQUIRY_NOT_READY_TO_CLOSE, message: 아직 종료할 수 없는 문의입니다. }
+
   /api/v1/teacher/notification-settings:
     get:
       tags: [notification]
@@ -763,6 +895,36 @@ paths:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/parent/notification-settings:
+    get:
+      tags: [parent-notification]
+      operationId: getParentNotificationSettings
+      summary: 답변 도착 알림 설정 조회
+      responses:
+        '200':
+          description: 설정이 없으면 기본값(켜짐)으로 보인다
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ParentNotificationSettings' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    put:
+      tags: [parent-notification]
+      operationId: updateParentNotificationSettings
+      summary: 답변 도착 알림 켜기/끄기
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ParentNotificationSettings' }
+      responses:
+        '200':
+          description: 변경됨
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ParentNotificationSettings' }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
 
   /api/v1/me/devices:
     put:
@@ -824,7 +986,9 @@ components:
         - STUDENT_HAS_GUARDIAN
         - NO_HOMEROOM_TEACHER
         - INQUIRY_CONTENT_UNAVAILABLE
-      description: 기능별 코드는 각 기능 contract에서 추가한다. 기존 코드의 의미는 바꾸지 않는다. F1이 6개(INVALID_INVITE_CODE 이하), F2가 2개(NO_HOMEROOM_TEACHER, INQUIRY_CONTENT_UNAVAILABLE)를 추가했다.
+        - THREAD_CLOSED
+        - INQUIRY_NOT_READY_TO_CLOSE
+      description: 기능별 코드는 각 기능 contract에서 추가한다. 기존 코드의 의미는 바꾸지 않는다. F1이 6개(INVALID_INVITE_CODE 이하), F2가 2개(NO_HOMEROOM_TEACHER, INQUIRY_CONTENT_UNAVAILABLE), F4가 2개(THREAD_CLOSED, INQUIRY_NOT_READY_TO_CLOSE)를 추가했다.
 
     FieldError:
       type: object
@@ -1121,7 +1285,15 @@ components:
         hotlines:
           type: array
           items: { $ref: '#/components/schemas/HotlineCode' }
-      required: [inquiryId, studentId, studentName, content, urgent, stage, submittedAt, timeline, notices, hotlines]
+        followUps:
+          type: array
+          description: 이 스레드에 이어서 보낸 재문의(F4). 본인 글이라 본문이 평문으로 보인다. 시간순
+          items: { $ref: '#/components/schemas/ParentFollowUpView' }
+        answers:
+          type: array
+          description: 이 스레드의 답변(F4). 시간순
+          items: { $ref: '#/components/schemas/AnswerView' }
+      required: [inquiryId, studentId, studentName, content, urgent, stage, submittedAt, timeline, notices, hotlines, followUps, answers]
       additionalProperties: false
 
     TeacherInquirySummary:
@@ -1165,7 +1337,15 @@ components:
         timeline:
           type: array
           items: { $ref: '#/components/schemas/StageEvent' }
-      required: [inquiryId, studentId, studentName, urgent, title, stage, submittedAt, timeline]
+        followUps:
+          type: array
+          description: 이 스레드의 재문의(F4). 목록·상세와 같은 규칙으로 본문은 없고, 긴급만 /content로 열람한다. 시간순
+          items: { $ref: '#/components/schemas/TeacherFollowUpView' }
+        answers:
+          type: array
+          description: 이 스레드의 답변(F4, 교사 자신이 작성). 시간순
+          items: { $ref: '#/components/schemas/AnswerView' }
+      required: [inquiryId, studentId, studentName, urgent, title, stage, submittedAt, timeline, followUps, answers]
       additionalProperties: false
 
     InquiryContent:
@@ -1208,6 +1388,129 @@ components:
         token: { type: string, minLength: 1, maxLength: 512, description: FCM 등록 토큰 }
         platform: { type: string, enum: [ANDROID, IOS] }
       required: [token, platform]
+      additionalProperties: false
+
+    # ───────────── F4 답변 작성·점검·전송 ─────────────
+    Highlight:
+      type: object
+      description: 점검이 짚어준 문제 표현 한 곳
+      properties:
+        excerpt: { type: string, description: 답변에서 문제로 지적된 부분 }
+        reason: { type: string, description: 오해 소지·근거 누락 이유 }
+        suggestion: { type: string, description: 대체 표현 제안 }
+      required: [excerpt, reason, suggestion]
+      additionalProperties: false
+
+    AnswerReviewRequest:
+      type: object
+      properties:
+        content: { $ref: '#/components/schemas/Content' }
+      required: [content]
+      additionalProperties: false
+
+    AnswerReviewResult:
+      type: object
+      properties:
+        available:
+          type: boolean
+          description: 점검이 결과를 냈는지. F3 전에는 항상 false(점검 실패 안내만 보여주고 전송은 그대로 가능)
+        highlights:
+          type: array
+          items: { $ref: '#/components/schemas/Highlight' }
+      required: [available, highlights]
+      additionalProperties: false
+
+    SendAnswerRequest:
+      type: object
+      properties:
+        content: { $ref: '#/components/schemas/Content' }
+        reviewed:
+          type: boolean
+          description: >-
+            전송 전 점검을 요청했는지만 기록한다(결과를 반영했는지는 구분하지 않음).
+            "점검 완료"나 "안전 확인됨"을 의미하지 않는다 — F3가 실제 가명화 게이트웨이로 연동되기 전까지
+            점검은 항상 available=false만 돌려주는 임시 스텁이라, reviewed=true인 답변도
+            실질적인 점검 효과는 없다.
+      required: [content, reviewed]
+      additionalProperties: false
+
+    AnswerSent:
+      type: object
+      properties:
+        answerId: { $ref: '#/components/schemas/Uuid' }
+        inquiryId: { $ref: '#/components/schemas/Uuid' }
+        sentAt: { type: string, format: date-time }
+      required: [answerId, inquiryId, sentAt]
+      additionalProperties: false
+
+    AnswerView:
+      type: object
+      description: 스레드 타임라인에 포함되는 답변 하나
+      properties:
+        answerId: { $ref: '#/components/schemas/Uuid' }
+        content: { type: string }
+        reviewed: { type: boolean }
+        sentAt: { type: string, format: date-time }
+      required: [answerId, content, reviewed, sentAt]
+      additionalProperties: false
+
+    InquiryClosed:
+      type: object
+      properties:
+        inquiryId: { $ref: '#/components/schemas/Uuid' }
+        closedAt: { type: string, format: date-time }
+      required: [inquiryId, closedAt]
+      additionalProperties: false
+
+    FollowUpRequest:
+      type: object
+      properties:
+        content: { $ref: '#/components/schemas/Content' }
+      required: [content]
+      additionalProperties: false
+
+    FollowUpSubmitted:
+      type: object
+      description: 이 재문의 자신의 접수 결과(F2 InquirySubmitted와 같은 모양)
+      properties:
+        inquiryId: { $ref: '#/components/schemas/Uuid' }
+        threadRootId: { $ref: '#/components/schemas/Uuid' }
+        urgent: { type: boolean }
+        submittedAt: { type: string, format: date-time }
+      required: [inquiryId, threadRootId, urgent, submittedAt]
+      additionalProperties: false
+
+    ParentFollowUpView:
+      type: object
+      description: 스레드 타임라인에 포함되는 재문의 하나 — 학부모 본인 글이라 본문이 보인다
+      properties:
+        inquiryId: { $ref: '#/components/schemas/Uuid' }
+        content: { type: string }
+        urgent: { type: boolean }
+        stage: { $ref: '#/components/schemas/InquiryStage' }
+        submittedAt: { type: string, format: date-time }
+      required: [inquiryId, content, urgent, stage, submittedAt]
+      additionalProperties: false
+
+    TeacherFollowUpView:
+      type: object
+      description: 스레드 타임라인에 포함되는 재문의 하나 — 본문 없음(원문은 /content로만, 긴급만 열람 가능)
+      properties:
+        inquiryId: { $ref: '#/components/schemas/Uuid' }
+        urgent: { type: boolean }
+        title: { type: string }
+        stage: { $ref: '#/components/schemas/InquiryStage' }
+        submittedAt: { type: string, format: date-time }
+      required: [inquiryId, urgent, title, stage, submittedAt]
+      additionalProperties: false
+
+    ParentNotificationSettings:
+      type: object
+      properties:
+        answerNotifyEnabled:
+          type: boolean
+          description: 기본값 true. 꺼도 답변은 저장되고 앱에서 확인할 수 있다
+      required: [answerNotifyEnabled]
       additionalProperties: false
 
   responses:

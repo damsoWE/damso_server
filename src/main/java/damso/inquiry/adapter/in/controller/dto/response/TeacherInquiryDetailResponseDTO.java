@@ -9,12 +9,15 @@ import damso.inquiry.domain.InquiryStage;
 
 /** 교사의 문의 상세. 본문은 없다 — 원문은 /content로만 열람하고 그때 감사 기록이 남는다. */
 public record TeacherInquiryDetailResponseDTO(UUID inquiryId, UUID studentId, String studentName, boolean urgent,
-		String title, InquiryStage stage, Instant submittedAt, List<StageEventResponseDTO> timeline) {
+		String title, InquiryStage stage, Instant submittedAt, List<StageEventResponseDTO> timeline,
+		List<TeacherFollowUpViewResponseDTO> followUps, List<AnswerViewResponseDTO> answers) {
 
 	public static TeacherInquiryDetailResponseDTO from(InquiryDetail detail) {
 		return new TeacherInquiryDetailResponseDTO(detail.inquiryId(), detail.studentId(), detail.studentName(),
 				detail.urgent(), detail.title(), detail.stage(), detail.submittedAt(),
-				detail.timeline().stream().map(StageEventResponseDTO::from).toList());
+				detail.timeline().stream().map(StageEventResponseDTO::from).toList(),
+				detail.followUps().stream().map(TeacherFollowUpViewResponseDTO::from).toList(),
+				detail.answers().stream().map(AnswerViewResponseDTO::from).toList());
 	}
 
 	@Override

@@ -145,7 +145,7 @@ class CrisisClassificationTest extends IntegrationTestSupport {
 		MockHttpServletResponse list = send(get("/api/v1/parent/inquiries"), s.parent().accessToken());
 
 		Set<String> allowed = Set.of("inquiryId", "studentId", "studentName", "content", "urgent", "stage",
-				"submittedAt", "timeline", "notices", "hotlines");
+				"submittedAt", "timeline", "notices", "hotlines", "followUps", "answers");
 		com.jayway.jsonpath.DocumentContext json = com.jayway.jsonpath.JsonPath.parse(detail.getContentAsString());
 		java.util.Map<String, Object> top = json.read("$");
 		assertThat(allowed).containsAll(top.keySet());

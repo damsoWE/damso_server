@@ -55,23 +55,28 @@ class InquiryPersistenceAdapter implements InquiryPort, InquiryStageHistoryPort 
 
 	@Override
 	public List<Inquiry> findByParent(UUID parentId) {
-		return inquiries.findByParentIdOrderBySubmittedAtDesc(parentId);
+		return inquiries.findByParentIdAndThreadRootIdIsNullOrderBySubmittedAtDesc(parentId);
 	}
 
 	@Override
 	public List<Inquiry> findByClassroom(UUID classroomId, int page, int size) {
 		Sort sort = Sort.by(Sort.Order.desc("urgent"), Sort.Order.desc("submittedAt"), Sort.Order.asc("id"));
-		return inquiries.findByClassroomId(classroomId, PageRequest.of(page, size, sort));
+		return inquiries.findByClassroomIdAndThreadRootIdIsNull(classroomId, PageRequest.of(page, size, sort));
 	}
 
 	@Override
 	public long countByClassroom(UUID classroomId) {
-		return inquiries.countByClassroomId(classroomId);
+		return inquiries.countByClassroomIdAndThreadRootIdIsNull(classroomId);
 	}
 
 	@Override
 	public List<Inquiry> findDeferredNotNotified(UUID teacherId) {
 		return inquiries.findByTeacherIdAndNotificationDeferredTrueAndDeferredNotifiedAtIsNull(teacherId);
+	}
+
+	@Override
+	public List<Inquiry> findThreadMessages(UUID rootId) {
+		return inquiries.findThreadMessages(rootId);
 	}
 
 	// InquiryStageHistoryPort
