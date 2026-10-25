@@ -29,7 +29,7 @@ class SecretsValidatorTest {
 	@ValueSource(strings = { "DAMSO_DB_URL", "DAMSO_DB_USERNAME", "DAMSO_DB_PASSWORD",
 			"DAMSO_COLUMN_ENCRYPTION_KEY", "DAMSO_JWT_SECRET", "DAMSO_OPENAI_API_KEY",
 			"DAMSO_CODE_HASH_KEY", "DAMSO_MAIL_HOST", "DAMSO_MAIL_PORT", "DAMSO_MAIL_FROM",
-			"DAMSO_REDIS_HOST", "DAMSO_REDIS_PORT" })
+			"DAMSO_REDIS_HOST", "DAMSO_REDIS_PORT", "DAMSO_FCM_CREDENTIALS" })
 	void refusesWhenAnySecretIsMissing(String name) {
 		MockEnvironment env = complete();
 		env.setProperty(name, "");
@@ -79,6 +79,32 @@ class SecretsValidatorTest {
 	}
 
 	@Test
+	void refusesFcmCredentialsThatAreNotBase64WithoutPrintingThem() {
+		MockEnvironment env = complete();
+		env.setProperty("DAMSO_FCM_CREDENTIALS", "not base64 !!! fcm-secret-xyz");
+		assertThatThrownBy(() -> validator.postProcessEnvironment(env, null))
+				.hasMessageContaining("DAMSO_FCM_CREDENTIALS(형식 오류)")
+				.message().doesNotContain("fcm-secret-xyz");
+	}
+
+	@Test
+	void refusesFcmCredentialsThatAreNotJson() {
+		MockEnvironment env = complete();
+		env.setProperty("DAMSO_FCM_CREDENTIALS", base64("this is not json"));
+		assertThatThrownBy(() -> validator.postProcessEnvironment(env, null))
+				.hasMessageContaining("DAMSO_FCM_CREDENTIALS(형식 오류)");
+	}
+
+	@Test
+	void refusesFcmCredentialsWhoseTypeIsNotServiceAccount() {
+		MockEnvironment env = complete();
+		env.setProperty("DAMSO_FCM_CREDENTIALS", base64("{\"type\":\"authorized_user\",\"private_key\":\"pk-secret-xyz\"}"));
+		assertThatThrownBy(() -> validator.postProcessEnvironment(env, null))
+				.hasMessageContaining("DAMSO_FCM_CREDENTIALS(형식 오류)")
+				.message().doesNotContain("pk-secret-xyz");
+	}
+
+	@Test
 	void superAdminVariablesMustComeAsAPair() {
 		MockEnvironment onlyEmail = complete();
 		onlyEmail.setProperty("DAMSO_SUPER_ADMIN_EMAIL", "admin@school.example");
@@ -102,6 +128,10 @@ class SecretsValidatorTest {
 		assertThat(SecretsValidator.findProblems(both)).isEmpty();
 	}
 
+	private static String base64(String text) {
+		return Base64.getEncoder().encodeToString(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+	}
+
 	private static MockEnvironment complete() {
 		return new MockEnvironment()
 				.withProperty("DAMSO_DB_URL", "jdbc:postgresql://db/damso")
@@ -115,7 +145,8 @@ class SecretsValidatorTest {
 				.withProperty("DAMSO_MAIL_PORT", "587")
 				.withProperty("DAMSO_MAIL_FROM", "no-reply@damso.example")
 				.withProperty("DAMSO_REDIS_HOST", "redis")
-				.withProperty("DAMSO_REDIS_PORT", "6379");
+				.withProperty("DAMSO_REDIS_PORT", "6379")
+				.withProperty("DAMSO_FCM_CREDENTIALS", base64("{\"type\":\"service_account\"}"));
 	}
 
 }

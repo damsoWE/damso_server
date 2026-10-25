@@ -1,0 +1,467 @@
+openapi: 3.0.3
+info:
+  title: DAMSO F2 Contract — 문의 접수·긴급 분류
+  version: 0.3.0
+  description: |
+    F2가 추가하는 API. 공통 규칙(Bearer 헤더 인증, ErrorResponse, UUID만 노출)은 docs/api/openapi.yaml을 따른다.
+    - 이 파일의 경로·스키마·ErrorCode 추가분은 사람 리뷰(소유권 검증·에러 형식·UUID 노출) 후 docs/api/openapi.yaml에 통합한다.
+    - 학부모에게 보이는 안내는 서버가 코드(NoticeCode, HotlineCode)로 내려 주고, 앱은 이 계약에 적힌 고정 문구를 그대로 표시한다(원칙 V).
+    - 남의 문의·자녀가 아닌 학생은 존재 여부를 드러내지 않도록 404 NOT_FOUND로 응답한다.
+    - 문의 본문은 학부모 본인의 상세와 교사의 원문 열람(긴급만, 감사 기록) 응답에만 있다.
+    출처: specs/002-inquiry-intake-urgent
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: http://localhost:8080
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: parent-inquiry
+    description: 학부모 문의 작성·조회
+  - name: teacher-inquiry
+    description: 교사 문의 목록·원문 열람
+  - name: notification
+    description: 기기 등록·교사 알림 설정
+
+paths:
+  /api/v1/parent/inquiries:
+    post:
+      tags: [parent-inquiry]
+      operationId: submitInquiry
+      summary: 문의 제출 (자녀 선택, 자유 서술 최대 2,000자, 제목 없음)
+      description: |
+        순서: 입력 검증 → 중복 제출 확인(Idempotency-Key) → 긴급 판정(규칙, AI 이전) → 일반이면 1분 제한 → 저장.
+        - 같은 Idempotency-Key가 다시 오면 처음 접수된 문의를 그대로 돌려준다(새로 만들지 않음, 1분 제한도 보지 않음). 단 자녀나 본문이 다르면 409 CONFLICT.
+        - 1분 제한을 확인할 수 없는 서버 장애에서는 일반 문의도 제한만 건너뛰고 접수한다(문의권 우선).
+        - 긴급 문의는 1분 제한을 받지 않고, 정제 없이 담임에게 바로 전달된다(stage DELIVERED).
+        - 긴급 판정은 외부 AI·알림 장애와 무관하게 동작한다.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: 제출마다 앱이 새로 만든 UUID. 재시도할 때는 같은 값을 다시 보낸다. 같은 키로 자녀나 본문이 다른 제출을 보내면 409 CONFLICT로 거부한다.
+          schema: { $ref: '#/components/schemas/Uuid' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SubmitInquiryRequest' }
+      responses:
+        '201':
+          description: 접수됨(같은 키의 재전송도 같은 결과)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InquirySubmitted' }
+        '400':
+          description: INVALID_INPUT(본문 비었음·2,000자 초과·Idempotency-Key 누락 등)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: NO_HOMEROOM_TEACHER(자녀의 학급에 담임이 아직 없음) 또는 CONFLICT(같은 Idempotency-Key로 자녀나 본문이 다른 제출)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example: { code: NO_HOMEROOM_TEACHER, message: 담임 선생님이 아직 연결되지 않았습니다. }
+        '429': { $ref: '#/components/responses/TooManyAttempts' }
+    get:
+      tags: [parent-inquiry]
+      operationId: listMyInquiries
+      summary: 내가 작성한 문의 목록 (최신순)
+      responses:
+        '200':
+          description: 본인이 작성한 문의만
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ParentInquirySummary' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/parent/inquiries/{inquiryId}:
+    parameters:
+      - { name: inquiryId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    get:
+      tags: [parent-inquiry]
+      operationId: getMyInquiry
+      summary: 내 문의 상세 — 원문, 처리 단계 타임라인, 안내
+      responses:
+        '200':
+          description: 본인이 작성한 문의
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ParentInquiryDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/teacher/inquiries:
+    get:
+      tags: [teacher-inquiry]
+      operationId: listClassInquiries
+      summary: 담당 학급 문의 목록 — 긴급이 먼저, 그다음 최신순
+      parameters:
+        - { name: page, in: query, required: false, schema: { type: integer, minimum: 0, default: 0 } }
+        - { name: size, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+      responses:
+        '200':
+          description: 현재 담임인 학급의 문의만. 본문 없음
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TeacherInquiryPage' }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/teacher/inquiries/{inquiryId}:
+    parameters:
+      - { name: inquiryId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    get:
+      tags: [teacher-inquiry]
+      operationId: getClassInquiry
+      summary: 문의 상세(본문 없음) — 처리 단계 타임라인
+      responses:
+        '200':
+          description: 담당 학급의 문의
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TeacherInquiryDetail' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/teacher/inquiries/{inquiryId}/content:
+    parameters:
+      - { name: inquiryId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    get:
+      tags: [teacher-inquiry]
+      operationId: viewInquiryContent
+      summary: 원문 열람 (F2는 긴급 문의만) — 열람 기록이 남는다
+      description: |
+        원문을 돌려주기 전에 같은 트랜잭션에서 감사 기록(열람자·대상·시각)을 남긴다.
+        처음 열람하면 처리 단계가 TEACHER_CONFIRMED로 바뀌고 재알림이 멈춘다. 두 번째부터는 기록만 남는다.
+        일반 문의의 원문 열람은 F3 범위라 INQUIRY_CONTENT_UNAVAILABLE.
+      responses:
+        '200':
+          description: 원문
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InquiryContent' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: INQUIRY_CONTENT_UNAVAILABLE (F2에서 일반 문의)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example: { code: INQUIRY_CONTENT_UNAVAILABLE, message: 아직 열람할 수 없는 문의입니다. }
+
+  /api/v1/teacher/notification-settings:
+    get:
+      tags: [notification]
+      operationId: getNotificationSettings
+      summary: 내 응답 가능 시간·일반 알림 설정 (설정 전이면 일반 알림 켜짐, 응답 가능 시간 없음 = 항상 응답 가능)
+      responses:
+        '200':
+          description: 설정
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationSettings' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    put:
+      tags: [notification]
+      operationId: updateNotificationSettings
+      summary: 응답 가능 시간(요일당 한 구간)·일반 알림 켜기/끄기 저장. 이후 문의부터 적용
+      description: 긴급 알림은 설정 대상이 아니다(항상 켜짐). availability를 빈 배열로 보내면 항상 응답 가능이 된다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NotificationSettings' }
+      responses:
+        '200':
+          description: 저장된 설정
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationSettings' }
+        '400':
+          description: INVALID_INPUT(시작이 종료보다 늦거나 같음, 같은 요일 중복, 시각 형식 오류)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/v1/me/devices:
+    put:
+      tags: [notification]
+      operationId: registerDevice
+      summary: 이 기기를 알림 수신 기기로 등록(현재 로그인 세션에 묶임)
+      description: |
+        같은 토큰이 다시 오면 갱신한다. 이 세션에서 로그아웃하거나 비밀번호 재설정·탈퇴로 세션이 끝나면 이 기기로 알림이 가지 않는다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RegisterDeviceRequest' }
+      responses:
+        '204': { description: 등록됨 }
+        '400': { $ref: '#/components/responses/InvalidInput' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/v1/me/devices/current:
+    delete:
+      tags: [notification]
+      operationId: unregisterCurrentDevice
+      summary: 이 세션에 등록된 기기 등록 해제
+      responses:
+        '204': { description: 해제됨(등록이 없어도 204) }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Uuid: { $ref: '../../../docs/api/openapi.yaml#/components/schemas/Uuid' }
+    FieldError: { $ref: '../../../docs/api/openapi.yaml#/components/schemas/FieldError' }
+
+    ErrorCode:
+      type: string
+      description: |
+        docs/api/openapi.yaml의 기존 15개 + F2 추가 2개(NO_HOMEROOM_TEACHER, INQUIRY_CONTENT_UNAVAILABLE).
+        통합할 때 공통 ErrorCode enum에 F2 2개를 추가한다. 기존 코드의 의미는 바꾸지 않는다.
+      enum:
+        - INVALID_INPUT
+        - UNAUTHORIZED
+        - FORBIDDEN
+        - NOT_FOUND
+        - METHOD_NOT_ALLOWED
+        - CONFLICT
+        - PAYLOAD_TOO_LARGE
+        - UNSUPPORTED_MEDIA_TYPE
+        - INTERNAL_ERROR
+        - INVALID_INVITE_CODE
+        - INVALID_VERIFICATION_CODE
+        - INVALID_CREDENTIALS
+        - TOO_MANY_ATTEMPTS
+        - CLASSROOM_HAS_TEACHER
+        - STUDENT_HAS_GUARDIAN
+        - NO_HOMEROOM_TEACHER
+        - INQUIRY_CONTENT_UNAVAILABLE
+
+    ErrorResponse:
+      type: object
+      description: 공통 ErrorResponse와 같은 구조. code만 F2 추가분을 포함한 목록을 쓴다
+      properties:
+        code: { $ref: '#/components/schemas/ErrorCode' }
+        message: { type: string, description: 코드별 고정 문구 }
+        fieldErrors:
+          type: array
+          items: { $ref: '#/components/schemas/FieldError' }
+      required: [code, message]
+      additionalProperties: false
+
+    InquiryStage:
+      type: string
+      description: |
+        RECEIVED(접수) · DELIVERED(교사에게 전달됨, 긴급만) · REFINING(정제, F3) · TEACHER_CONFIRMED(교사 확인) · ANSWERED(답변 완료, F4).
+        일반: RECEIVED → REFINING → TEACHER_CONFIRMED → ANSWERED / 긴급: RECEIVED → DELIVERED → TEACHER_CONFIRMED → ANSWERED
+      enum: [RECEIVED, DELIVERED, REFINING, TEACHER_CONFIRMED, ANSWERED]
+
+    NoticeCode:
+      type: string
+      description: |
+        학부모 화면의 시스템 안내 코드. 앱은 아래 고정 문구를 그대로 표시하고 교사 명의와 구분해 시스템 발신으로 보여 준다.
+        - RECEIVED: "문의가 접수되었습니다."
+        - URGENT_DELIVERED: "선생님께 바로 전달했어요."
+        - DEFERRED_TO_AVAILABLE_HOURS: "선생님 응답 가능 시간에 전달됩니다."
+      enum: [RECEIVED, URGENT_DELIVERED, DEFERRED_TO_AVAILABLE_HOURS]
+
+    HotlineCode:
+      type: string
+      description: |
+        긴급 문의의 외부 상담·신고 번호. 앱은 아래 고정 문구를 표시한다.
+        - SUICIDE_PREVENTION_109: "자살예방 상담전화 109"
+        - CHILD_ABUSE_112: "아동학대 신고 112"
+        위기 종류별: 자해 → [SUICIDE_PREVENTION_109], 학대 → [CHILD_ABUSE_112], 그 밖의 안전 → [], 분류 안 됨(F3 전 기본값) → [CHILD_ABUSE_112, SUICIDE_PREVENTION_109]
+      enum: [SUICIDE_PREVENTION_109, CHILD_ABUSE_112]
+
+    Content:
+      type: string
+      minLength: 1
+      maxLength: 2000
+      description: 자유 서술. 글자 수(코드 포인트) 기준 1~2,000자, 공백만은 안 된다. 서버가 코드 포인트로 다시 센다. maxLength는 안내용이며, 이모지처럼 UTF-16 길이가 더 긴 글자가 든 본문을 클라이언트 검증이 먼저 막지 않도록 최종 판단은 서버에 맡긴다
+
+    SubmitInquiryRequest:
+      type: object
+      properties:
+        studentId: { $ref: '#/components/schemas/Uuid' }
+        content: { $ref: '#/components/schemas/Content' }
+      required: [studentId, content]
+      additionalProperties: false
+
+    InquirySubmitted:
+      type: object
+      properties:
+        inquiryId: { $ref: '#/components/schemas/Uuid' }
+        urgent: { type: boolean }
+        stage: { $ref: '#/components/schemas/InquiryStage' }
+        submittedAt: { type: string, format: date-time }
+        notices:
+          type: array
+          items: { $ref: '#/components/schemas/NoticeCode' }
+        hotlines:
+          type: array
+          description: 긴급일 때만 값이 있다. 일반 문의는 빈 배열
+          items: { $ref: '#/components/schemas/HotlineCode' }
+      required: [inquiryId, urgent, stage, submittedAt, notices, hotlines]
+      additionalProperties: false
+
+    StageEvent:
+      type: object
+      properties:
+        stage: { $ref: '#/components/schemas/InquiryStage' }
+        occurredAt: { type: string, format: date-time }
+      required: [stage, occurredAt]
+      additionalProperties: false
+
+    ParentInquirySummary:
+      type: object
+      properties:
+        inquiryId: { $ref: '#/components/schemas/Uuid' }
+        studentId: { $ref: '#/components/schemas/Uuid' }
+        studentName: { type: string }
+        urgent: { type: boolean }
+        stage: { $ref: '#/components/schemas/InquiryStage' }
+        submittedAt: { type: string, format: date-time }
+      required: [inquiryId, studentId, studentName, urgent, stage, submittedAt]
+      additionalProperties: false
+
+    ParentInquiryDetail:
+      type: object
+      properties:
+        inquiryId: { $ref: '#/components/schemas/Uuid' }
+        studentId: { $ref: '#/components/schemas/Uuid' }
+        studentName: { type: string }
+        content: { type: string, description: 본인이 쓴 원문 }
+        urgent: { type: boolean }
+        stage: { $ref: '#/components/schemas/InquiryStage' }
+        submittedAt: { type: string, format: date-time }
+        timeline:
+          type: array
+          items: { $ref: '#/components/schemas/StageEvent' }
+        notices:
+          type: array
+          items: { $ref: '#/components/schemas/NoticeCode' }
+        hotlines:
+          type: array
+          items: { $ref: '#/components/schemas/HotlineCode' }
+      required: [inquiryId, studentId, studentName, content, urgent, stage, submittedAt, timeline, notices, hotlines]
+      additionalProperties: false
+
+    TeacherInquirySummary:
+      type: object
+      properties:
+        inquiryId: { $ref: '#/components/schemas/Uuid' }
+        studentId: { $ref: '#/components/schemas/Uuid' }
+        studentName: { type: string }
+        urgent: { type: boolean }
+        title:
+          type: string
+          description: '고정 문구 — 긴급 "긴급 문의", 정리 전 "정리 중". F3 이후 정제 결과 제목'
+        stage: { $ref: '#/components/schemas/InquiryStage' }
+        submittedAt: { type: string, format: date-time }
+      required: [inquiryId, studentId, studentName, urgent, title, stage, submittedAt]
+      additionalProperties: false
+
+    TeacherInquiryPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/TeacherInquirySummary' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer }
+      required: [items, page, size, totalElements]
+      additionalProperties: false
+
+    TeacherInquiryDetail:
+      type: object
+      description: 본문은 없다. 원문은 /content로만 열람한다(감사 기록)
+      properties:
+        inquiryId: { $ref: '#/components/schemas/Uuid' }
+        studentId: { $ref: '#/components/schemas/Uuid' }
+        studentName: { type: string }
+        urgent: { type: boolean }
+        title: { type: string }
+        stage: { $ref: '#/components/schemas/InquiryStage' }
+        submittedAt: { type: string, format: date-time }
+        timeline:
+          type: array
+          items: { $ref: '#/components/schemas/StageEvent' }
+      required: [inquiryId, studentId, studentName, urgent, title, stage, submittedAt, timeline]
+      additionalProperties: false
+
+    InquiryContent:
+      type: object
+      properties:
+        inquiryId: { $ref: '#/components/schemas/Uuid' }
+        content: { type: string }
+      required: [inquiryId, content]
+      additionalProperties: false
+
+    DayOfWeek:
+      type: string
+      enum: [MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY, SUNDAY]
+
+    AvailabilityWindow:
+      type: object
+      description: 한국 시간. 시작 포함·종료 미포함, start < end. 자정을 넘는 구간은 두 요일로 나눠 보낸다
+      properties:
+        dayOfWeek: { $ref: '#/components/schemas/DayOfWeek' }
+        start: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$', example: '08:30' }
+        end: { type: string, pattern: '^([01][0-9]|2[0-3]):[0-5][0-9]$|^24:00$', example: '17:00' }
+      required: [dayOfWeek, start, end]
+      additionalProperties: false
+
+    NotificationSettings:
+      type: object
+      properties:
+        generalEnabled: { type: boolean, description: 일반 문의 알림. 긴급 알림은 항상 켜짐 }
+        availability:
+          type: array
+          maxItems: 7
+          description: 요일당 한 구간. 빈 배열이면 항상 응답 가능
+          items: { $ref: '#/components/schemas/AvailabilityWindow' }
+      required: [generalEnabled, availability]
+      additionalProperties: false
+
+    RegisterDeviceRequest:
+      type: object
+      properties:
+        token: { type: string, minLength: 1, maxLength: 512, description: FCM 등록 토큰 }
+        platform: { type: string, enum: [ANDROID, IOS] }
+      required: [token, platform]
+      additionalProperties: false
+
+  responses:
+    InvalidInput: { $ref: '../../../docs/api/openapi.yaml#/components/responses/InvalidInput' }
+    Unauthorized: { $ref: '../../../docs/api/openapi.yaml#/components/responses/Unauthorized' }
+    Forbidden: { $ref: '../../../docs/api/openapi.yaml#/components/responses/Forbidden' }
+    NotFound: { $ref: '../../../docs/api/openapi.yaml#/components/responses/NotFound' }
+    TooManyAttempts: { $ref: '../../../docs/api/openapi.yaml#/components/responses/TooManyAttempts' }

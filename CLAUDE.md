@@ -51,6 +51,7 @@ Skill definitions: `.claude/skills/*/SKILL.md`.
   external systems, or DB schema changes.
 - Do not delete files or run destructive Git commands without user approval.
 - Only run git push or git commit when explicitly requested by the user.
+- Do not add AI attribution, including Codex or Claude `Co-Authored-By` trailers, to commits or PR text.
 - Follow `.claude/skills/git-conventions/SKILL.md` for every issue, branch
   (`features/…`, `fix/…`), commit (`Feat : …`, `Fix : …`, `Docs : …`, `Chore : …`), and PR. Never
   push to `main` directly.

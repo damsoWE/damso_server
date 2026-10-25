@@ -1,0 +1,6 @@
+# Gitleaks 허용 목록(지문 단위). 실제 비밀이 아니라고 확인한 항목만 이유와 함께 적는다.
+#
+# F1 SecretsValidatorTest의 더미 슈퍼 관리자 비밀번호.
+# "실패 메시지에 값이 나오지 않는다"를 검사하려고 넣은 테스트 값이며 어떤 환경에서도 쓰이지 않는다.
+40d3259f769b4efe4b6309cbcd4bdda477c50949:src/test/java/damso/common/config/SecretsValidatorTest.java:generic-api-key:90
+40d3259f769b4efe4b6309cbcd4bdda477c50949:src/test/java/damso/common/config/SecretsValidatorTest.java:generic-api-key:101
