@@ -8,7 +8,7 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -43,6 +43,8 @@ import damso.school.application.port.in.InquiryTargetQuery.ChildTarget;
 public class SubmitInquiryService implements SubmitInquiryUseCase {
 
 	private static final Logger log = LoggerFactory.getLogger(SubmitInquiryService.class);
+
+	private static final long LOCK_BUSY_RETRY_SECONDS = 1;
 
 	private final InquiryPort inquiries;
 
@@ -81,40 +83,34 @@ public class SubmitInquiryService implements SubmitInquiryUseCase {
 		InquiryContentPolicy.validate(content);
 		String requestHash = hasher.hash(studentId + ":" + content);
 
-		// 재시도는 대상·제한을 다시 보지 않는다. 처음 접수된 뒤 담임이 바뀌어도 같은 결과를 돌려줘야 한다.
-		Optional<Inquiry> existing = inquiries.findByParentAndKey(parentId, idempotencyKey);
-		if (existing.isPresent()) {
-			return replay(existing.get(), requestHash);
-		}
-
-		ChildTarget target = targets.resolveChild(parentId, studentId);
-		if (!target.hasHomeroomTeacher()) {
-			throw new BusinessException(ErrorCode.NO_HOMEROOM_TEACHER);
-		}
-
-		boolean urgent = urgentRule.isUrgent(content);
-		if (!urgent) {
+		// 같은 (학부모, 키)의 요청은 한 번에 하나씩만 처리한다. 먼저 온 요청이 커밋한 뒤에야 다음 요청이
+		// 중복 확인을 하므로, 동시 재시도도 제한에 걸리지 않고 처음 접수 결과를 돌려받는다.
+		return transaction.execute(status -> {
 			try {
+				inquiries.lockSubmission(parentId, idempotencyKey);
+			}
+			catch (PessimisticLockingFailureException ex) {
+				// 같은 키의 앞선 요청이 오래 끝나지 않는다. 연결을 붙잡지 말고 같은 키로 잠시 뒤 다시 보내게 한다.
+				throw new TooManyAttemptsException(LOCK_BUSY_RETRY_SECONDS);
+			}
+
+			// 재시도는 대상·제한을 다시 보지 않는다. 처음 접수된 뒤 담임이 바뀌어도 같은 결과를 돌려줘야 한다.
+			Optional<Inquiry> existing = inquiries.findByParentAndKey(parentId, idempotencyKey);
+			if (existing.isPresent()) {
+				return replay(existing.get(), requestHash);
+			}
+
+			ChildTarget target = targets.resolveChild(parentId, studentId);
+			if (!target.hasHomeroomTeacher()) {
+				throw new BusinessException(ErrorCode.NO_HOMEROOM_TEACHER);
+			}
+
+			boolean urgent = urgentRule.isUrgent(content);
+			if (!urgent) {
 				enforceSubmitLimit(parentId);
 			}
-			catch (TooManyAttemptsException ex) {
-				// 같은 키의 다른 요청이 방금 접수됐다면 거부가 아니라 그 결과를 돌려준다(동시 재시도)
-				Optional<Inquiry> raced = inquiries.findByParentAndKey(parentId, idempotencyKey);
-				if (raced.isPresent()) {
-					return replay(raced.get(), requestHash);
-				}
-				throw ex;
-			}
-		}
-
-		try {
-			return transaction.execute(status -> persist(parentId, target, content, urgent, idempotencyKey, requestHash));
-		}
-		catch (DataIntegrityViolationException ex) {
-			// 같은 키가 동시에 들어와 다른 요청이 먼저 저장했다
-			Inquiry winner = inquiries.findByParentAndKey(parentId, idempotencyKey).orElseThrow(() -> ex);
-			return replay(winner, requestHash);
-		}
+			return persist(parentId, target, content, urgent, idempotencyKey, requestHash);
+		});
 	}
 
 	private void enforceSubmitLimit(UUID parentId) {

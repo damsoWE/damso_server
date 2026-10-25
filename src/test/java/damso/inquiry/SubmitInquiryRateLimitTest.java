@@ -7,7 +7,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -120,16 +122,17 @@ class SubmitInquiryRateLimitTest extends IntegrationTestSupport {
 			}
 			start.countDown();
 
-			List<String> ids = new ArrayList<>();
+			// 동시 재시도도 제한에 걸리지 않고 모두 같은 접수 결과를 받는다 (FR-002a)
+			Set<String> ids = new HashSet<>();
+			Set<String> submittedAts = new HashSet<>();
 			for (Future<MockHttpServletResponse> future : futures) {
 				MockHttpServletResponse response = future.get();
-				// 성공은 모두 같은 문의, 나머지는 제한에 걸린 재시도(429)뿐이다
-				assertThat(response.getStatus()).isIn(201, 429);
-				if (response.getStatus() == 201) {
-					ids.add(read(response, "$.inquiryId"));
-				}
+				assertThat(response.getStatus()).isEqualTo(201);
+				ids.add(read(response, "$.inquiryId"));
+				submittedAts.add(read(response, "$.submittedAt"));
 			}
-			assertThat(ids).isNotEmpty().containsOnly(ids.get(0));
+			assertThat(ids).hasSize(1);
+			assertThat(submittedAts).hasSize(1);
 			assertThat(inquiryCount()).isEqualTo(1);
 		}
 		finally {

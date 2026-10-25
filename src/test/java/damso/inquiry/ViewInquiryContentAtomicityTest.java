@@ -138,7 +138,9 @@ class ViewInquiryContentAtomicityTest extends IntegrationTestSupport {
 					.isEqualTo("DELIVERED");
 			assertThat(jdbc.queryForObject("select count(*) from inquiry_stage_history where inquiry_id = ?",
 					Integer.class, id)).isEqualTo(2);
-			assertThat(jdbc.queryForObject("select count(*) from audit_log", Integer.class)).isZero();
+			// 시도 기록은 전이보다 먼저 커밋된다. 전이가 실패하면 실패 기록이 이어지고, 열람 완료 기록은 없다.
+			assertThat(jdbc.queryForList("select action from audit_log", String.class))
+					.containsExactlyInAnyOrder("INQUIRY_CONTENT_VIEW_ATTEMPTED", "INQUIRY_CONTENT_VIEW_FAILED");
 		}
 		finally {
 			FailingStageHistoryConfig.failing = false;
@@ -174,7 +176,9 @@ class ViewInquiryContentAtomicityTest extends IntegrationTestSupport {
 		assertThat(jdbc.queryForObject(
 				"select count(*) from inquiry_stage_history where inquiry_id = ? and stage = 'TEACHER_CONFIRMED'",
 				Integer.class, id)).isEqualTo(1);
-		assertThat(jdbc.queryForObject("select count(*) from audit_log", Integer.class)).isEqualTo(2);
+		assertThat(jdbc.queryForList("select action from audit_log", String.class)).containsExactlyInAnyOrder(
+				"INQUIRY_CONTENT_VIEW_ATTEMPTED", "INQUIRY_CONTENT_VIEW_ATTEMPTED", "INQUIRY_CONTENT_VIEWED",
+				"INQUIRY_CONTENT_VIEWED");
 		assertThat(jdbc.queryForObject("select stage from inquiry where id = ?", String.class, id))
 				.isEqualTo("TEACHER_CONFIRMED");
 	}

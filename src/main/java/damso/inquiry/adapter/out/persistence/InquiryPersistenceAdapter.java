@@ -18,6 +18,8 @@ import damso.inquiry.domain.InquiryStageHistory;
 @Component
 class InquiryPersistenceAdapter implements InquiryPort, InquiryStageHistoryPort {
 
+	private static final String LOCK_WAIT_MILLIS = "3000";
+
 	private final SpringDataInquiryRepository inquiries;
 
 	private final InquiryStageHistoryRepository histories;
@@ -37,6 +39,13 @@ class InquiryPersistenceAdapter implements InquiryPort, InquiryStageHistoryPort 
 	@Override
 	public Optional<Inquiry> findInquiryById(UUID id) {
 		return inquiries.findById(id);
+	}
+
+	@Override
+	public void lockSubmission(UUID parentId, UUID idempotencyKey) {
+		// 앞선 요청이 오래 걸려도 커넥션을 쥔 채 무한정 기다리지 않는다. 시간이 지나면 락 획득 실패 예외가 난다.
+		inquiries.limitLockWait(LOCK_WAIT_MILLIS);
+		inquiries.lockSubmission("inquiry-submit:" + parentId + ":" + idempotencyKey);
 	}
 
 	@Override

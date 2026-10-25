@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import damso.audit.application.port.in.AuditLogUseCase;
 import damso.audit.domain.AuditAction;
@@ -20,12 +19,13 @@ import damso.school.application.port.in.InquiryTargetQuery;
 
 /**
  * 긴급 문의 원문 열람 (FR-024~026). 순서가 중요하다:
- * ① 현재 담임인지 ② 긴급인지 ③ 감사 기록 ④ 첫 열람이면 단계 전이 ⑤ 본문 반환.
- * 감사 기록이 실패하면 이 트랜잭션 전체가 실패하고 본문은 나가지 않는다(원칙 III).
+ * ① 현재 담임인지 ② 긴급인지 ③ 열람 시도 기록 ④ 첫 열람이면 단계 전이 ⑤ 열람 완료 기록 ⑥ 본문 반환.
+ * 이 서비스는 바깥 트랜잭션을 만들지 않는다. 시도 기록은 단계 전이보다 먼저 자기 트랜잭션으로 커밋되므로,
+ * 기록이 실패하면 전이도 본문 반환도 일어나지 않고(원칙 III), 전이가 일어났다면 열람 기록은 이미 남아 있다.
+ * 전이가 실패해 본문이 나가지 않으면 시도 뒤에 실패 기록이 이어져, 실제 열람(완료 기록)과 구분된다.
  * 본문은 반환값에만 있고 로그·예외에 넣지 않는다.
  */
 @Service
-@Transactional
 public class ViewInquiryContentService implements ViewInquiryContentUseCase {
 
 	private static final Logger log = LoggerFactory.getLogger(ViewInquiryContentService.class);
@@ -55,16 +55,30 @@ public class ViewInquiryContentService implements ViewInquiryContentUseCase {
 			throw new BusinessException(ErrorCode.INQUIRY_CONTENT_UNAVAILABLE);
 		}
 
-		audit.record(teacherId, AuditAction.INQUIRY_CONTENT_VIEWED, AuditTargetType.INQUIRY, inquiryId);
+		audit.record(teacherId, AuditAction.INQUIRY_CONTENT_VIEW_ATTEMPTED, AuditTargetType.INQUIRY, inquiryId);
 		try {
 			confirmation.confirmIfDelivered(inquiryId);
 		}
 		catch (OptimisticLockingFailureException ex) {
 			// 다른 열람이 먼저 확인 처리했다(낙관적 락 충돌). 이미 확인된 것으로 보고 열람은 계속한다.
-			// 그 밖의 데이터 접근 오류(DB 장애·이력 저장 실패)는 잡지 않는다 — 전파되어 본문이 나가지 않는다.
 			log.debug("문의 확인 전이 충돌 (inquiry={}, type={})", inquiryId, ex.getClass().getSimpleName());
 		}
+		catch (RuntimeException ex) {
+			// 그 밖의 오류(DB 장애·이력 저장 실패)는 전파되어 본문이 나가지 않는다. 실패했다는 표시만 남긴다.
+			recordFailure(teacherId, inquiryId, ex);
+			throw ex;
+		}
+		audit.record(teacherId, AuditAction.INQUIRY_CONTENT_VIEWED, AuditTargetType.INQUIRY, inquiryId);
 		return new InquiryContentView(inquiryId, inquiry.getContent().reveal());
+	}
+
+	private void recordFailure(UUID teacherId, UUID inquiryId, RuntimeException cause) {
+		try {
+			audit.record(teacherId, AuditAction.INQUIRY_CONTENT_VIEW_FAILED, AuditTargetType.INQUIRY, inquiryId);
+		}
+		catch (RuntimeException ex) {
+			cause.addSuppressed(ex);
+		}
 	}
 
 }

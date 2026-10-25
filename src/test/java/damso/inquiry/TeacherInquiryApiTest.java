@@ -161,7 +161,8 @@ class TeacherInquiryApiTest extends IntegrationTestSupport {
 				.isEqualTo("TEACHER_CONFIRMED");
 		assertThat(jdbc.queryForObject("select count(*) from inquiry_stage_history where inquiry_id = ?",
 				Integer.class, id)).isEqualTo(3);
-		List<Map<String, Object>> audit = jdbc.queryForList("select actor_id, action, target_type, target_id from audit_log");
+		List<Map<String, Object>> audit = jdbc
+				.queryForList("select actor_id, action, target_type, target_id from audit_log where action = 'INQUIRY_CONTENT_VIEWED'");
 		assertThat(audit).hasSize(1);
 		assertThat(audit.get(0)).containsEntry("actor_id", s.teacher().userId())
 				.containsEntry("action", "INQUIRY_CONTENT_VIEWED").containsEntry("target_type", "INQUIRY")
@@ -171,7 +172,14 @@ class TeacherInquiryApiTest extends IntegrationTestSupport {
 		MockHttpServletResponse second = send(get("/api/v1/teacher/inquiries/" + id + "/content"),
 				s.teacher().accessToken());
 		assertThat(second.getStatus()).isEqualTo(200);
-		assertThat(jdbc.queryForObject("select count(*) from audit_log", Integer.class)).isEqualTo(2);
+		assertThat(jdbc.queryForObject("select count(*) from audit_log where action = 'INQUIRY_CONTENT_VIEWED'",
+				Integer.class)).isEqualTo(2);
+		// 열람마다 시도 기록이 먼저 남는다. 실패 기록은 없다
+		assertThat(jdbc.queryForObject(
+				"select count(*) from audit_log where action = 'INQUIRY_CONTENT_VIEW_ATTEMPTED'", Integer.class))
+				.isEqualTo(2);
+		assertThat(jdbc.queryForObject("select count(*) from audit_log where action = 'INQUIRY_CONTENT_VIEW_FAILED'",
+				Integer.class)).isZero();
 		assertThat(jdbc.queryForObject("select count(*) from inquiry_stage_history where inquiry_id = ?",
 				Integer.class, id)).isEqualTo(3);
 	}
