@@ -111,8 +111,11 @@ public class Inquiry extends BaseEntity {
 		this.teacherId = teacherId;
 		this.content = SensitiveText.of(content);
 		this.urgent = urgent;
-		// 긴급이 먼저다 — 긴급 문의에는 위협·폭언 표시를 붙이지 않는다(spec 005 FR-005a)
-		this.threatFlagged = !urgent && threatFlagged;
+		// 긴급이 먼저다 — 긴급 문의에는 위협·폭언 표시를 붙이지 않는다(spec 005 FR-005a). 규칙은 여기 한 곳에서만 지킨다.
+		if (urgent && threatFlagged) {
+			throw new IllegalArgumentException("urgent inquiries are never threat-flagged");
+		}
+		this.threatFlagged = threatFlagged;
 		this.refinementStatus = urgent ? null : RefinementStatus.PENDING;
 		this.idempotencyKey = idempotencyKey;
 		this.requestHash = requestHash;

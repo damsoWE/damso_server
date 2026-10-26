@@ -1,6 +1,7 @@
 package damso.inquiry.domain;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -24,9 +25,11 @@ class InquiryThreatFlagTest {
 		assertThat(inquiry(false, false).isThreatFlagged()).isFalse();
 	}
 
+	/** 서비스가 잘못 넘겨도 조용히 덮어쓰지 않고 드러나게 거부한다. */
 	@Test
 	void urgentInquiryIsNeverFlagged() {
-		assertThat(inquiry(true, true).isThreatFlagged()).isFalse();
+		assertThat(inquiry(true, false).isThreatFlagged()).isFalse();
+		assertThatThrownBy(() -> inquiry(true, true)).isInstanceOf(IllegalArgumentException.class);
 	}
 
 	@Test

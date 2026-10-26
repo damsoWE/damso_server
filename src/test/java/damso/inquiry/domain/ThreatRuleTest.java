@@ -95,6 +95,32 @@ class ThreatRuleTest {
 		assertThat(latin.isFlagged("shut-up")).isFalse();
 	}
 
+	/** 오탐 최소화(research R2): 표현은 어절 시작에서만, 띄어쓰기 차이는 표현에 공백을 둔 자리에서만 허용한다. */
+	@Test
+	void matchesOnlyAtWordStartsAndAllowsSpacesOnlyWhereTheExpressionHasThem() {
+		ThreatRule sample = new ThreatRule(List.of("모가지", "애새끼", "가만 두지 않겠"));
+
+		assertThat(sample.isFlagged("선생님 모가지 날아가요")).isTrue();
+		assertThat(sample.isFlagged("(모가지) 날아가요")).isTrue();
+		assertThat(sample.isFlagged("아이 고모가 지금 가요")).isFalse();
+		assertThat(sample.isFlagged("우리 애 새끼손가락")).isFalse();
+		assertThat(sample.isFlagged("그 애새끼가")).isTrue();
+		assertThat(sample.isFlagged("가만두지않겠다")).isTrue();
+		assertThat(sample.isFlagged("가만 두지 않겠다")).isTrue();
+		assertThat(sample.isFlagged("가 만 두 지 않 겠 다")).isFalse();
+	}
+
+	/** 표현 속 정규식 문자는 글자 그대로 본다. */
+	@Test
+	void regexCharactersInExpressionsAreLiteral() {
+		ThreatRule sample = new ThreatRule(List.of("a.b", "(c)"));
+
+		assertThat(sample.isFlagged("a.b")).isTrue();
+		assertThat(sample.isFlagged("axb")).isFalse();
+		assertThat(sample.isFlagged("(c)")).isTrue();
+		assertThat(sample.isFlagged("c")).isFalse();
+	}
+
 	@Test
 	void blankOrMissingContentIsNotFlagged() {
 		assertThat(rule.isFlagged(null)).isFalse();

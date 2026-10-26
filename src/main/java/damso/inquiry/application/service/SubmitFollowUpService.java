@@ -38,7 +38,7 @@ import damso.school.application.port.in.InquiryTargetQuery.ChildTarget;
 /**
  * 재문의 제출 (F4, research R5). SubmitInquiryService를 복제하지 않고 같은 순서를 따르는 자매 서비스다:
  * ① 입력 검증 ② 중복 제출 확인 ③ 대상 재확인(스레드 시작 시점으로 고정하지 않고 매번 현재 담임을 다시 본다)
- * ④ 긴급 판정 ⑤ 일반이면 위협·폭언 판정(규칙, 실패하면 표시 없음, spec 005) ⑥ 일반이면 1분 제한(최초 문의와 같은 버킷 공유) ⑦ 저장.
+ * ④ 긴급 판정 ⑤ 일반이면 1분 제한(최초 문의와 같은 버킷 공유) ⑥ 일반이면 위협·폭언 판정(규칙, 실패하면 표시 없음, spec 005) ⑦ 저장.
  * rootInquiryId는 경로 파라미터로 항상 스레드 루트의 id다(재문의 자신의 id로는 호출할 수 없다).
  * F3 머지 뒤로는 정리·위기 분류도 SubmitInquiryService와 같은 방식으로 작업(아웃박스)만 남긴다(PR #10 리뷰 6번) —
  * 재문의도 그냥 또 다른 Inquiry 행이라 RefinementRunner·가명화 쪽은 고칠 필요가 없다.
@@ -128,10 +128,11 @@ public class SubmitFollowUpService implements SubmitFollowUpUseCase {
 			}
 
 			boolean urgent = urgentRule.isUrgent(content);
-			// 긴급이 먼저다 — 긴급 재문의는 위협·폭언 판정 대상이 아니다(spec 005 FR-005a)
-			boolean threatFlagged = !urgent && threatScreener.screenSafely(content);
+			boolean threatFlagged = false;
 			if (!urgent) {
 				enforceSubmitLimit(parentId);
+				// 긴급이 먼저다 — 긴급 재문의는 판정하지 않는다(spec 005 FR-005a). 제한에 걸린 요청도 판정하지 않는다.
+				threatFlagged = threatScreener.screenSafely(content);
 			}
 			return persist(root.getId(), parentId, target, content, urgent, threatFlagged, idempotencyKey,
 					requestHash);

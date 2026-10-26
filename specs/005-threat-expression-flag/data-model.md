@@ -37,9 +37,10 @@
 ThreatRule(expressions)          # 비어 있으면 IllegalArgumentException
   isFlagged(content):
     content가 null·공백뿐 → false
-    normalize(content)에 normalize(표현) 중 하나라도 포함 → true
+    NFKC·소문자로 맞춘 본문(공백 유지)에서 표현 하나라도 맞으면 → true
+      맞음 = 어절 시작(앞 글자가 글자·숫자가 아님)에서 시작하고, 표현의 공백 자리에서만 공백 0개 이상 허용
     그 밖 → false
-normalize = UrgentRule.normalize # NFKC, 소문자, 공백·줄바꿈 제거
+normalizeExpression = NFKC, 소문자, 공백 한 칸으로 모음(표현 안의 공백 자리는 남김)   # research R2 변경
 ```
 
 ## 접수 흐름에서의 위치

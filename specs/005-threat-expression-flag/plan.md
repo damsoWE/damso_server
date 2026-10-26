@@ -8,7 +8,7 @@
 
 일반 문의를 접수할 때 서버의 고정 표현 목록으로 원문을 검사해 "위협·폭언 표현 포함" 표시를 정하고 문의에 저장한다. 교사 목록·상세에만 보이고, 외부 AI 정리 결과와 무관하며, 한 번 정해지면 바뀌지 않는다.
 
-- **판정**: F2 긴급 판정과 같은 모양의 순수 함수 `ThreatRule`(정규화 + 포함 검사). 표현 목록은 `threat/expressions.txt`이고, 비면 기동을 거부한다.
+- **판정**: 순수 함수 `ThreatRule` — 어절 시작에서만, 표현의 공백 자리에서만 띄어쓰기 차이를 허용(오탐 최소화, research R2 변경). 표현 목록은 `threat/expressions.txt`이고, 비면 기동을 거부한다.
 - **순서**: 긴급 판정 → 긴급이 아니면 위협·폭언 판정. 긴급 문의는 항상 false다. 판정이 실패하면 false로 두고 접수를 계속한다.
 - **저장**: `inquiry.threat_flagged`(변경 불가). 걸린 표현은 저장하지도 로그에 남기지도 않는다.
 - **노출**: 교사 목록·상세(재문의 항목 포함)에 `threatFlagged` 필드를 더한다. 재문의(F4)도 같은 규칙으로 판정한다(FR-005c). 학부모 응답과 알림은 그대로 두고 테스트로 확인한다.
@@ -98,7 +98,7 @@ src/main/resources/
 
 src/main/java/damso/inquiry/
 ├── domain/
-│   ├── ThreatRule.java                  # 정규화(UrgentRule.normalize) + 포함 검사, 빈 목록 거부
+│   ├── ThreatRule.java                  # 어절 시작 + 표현의 공백 자리만 허용, 빈 목록 거부
 │   └── Inquiry.java                     # (수정) threat_flagged 컬럼, receive 인자, 긴급이면 false
 ├── application/
 │   ├── port/out/ThreatExpressionSource.java

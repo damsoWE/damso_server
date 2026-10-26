@@ -17,10 +17,11 @@ class ThreatExpressionSourceTest {
 	}
 
 	@Test
-	void ignoresCommentsAndBlankLinesAndNormalizes() {
-		var source = new ClasspathThreatExpressionSource(text("# 주석\n\n 가만 두지 않 \n  \nShut Up\n지랄\n지랄\n"));
+	void ignoresCommentsAndBlankLinesAndNormalizesKeepingInnerSpaces() {
+		var source = new ClasspathThreatExpressionSource(
+				text("# 주석\n\n 가만   두지 않 \n  \nShut　Up\n지랄\n지랄\n"));
 
-		assertThat(source.expressions()).containsExactly("가만두지않", "shutup", "지랄");
+		assertThat(source.expressions()).containsExactly("가만 두지 않", "shut up", "지랄");
 	}
 
 	@Test
