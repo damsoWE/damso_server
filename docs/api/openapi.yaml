@@ -8,7 +8,7 @@ info:
     - 모든 오류는 ErrorResponse 형식. 스택트레이스·예외명·내부 경로·SQL 없음.
     - 식별자는 UUID만 노출.
     - 답변 점검(F4)은 F3 연동 전까지 임시 상태다 — `available=false`만 돌아오며 전송을 막지 않는다(fail-open). `reviewed`는 "점검을 요청했는지"만 의미하고 "점검 완료"를 보증하지 않는다.
-    출처: specs/000-foundation (공통 기반), specs/001-auth-signup (F1 인증·회원가입·학급 연결), specs/002-inquiry-intake-urgent (F2 문의 접수·긴급 분류), specs/003-pseudonymization-pipeline (F3 가명화·정제 파이프라인), specs/003-answer-review-send (F4 답변 작성·점검·전송)
+    출처: specs/000-foundation (공통 기반), specs/001-auth-signup (F1 인증·회원가입·학급 연결), specs/002-inquiry-intake-urgent (F2 문의 접수·긴급 분류), specs/003-pseudonymization-pipeline (F3 가명화·정제 파이프라인), specs/004-answer-review-send (F4 답변 작성·점검·전송)
   license:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0

@@ -8,7 +8,7 @@ info:
     - **점검은 F3 연동 전까지 임시 상태다.** `POST .../answer-reviews`는 2026-10-25 결정에 따라 지금은 포트+스텁만 있어 `available=false`만 돌아온다. fail-open(FR-012)이므로 이 결과와 무관하게 전송은 항상 가능하다 — 즉 **F3가 실제 어댑터로 교체되기 전까지는 모든 답변이 실질적인 점검 없이 전송된다.** 프론트는 이 기간 동안 `reviewed=true`를 "점검 완료·안전 확인됨"으로 표시하면 안 된다(아래 `SendAnswerRequest.reviewed` 설명 참고).
     - 답변·재문의는 수정·삭제 API가 없다(원칙 III).
     - 기존 F2 `GET /api/v1/parent/inquiries/{inquiryId}`·`GET /api/v1/teacher/inquiries/{inquiryId}` 응답에 `answers`·`followUps` 필드가 추가된다. 정확한 통합 스키마는 F2 계약과 함께 사람 리뷰에서 확정한다.
-    출처: specs/003-answer-review-send
+    출처: specs/004-answer-review-send
   license:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0

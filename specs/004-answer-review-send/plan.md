@@ -2,7 +2,7 @@
 
 **Branch**: `features/f4-answer-review-send` (이슈 #7) | **Date**: 2026-10-25 | **Spec**: [spec.md](./spec.md)
 
-**Input**: Feature specification from `specs/003-answer-review-send/spec.md`
+**Input**: Feature specification from `specs/004-answer-review-send/spec.md`
 
 ## Summary
 
@@ -62,7 +62,7 @@
 ### Documentation (this feature)
 
 ```text
-specs/003-answer-review-send/
+specs/004-answer-review-send/
 ├── spec.md
 ├── plan.md              # 이 파일
 ├── research.md          # R1~R9 결정 근거

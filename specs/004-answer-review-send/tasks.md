@@ -1,11 +1,11 @@
 ---
 
-description: "Task list for 003-answer-review-send"
+description: "Task list for 004-answer-review-send"
 ---
 
 # Tasks: 답변 작성·점검·전송 (F4)
 
-**Input**: Design documents from `specs/003-answer-review-send/`
+**Input**: Design documents from `specs/004-answer-review-send/`
 
 **Prerequisites**: [plan.md](./plan.md), [spec.md](./spec.md), [research.md](./research.md), [data-model.md](./data-model.md), [contracts/](./contracts/answer.openapi.yaml), [quickstart.md](./quickstart.md)
 
@@ -37,7 +37,7 @@ description: "Task list for 003-answer-review-send"
 **Purpose**: API 명세 선반영(Contract-first). 새 외부 의존성·시크릿은 없다(research R4, 사용자 확인 2026-10-25)
 
 - [x] T001 작업 브랜치 확인: `git branch --show-current`가 `features/f4-answer-review-send`(이슈 #7 연결)인지 확인한다. 아니면 `git switch features/f4-answer-review-send`
-- [x] T002 **Contract-first — 구현 전에** `docs/api/openapi.yaml`에 `specs/003-answer-review-send/contracts/answer.openapi.yaml`을 통합: 경로 6개(오퍼레이션 7개) 추가, 스키마 추가, 공통 `ErrorCode` enum에 `THREAD_CLOSED`·`INQUIRY_NOT_READY_TO_CLOSE` 2개 추가, contract의 외부 `$ref`(`../../../docs/api/openapi.yaml#…`)는 내부 참조로 바꾼다, 태그 3개 추가, `info.version` `0.3.0` → `0.4.0`. `npx -y @redocly/cli@1.34.5 lint docs/api/openapi.yaml`이 valid여야 한다. 태그 `api-v0.4`는 PR merge 후 main에서 `/api-release api-v0.4`로 찍는다
+- [x] T002 **Contract-first — 구현 전에** `docs/api/openapi.yaml`에 `specs/004-answer-review-send/contracts/answer.openapi.yaml`을 통합: 경로 6개(오퍼레이션 7개) 추가, 스키마 추가, 공통 `ErrorCode` enum에 `THREAD_CLOSED`·`INQUIRY_NOT_READY_TO_CLOSE` 2개 추가, contract의 외부 `$ref`(`../../../docs/api/openapi.yaml#…`)는 내부 참조로 바꾼다, 태그 3개 추가, `info.version` `0.3.0` → `0.4.0`. `npx -y @redocly/cli@1.34.5 lint docs/api/openapi.yaml`이 valid여야 한다. 태그 `api-v0.4`는 PR merge 후 main에서 `/api-release api-v0.4`로 찍는다
 - [ ] T003 프론트엔드 공지: 프론트 레포(`damsoWE/damso_app`) 담당에게 F4 API 명세(`docs/api/openapi.yaml` 0.4.0)를 알린다. 알릴 내용: 경로 6개(답변 점검·전송·종료, 재문의, 학부모 알림 설정), 에러 코드 2개(`THREAD_CLOSED`, `INQUIRY_NOT_READY_TO_CLOSE`), 학부모 답변 알림 기본값은 켜짐. **점검(`POST .../answer-reviews`)은 F3 연동 전까지 임시 상태로, 지금은 항상 `available=false`만 돌아온다 — 교사가 점검을 요청하든 안 하든 실질적인 점검 효과가 없으니 프론트는 "점검 완료"처럼 보이는 UI 문구를 쓰지 말고 `reviewed`를 "점검을 요청한 적이 있는지"로만 표시해야 한다.** 공지한 날짜·채널을 PR 설명에 적는다
 - [x] T004 `./gradlew build -x test`로 컴파일 확인 (Windows: `.\gradlew.bat build -x test`)
 

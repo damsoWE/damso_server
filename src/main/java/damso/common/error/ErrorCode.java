@@ -37,7 +37,7 @@ public enum ErrorCode {
 	REFINEMENT_NOT_READY(HttpStatus.CONFLICT, "아직 정리된 내용이 없습니다."),
 	REFINEMENT_RETRY_UNAVAILABLE(HttpStatus.CONFLICT, "다시 정리할 수 없는 문의입니다."),
 
-	// F4 (specs/003-answer-review-send). 역시 기존 코드 뒤에 둔다.
+	// F4 (specs/004-answer-review-send). 역시 기존 코드 뒤에 둔다.
 	THREAD_CLOSED(HttpStatus.CONFLICT, "이미 종료된 문의입니다."),
 	INQUIRY_NOT_READY_TO_CLOSE(HttpStatus.CONFLICT, "아직 종료할 수 없는 문의입니다.");
 
