@@ -93,6 +93,11 @@ public class NotificationRequest extends BaseEntity {
 		return new NotificationRequest(recipientId, NotificationKind.GENERAL_DIGEST, null, scheduledAt);
 	}
 
+	/** 답변 도착 알림(F4). recipientId는 학부모다 — 담임처럼 "보낼 때의 현재" 값으로 다시 찾지 않는다. */
+	public static NotificationRequest answer(UUID recipientId, UUID inquiryId, Instant scheduledAt) {
+		return new NotificationRequest(recipientId, NotificationKind.ANSWER, inquiryId, scheduledAt);
+	}
+
 	/** 발송기가 이 요청을 임대한다. 임대가 만료된 SENDING도 다시 확보할 수 있다. */
 	public void claim(Instant lockedUntil) {
 		requireOpen();

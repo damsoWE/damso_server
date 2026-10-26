@@ -6,6 +6,7 @@ public enum NotificationKind {
 	URGENT,
 	URGENT_REMINDER,
 	GENERAL,
-	GENERAL_DIGEST
+	GENERAL_DIGEST,
+	ANSWER
 
 }

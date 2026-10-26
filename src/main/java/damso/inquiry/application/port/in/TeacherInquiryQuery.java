@@ -28,10 +28,16 @@ public interface TeacherInquiryQuery {
 	record InquiryPage(List<InquirySummary> items, int page, int size, long totalElements) {
 	}
 
+	/**
+	 * 스레드 타임라인에 포함되는 재문의 하나 — 목록·상세와 같은 규칙으로 본문은 없고, 긴급만 /content로 열람한다(F4).
+	 */
+	record FollowUpView(UUID inquiryId, boolean urgent, String title, InquiryStage stage, Instant submittedAt) {
+	}
+
 	/** retryAvailable: 원문 확인 필요(NEEDS_ORIGINAL)이고 아직 교사 재시도를 쓰지 않았으면 true(F3). */
 	record InquiryDetail(UUID inquiryId, UUID studentId, String studentName, boolean urgent, String title,
 			InquiryStage stage, RefinementStatus refinementStatus, boolean retryAvailable, Instant submittedAt,
-			List<StageEventView> timeline) {
+			List<StageEventView> timeline, List<FollowUpView> followUps, List<AnswerView> answers) {
 
 		@Override
 		public String toString() {

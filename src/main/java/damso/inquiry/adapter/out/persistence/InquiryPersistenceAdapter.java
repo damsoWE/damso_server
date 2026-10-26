@@ -42,6 +42,11 @@ class InquiryPersistenceAdapter implements InquiryPort, InquiryStageHistoryPort 
 	}
 
 	@Override
+	public Optional<Inquiry> findInquiryByIdForUpdate(UUID id) {
+		return inquiries.findByIdForUpdate(id);
+	}
+
+	@Override
 	public void lockSubmission(UUID parentId, UUID idempotencyKey) {
 		// 앞선 요청이 오래 걸려도 커넥션을 쥔 채 무한정 기다리지 않는다. 시간이 지나면 락 획득 실패 예외가 난다.
 		inquiries.limitLockWait(LOCK_WAIT_MILLIS);
@@ -55,23 +60,28 @@ class InquiryPersistenceAdapter implements InquiryPort, InquiryStageHistoryPort 
 
 	@Override
 	public List<Inquiry> findByParent(UUID parentId) {
-		return inquiries.findByParentIdOrderBySubmittedAtDesc(parentId);
+		return inquiries.findByParentIdAndThreadRootIdIsNullOrderBySubmittedAtDesc(parentId);
 	}
 
 	@Override
 	public List<Inquiry> findByClassroom(UUID classroomId, int page, int size) {
 		Sort sort = Sort.by(Sort.Order.desc("urgent"), Sort.Order.desc("submittedAt"), Sort.Order.asc("id"));
-		return inquiries.findByClassroomId(classroomId, PageRequest.of(page, size, sort));
+		return inquiries.findByClassroomIdAndThreadRootIdIsNull(classroomId, PageRequest.of(page, size, sort));
 	}
 
 	@Override
 	public long countByClassroom(UUID classroomId) {
-		return inquiries.countByClassroomId(classroomId);
+		return inquiries.countByClassroomIdAndThreadRootIdIsNull(classroomId);
 	}
 
 	@Override
 	public List<Inquiry> findDeferredNotNotified(UUID teacherId) {
 		return inquiries.findByTeacherIdAndNotificationDeferredTrueAndDeferredNotifiedAtIsNull(teacherId);
+	}
+
+	@Override
+	public List<Inquiry> findThreadMessages(UUID rootId) {
+		return inquiries.findThreadMessages(rootId);
 	}
 
 	// InquiryStageHistoryPort

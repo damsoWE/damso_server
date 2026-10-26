@@ -22,9 +22,9 @@ class ParentRefinementTimelineTest extends IntegrationTestSupport {
 
 	private static final ObjectMapper JSON = new ObjectMapper();
 
-	/** F2 계약의 학부모 상세·목록 키. F3는 학부모 응답에 키를 더하지 않는다. */
+	/** F2 계약의 학부모 상세·목록 키. F3는 학부모 응답에 키를 더하지 않는다(followUps·answers는 F4가 더한 것). */
 	private static final Set<String> DETAIL_KEYS = Set.of("inquiryId", "studentId", "studentName", "content", "urgent",
-			"stage", "submittedAt", "timeline", "notices", "hotlines");
+			"stage", "submittedAt", "timeline", "notices", "hotlines", "followUps", "answers");
 
 	private UUID submit(Scenario s, String content) throws Exception {
 		return UUID.fromString(read(submitInquiry(s.parent().accessToken(), s.student().getId(), content),

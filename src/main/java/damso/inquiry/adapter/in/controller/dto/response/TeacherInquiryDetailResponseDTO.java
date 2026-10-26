@@ -14,12 +14,15 @@ import damso.inquiry.domain.RefinementStatus;
  */
 public record TeacherInquiryDetailResponseDTO(UUID inquiryId, UUID studentId, String studentName, boolean urgent,
 		String title, InquiryStage stage, RefinementStatus refinementStatus, boolean retryAvailable,
-		Instant submittedAt, List<StageEventResponseDTO> timeline) {
+		Instant submittedAt, List<StageEventResponseDTO> timeline, List<TeacherFollowUpViewResponseDTO> followUps,
+		List<AnswerViewResponseDTO> answers) {
 
 	public static TeacherInquiryDetailResponseDTO from(InquiryDetail detail) {
 		return new TeacherInquiryDetailResponseDTO(detail.inquiryId(), detail.studentId(), detail.studentName(),
 				detail.urgent(), detail.title(), detail.stage(), detail.refinementStatus(), detail.retryAvailable(),
-				detail.submittedAt(), detail.timeline().stream().map(StageEventResponseDTO::from).toList());
+				detail.submittedAt(), detail.timeline().stream().map(StageEventResponseDTO::from).toList(),
+				detail.followUps().stream().map(TeacherFollowUpViewResponseDTO::from).toList(),
+				detail.answers().stream().map(AnswerViewResponseDTO::from).toList());
 	}
 
 	@Override

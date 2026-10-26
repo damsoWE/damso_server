@@ -14,6 +14,14 @@ public interface InquiryPort {
 	Optional<Inquiry> findInquiryById(UUID id);
 
 	/**
+	 * findInquiryById와 같지만 쓰기 잠금(SELECT ... FOR UPDATE)으로 조회한다. 이 트랜잭션이 끝날 때까지
+	 * 그 행을 쓰려는 다른 트랜잭션(예: 종료)은 대기한다 — 확인(stage 검사)과 사용(저장) 사이의 TOCTOU를 막는다
+	 * (F4 PR #10 리뷰). 답변 전송·재문의 제출처럼 "루트가 종료되지 않았는지 확인한 뒤 그 확인이 유효한 동안
+	 * 써야 하는" 경로에서만 쓴다 — 조회만 하는 경로(목록·상세)에는 쓰지 않는다.
+	 */
+	Optional<Inquiry> findInquiryByIdForUpdate(UUID id);
+
+	/**
 	 * 같은 (학부모, 멱등키) 접수를 현재 트랜잭션이 끝날 때까지 직렬화한다. 이미 다른 요청이 쥐고 있으면 그 요청이
 	 * 끝나기를 기다리되, 오래 걸리면 {@link org.springframework.dao.PessimisticLockingFailureException}을 던진다.
 	 * 반드시 트랜잭션 안에서 호출해야 한다.
@@ -22,15 +30,21 @@ public interface InquiryPort {
 
 	Optional<Inquiry> findByParentAndKey(UUID parentId, UUID idempotencyKey);
 
-	/** 학부모가 작성한 문의, 최신순. */
+	/** 학부모가 작성한 문의(스레드 루트만, 재문의는 각 스레드 상세에서 보인다), 최신순. */
 	List<Inquiry> findByParent(UUID parentId);
 
-	/** 학급의 문의 한 쪽. 긴급이 먼저, 그다음 최신순. page는 0부터. */
+	/** 학급의 문의(스레드 루트만) 한 쪽. 긴급이 먼저, 그다음 최신순. page는 0부터. */
 	List<Inquiry> findByClassroom(UUID classroomId, int page, int size);
 
 	long countByClassroom(UUID classroomId);
 
 	/** 그 교사 앞으로 알림이 미뤄졌고 아직 묶음 알림에 포함되지 않은 문의. */
 	List<Inquiry> findDeferredNotNotified(UUID teacherId);
+
+	/**
+	 * 스레드(루트 또는 재문의) 전체 메시지: id = rootId 또는 thread_root_id = rootId, 제출 시각 오름차순
+	 * (F4, FR-016·017).
+	 */
+	List<Inquiry> findThreadMessages(UUID rootId);
 
 }
