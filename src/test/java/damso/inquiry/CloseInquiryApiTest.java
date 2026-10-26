@@ -64,13 +64,16 @@ class CloseInquiryApiTest extends IntegrationTestSupport {
 		MockHttpServletResponse submitted = submitInquiry(s.parent().accessToken(), s.student().getId(),
 				NORMAL_SAMPLE);
 		UUID inquiryId = UUID.fromString(read(submitted, "$.inquiryId"));
-		assertThat(stageOf(inquiryId)).isEqualTo("RECEIVED");
+		// F3가 머지된 뒤로는 테스트 환경에서 정리 작업이 동기로 끝나 RECEIVED→REFINING까지 바로 갈 수 있다.
+		// 이 테스트가 보려는 건 "아직 TEACHER_CONFIRMED가 아니면 종료할 수 없다"이므로 그 전제만 확인한다.
+		assertThat(stageOf(inquiryId)).isNotEqualTo("TEACHER_CONFIRMED").isNotEqualTo("ANSWERED");
+		String stageBeforeClose = stageOf(inquiryId);
 
 		MockHttpServletResponse response = close(s.teacher().accessToken(), inquiryId);
 
 		assertThat(response.getStatus()).isEqualTo(409);
 		assertSafeErrorResponse(response.getContentAsString(), "INQUIRY_NOT_READY_TO_CLOSE");
-		assertThat(stageOf(inquiryId)).isEqualTo("RECEIVED");
+		assertThat(stageOf(inquiryId)).isEqualTo(stageBeforeClose);
 	}
 
 	@Test

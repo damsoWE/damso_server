@@ -30,6 +30,7 @@ public class SecurityConfig {
 	static final String[] PUBLIC_PATHS = {
 			"/actuator/health",
 			// F1: 로그인 전 단계만 하나씩 명시한다 (와일드카드 금지, 로그아웃은 인증 필요)
+			"/api/v1/auth/invite-codes/verify",
 			"/api/v1/auth/signup",
 			"/api/v1/auth/signup/verify",
 			"/api/v1/auth/signup/resend",

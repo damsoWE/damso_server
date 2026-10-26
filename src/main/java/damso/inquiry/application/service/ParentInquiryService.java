@@ -66,7 +66,8 @@ public class ParentInquiryService implements ParentInquiryQuery {
 		List<AnswerView> answerViews = isThreadRoot ? answersOf(inquiry.getId()) : List.of();
 		return new InquiryDetail(inquiry.getId(), inquiry.getStudentId(), studentName, inquiry.getContent().reveal(),
 				inquiry.isUrgent(), inquiry.getStage(), inquiry.getSubmittedAt(), timeline,
-				GuidancePolicy.noticesFor(inquiry.isUrgent(), inquiry.isNotificationDeferred()),
+				// 접수 때 보인 안내와 같아야 한다 — 실제 알림 지연(notification_deferred)이 아니라 접수 때 판정한 값을 쓴다 (F3 R10)
+				GuidancePolicy.noticesFor(inquiry.isUrgent(), inquiry.isDeferredNotice()),
 				GuidancePolicy.hotlinesFor(inquiry.isUrgent(), inquiry.getCrisisType()), followUps, answerViews);
 	}
 
@@ -75,7 +76,7 @@ public class ParentInquiryService implements ParentInquiryQuery {
 				.filter(message -> message.getThreadRootId() != null)
 				.map(message -> new FollowUpView(message.getId(), message.getContent().reveal(), message.isUrgent(),
 						message.getStage(), message.getSubmittedAt(),
-						GuidancePolicy.noticesFor(message.isUrgent(), message.isNotificationDeferred()),
+						GuidancePolicy.noticesFor(message.isUrgent(), message.isDeferredNotice()),
 						GuidancePolicy.hotlinesFor(message.isUrgent(), message.getCrisisType())))
 				.toList();
 	}

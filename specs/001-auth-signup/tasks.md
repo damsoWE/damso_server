@@ -371,4 +371,10 @@ Phase 2 ─┬─ US1 ── US2 ── US3 ─┬─ US6
 - **첫 기동의 Hibernate WARN**: `ddl-auto=update`가 처음 테이블을 만들 때 "constraint ... does not exist, skipping" 경고가 나온다. 제약을 먼저 지우려는 시도가 실패하는 것이라 무해하다.
 - **테스트 지원**: `IntegrationTestSupport`가 테스트마다 모든 테이블을 TRUNCATE하고(학년·반 유니크 등 충돌 방지), 가입 흐름 헬퍼(`signUpWith`, `issueTeacherCode` 등)와 `validToken(role)`을 제공한다. foundation 테스트 5개의 "유효한 토큰"은 `validToken`으로 바꿨다(이제 `sid` 세션이 있어야 통과). 같은 이메일로 인증 메일을 다시 받는 테스트는 `clock.advance(61초)`가 필요하다(메일 재발송 제한).
 - **T087 수동 확인(2026-10-18)**: PostgreSQL·Redis·Mailpit 컨테이너와 로컬 서버(포트 18080, 슈퍼 관리자는 환경변수로 생성)로 quickstart 2절의 1~7단계와 보안 응답 점검을 스크립트로 실행해 **17/17 통과**했다. 서버 로그에는 이메일·코드·비밀번호·토큰이 없었다. 확인 후 서버와 컨테이너는 정리했다.
+- **이슈 #11 가입 전 코드 확인 (2026-10-25)**: 프론트 요청으로 FR-011a를 추가했다(research R16). 아래 작업을 했다.
+  - [X] T089 `SignupUseCase.checkInviteCode` + `SignupService` 가입 1단계와 공통 검증 함수 `validateInviteCode`로 묶기
+  - [X] T090 `AuthController` `POST /api/v1/auth/invite-codes/verify`, `InviteCodeCheckRequestDTO`·`InviteCodeCheckResponseDTO`, `SecurityConfig.PUBLIC_PATHS`에 경로 추가
+  - [X] T091 `InviteCodeCheckApiTest`: 역할만 응답, 코드 미소모 후 가입 성공, 쓸 수 없는 코드 응답 통일(가입과 동일), 확인·가입 실패 합산 잠금, 형식 오류는 횟수 미포함
+  - [X] T092 `docs/api/openapi.yaml`·`contracts/auth.openapi.yaml` 경로·스키마 추가
+  - [ ] T093 프론트 공지와 `api-vX.Y` 태그(머지 후)
 - **T088 전체 테스트**: `./gradlew test` — 37개 클래스, **246개 테스트 모두 통과**(실패·건너뜀 0).

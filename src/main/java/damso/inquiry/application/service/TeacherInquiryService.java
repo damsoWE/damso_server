@@ -17,7 +17,11 @@ import damso.inquiry.application.port.in.TeacherInquiryQuery;
 import damso.inquiry.application.port.out.AnswerPort;
 import damso.inquiry.application.port.out.InquiryPort;
 import damso.inquiry.application.port.out.InquiryStageHistoryPort;
+import damso.inquiry.application.port.out.RefinementJobPort;
 import damso.inquiry.domain.Inquiry;
+import damso.inquiry.domain.RefinementJob;
+import damso.inquiry.domain.RefinementJobKind;
+import damso.inquiry.domain.RefinementStatus;
 import damso.school.application.port.in.InquiryTargetQuery;
 
 @Service
@@ -30,6 +34,8 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 
 	static final String PENDING_TITLE = "정리 중";
 
+	static final String NEEDS_ORIGINAL_TITLE = "원문 확인 필요";
+
 	private final InquiryPort inquiries;
 
 	private final InquiryStageHistoryPort histories;
@@ -38,12 +44,15 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 
 	private final AnswerPort answers;
 
+	private final RefinementJobPort jobs;
+
 	public TeacherInquiryService(InquiryPort inquiries, InquiryStageHistoryPort histories, InquiryTargetQuery targets,
-			AnswerPort answers) {
+			AnswerPort answers, RefinementJobPort jobs) {
 		this.inquiries = inquiries;
 		this.histories = histories;
 		this.targets = targets;
 		this.answers = answers;
+		this.jobs = jobs;
 	}
 
 	@Override
@@ -78,9 +87,12 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 		boolean isThreadRoot = inquiry.getThreadRootId() == null;
 		List<FollowUpView> followUps = isThreadRoot ? followUpsOf(inquiry.getId()) : List.of();
 		List<AnswerView> answerViews = isThreadRoot ? answersOf(inquiry.getId()) : List.of();
+		boolean retryAvailable = inquiry.getRefinementStatus() == RefinementStatus.NEEDS_ORIGINAL
+				&& jobs.findByInquiryAndKind(inquiryId, RefinementJobKind.REFINE)
+						.map(RefinementJob::canTeacherRetry).orElse(false);
 		return new InquiryDetail(inquiry.getId(), inquiry.getStudentId(), studentName, inquiry.isUrgent(),
-				displayTitle(inquiry), inquiry.getStage(), inquiry.getSubmittedAt(), timeline, followUps,
-				answerViews);
+				displayTitle(inquiry), inquiry.getStage(), inquiry.getRefinementStatus(), retryAvailable,
+				inquiry.getSubmittedAt(), timeline, followUps, answerViews);
 	}
 
 	private List<FollowUpView> followUpsOf(UUID rootId) {
@@ -100,15 +112,22 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 
 	private static InquirySummary summaryOf(Inquiry inquiry, Map<UUID, String> names) {
 		return new InquirySummary(inquiry.getId(), inquiry.getStudentId(), names.getOrDefault(inquiry.getStudentId(), ""),
-				inquiry.isUrgent(), displayTitle(inquiry), inquiry.getStage(), inquiry.getSubmittedAt());
+				inquiry.isUrgent(), displayTitle(inquiry), inquiry.getStage(), inquiry.getRefinementStatus(),
+				inquiry.getSubmittedAt());
 	}
 
-	/** 화면 제목(저장하지 않는다): 긴급은 고정 문구, 아니면 정제 결과 제목(F3), 아직 없으면 "정리 중". */
+	/**
+	 * 화면 제목(저장하지 않는다): 긴급은 고정 문구, 정리 결과 제목이 있으면 그 제목(F3), 자동 정리에 실패했으면 "원문 확인 필요",
+	 * 아직 없으면 "정리 중".
+	 */
 	static String displayTitle(Inquiry inquiry) {
 		if (inquiry.isUrgent()) {
 			return URGENT_TITLE;
 		}
-		return inquiry.getTitle() != null ? inquiry.getTitle().reveal() : PENDING_TITLE;
+		if (inquiry.getTitle() != null) {
+			return inquiry.getTitle().reveal();
+		}
+		return inquiry.getRefinementStatus() == RefinementStatus.NEEDS_ORIGINAL ? NEEDS_ORIGINAL_TITLE : PENDING_TITLE;
 	}
 
 }

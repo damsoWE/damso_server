@@ -3,7 +3,8 @@ package damso.inquiry.application.port.in;
 import java.util.UUID;
 
 /**
- * 긴급 문의의 위기 종류 분류 결과를 받는 연결 지점. F2에서는 호출하는 곳이 없고, F3가 가명화 게이트웨이를 거친 분류 결과로 호출한다.
+ * 긴급 문의의 위기 종류 분류 결과를 받는 연결 지점. F3의 RefinementRunner가 가명화 게이트웨이를 거친 분류 결과로 호출한다
+ * (긴급 접수 뒤 분류 작업 1회, 실패하면 호출하지 않아 기본 안내가 그대로다).
  * 이 서비스는 외부 AI나 알림을 호출하지 않는다 — 결과를 검증해 종류 하나만 기록한다 (LLM 출력 검증·격리).
  */
 public interface CrisisClassificationUseCase {

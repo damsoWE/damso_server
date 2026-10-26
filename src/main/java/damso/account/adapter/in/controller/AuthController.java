@@ -9,7 +9,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import damso.account.adapter.in.controller.dto.request.InviteCodeCheckRequestDTO;
 import damso.account.adapter.in.controller.dto.request.LoginRequestDTO;
+import damso.account.adapter.in.controller.dto.response.InviteCodeCheckResponseDTO;
 import damso.account.adapter.in.controller.dto.request.PasswordResetRequestDTO;
 import damso.account.adapter.in.controller.dto.response.PendingSignupResponseDTO;
 import damso.account.adapter.in.controller.dto.request.RefreshRequestDTO;
@@ -53,6 +55,12 @@ class AuthController {
 		this.refresh = refresh;
 		this.logout = logout;
 		this.passwordReset = passwordReset;
+	}
+
+	/** 가입 전 초대 코드 확인 — 역할만 알려 주고 코드를 소모하지 않는다. 가입 1단계가 코드를 다시 검증한다. */
+	@PostMapping("/invite-codes/verify")
+	InviteCodeCheckResponseDTO checkInviteCode(@Valid @RequestBody InviteCodeCheckRequestDTO request) {
+		return new InviteCodeCheckResponseDTO(signup.checkInviteCode(request.inviteCode(), request.email()));
 	}
 
 	@PostMapping("/signup")

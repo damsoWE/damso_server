@@ -36,6 +36,7 @@ import damso.account.application.service.SessionIssuer;
 import damso.account.domain.AuthSession;
 import damso.account.domain.Role;
 import damso.account.domain.UserAccount;
+import damso.inquiry.application.service.RefinementRunner;
 import damso.school.application.port.in.InviteIssueUseCase;
 import damso.school.application.port.out.ClassroomPort;
 import damso.school.application.port.out.StudentPort;
@@ -48,7 +49,8 @@ import damso.school.domain.Student;
  * Docker가 실행 중이어야 한다.
  */
 // 알림 발송기(@Scheduled)는 테스트 중 저절로 돌지 않게 하고(테스트가 직접 호출), 스키마는 매번 새로 만든다
-@SpringBootTest(properties = { "spring.jpa.hibernate.ddl-auto=create-drop", "damso.notification.dispatch-interval=1h" })
+@SpringBootTest(properties = { "spring.jpa.hibernate.ddl-auto=create-drop", "damso.notification.dispatch-interval=1h",
+		"damso.refinement.dispatch-interval=1h" })
 @AutoConfigureMockMvc
 @Import(TestSupportConfig.class)
 public abstract class IntegrationTestSupport {
@@ -110,6 +112,12 @@ public abstract class IntegrationTestSupport {
 	protected FakePushSender pushes;
 
 	@Autowired
+	protected FakeExternalAi fakeAi;
+
+	@Autowired
+	protected RefinementRunner refinementRunner;
+
+	@Autowired
 	protected ClassroomPort classroomPort;
 
 	@Autowired
@@ -128,6 +136,7 @@ public abstract class IntegrationTestSupport {
 		clock.reset();
 		mail.clear();
 		pushes.clear();
+		fakeAi.clear();
 	}
 
 	/** 테스트마다 모든 테이블을 비워 서로 영향을 주지 않게 한다(학년·반 유니크 등 충돌 방지). */
@@ -296,6 +305,27 @@ public abstract class IntegrationTestSupport {
 		jdbc.update("insert into device_registration (id, created_at, updated_at, version, user_id, session_id, "
 				+ "token, platform, active) values (?, now(), now(), 0, ?, ?, ?, 'ANDROID', true)",
 				UUID.randomUUID(), userId, sessionId, token);
+	}
+
+	// ---- 가명화·정제 (F3) ----
+
+	/** teacherWithClassroom()이 만드는 가짜 이름들. 실제 인물이 아니다. */
+	protected static final String STUDENT_NAME = "김하나";
+
+	protected static final String TEACHER_NAME = "최선생";
+
+	protected static final String PARENT_NAME = "박부모";
+
+	/** 정리 실행기 안전망을 한 번 직접 돌린다(테스트에서는 @Scheduled가 저절로 돌지 않는다). 처리한 작업 수를 돌려준다. */
+	protected int runRefinement() {
+		return refinementRunner.dispatchDue();
+	}
+
+	/** 학생·보호자·담임 이름, 학교·학급, 전화번호가 들어간 일반 문의(긴급 표현 없음). */
+	protected static String generalInquiryNaming(Scenario s) {
+		return "안녕하세요 " + TEACHER_NAME + " 선생님, 한양초 " + s.classroom().getGrade() + "학년 "
+				+ s.classroom().getClassNumber() + "반 " + STUDENT_NAME + " 엄마 " + PARENT_NAME + "입니다. 하나가 "
+				+ "숙제를 자꾸 잊어버려서 걱정이에요. 010-1234-5678로 연락 주셔도 됩니다.";
 	}
 
 	/** 가입 완료된 사용자. */

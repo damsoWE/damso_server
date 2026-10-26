@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -21,12 +22,14 @@ import damso.common.error.TooManyAttemptsException;
 import damso.inquiry.application.port.in.SubmitInquiryUseCase;
 import damso.inquiry.application.port.out.InquiryPort;
 import damso.inquiry.application.port.out.InquiryStageHistoryPort;
+import damso.inquiry.application.port.out.RefinementJobPort;
 import damso.inquiry.application.port.out.UrgentExpressionSource;
 import damso.inquiry.domain.GuidancePolicy;
 import damso.inquiry.domain.Inquiry;
 import damso.inquiry.domain.InquiryContentPolicy;
 import damso.inquiry.domain.InquiryStage;
 import damso.inquiry.domain.InquiryStageHistory;
+import damso.inquiry.domain.RefinementJob;
 import damso.inquiry.domain.UrgentRule;
 import damso.notification.application.port.in.NotifyInquiryUseCase;
 import damso.school.application.port.in.InquiryTargetQuery;
@@ -64,14 +67,21 @@ public class SubmitInquiryService implements SubmitInquiryUseCase {
 
 	private final UrgentRule urgentRule;
 
+	private final RefinementJobPort refinementJobs;
+
+	private final ApplicationEventPublisher events;
+
 	public SubmitInquiryService(InquiryPort inquiries, InquiryStageHistoryPort histories, InquiryTargetQuery targets,
 			AttemptLimitUseCase attempts, NotifyInquiryUseCase notifications, CodeHasher hasher, Clock clock,
-			PlatformTransactionManager transactionManager, UrgentExpressionSource urgentExpressions) {
+			PlatformTransactionManager transactionManager, UrgentExpressionSource urgentExpressions,
+			RefinementJobPort refinementJobs, ApplicationEventPublisher events) {
 		this.inquiries = inquiries;
 		this.histories = histories;
 		this.targets = targets;
 		this.attempts = attempts;
 		this.notifications = notifications;
+		this.refinementJobs = refinementJobs;
+		this.events = events;
 		this.hasher = hasher;
 		this.clock = clock;
 		this.transaction = new TransactionTemplate(transactionManager);
@@ -140,13 +150,10 @@ public class SubmitInquiryService implements SubmitInquiryUseCase {
 			// 긴급은 정제를 건너뛰고 접수와 같은 트랜잭션에서 교사에게 전달된 상태가 된다 (FR-009·010)
 			received.moveTo(InquiryStage.DELIVERED);
 		}
-		if (!urgent) {
-			// 일반 문의는 교사의 알림 설정에 따라 즉시·지연·없음. 지연이면 응답에 지연 안내가 붙는다 (FR-027~030)
-			NotifyInquiryUseCase.NotificationDecision decision = notifications.requestGeneral(received.getId(),
-					received.getTeacherId());
-			if (decision == NotifyInquiryUseCase.NotificationDecision.DEFERRED) {
-				received.markNotificationDeferred();
-			}
+		if (!urgent
+				&& notifications.previewGeneral(received.getTeacherId()) == NotifyInquiryUseCase.NotificationDecision.DEFERRED) {
+			// 일반 문의 알림은 정리가 확정된 뒤에 요청한다(F3 FR-032). 여기서는 학부모에게 보일 지연 안내만 접수 시각 기준으로 정해 둔다.
+			received.markDeferredNotice();
 		}
 		Inquiry inquiry = inquiries.saveInquiry(received);
 		histories.append(InquiryStageHistory.of(inquiry.getId(), InquiryStage.RECEIVED, now));
@@ -154,6 +161,14 @@ public class SubmitInquiryService implements SubmitInquiryUseCase {
 			histories.append(InquiryStageHistory.of(inquiry.getId(), InquiryStage.DELIVERED, now));
 			// 알림 요청은 문의와 같은 트랜잭션에 저장하고(아웃박스), 발송은 커밋 뒤에 한다. Redis·FCM을 호출하지 않는다.
 			notifications.requestUrgent(inquiry.getId(), inquiry.getTeacherId());
+			// 위기 종류 분류(F3)도 작업으로만 남긴다. 긴급 전달·알림은 분류를 기다리지 않고, 분류가 실패하면 기본 안내가 그대로다.
+			RefinementJob classify = refinementJobs.save(RefinementJob.classifyCrisis(inquiry.getId(), now));
+			events.publishEvent(new RefinementRequested(classify.getId()));
+		}
+		else {
+			// 정리 작업도 같은 트랜잭션에 저장하고(아웃박스), 외부 AI 호출은 커밋 뒤에 한다(F3 research R7)
+			RefinementJob job = refinementJobs.save(RefinementJob.refine(inquiry.getId(), now));
+			events.publishEvent(new RefinementRequested(job.getId()));
 		}
 		return resultOf(inquiry);
 	}
@@ -169,7 +184,7 @@ public class SubmitInquiryService implements SubmitInquiryUseCase {
 		// 재전송도 처음 응답과 같도록, 이후 단계가 아니라 접수 시점의 단계를 돌려준다
 		InquiryStage initialStage = inquiry.isUrgent() ? InquiryStage.DELIVERED : InquiryStage.RECEIVED;
 		return new InquirySubmittedResult(inquiry.getId(), inquiry.isUrgent(), initialStage,
-				inquiry.getSubmittedAt(), GuidancePolicy.noticesFor(inquiry.isUrgent(), inquiry.isNotificationDeferred()),
+				inquiry.getSubmittedAt(), GuidancePolicy.noticesFor(inquiry.isUrgent(), inquiry.isDeferredNotice()),
 				GuidancePolicy.hotlinesFor(inquiry.isUrgent(), inquiry.getCrisisType()));
 	}
 

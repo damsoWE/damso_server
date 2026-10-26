@@ -150,6 +150,9 @@ public class SubmitFollowUpService implements SubmitFollowUpUseCase {
 					followUp.getTeacherId());
 			if (decision == NotifyInquiryUseCase.NotificationDecision.DEFERRED) {
 				followUp.markNotificationDeferred();
+				// 접수 때 보인 안내와 같아야 한다 — notificationDeferred는 묶음 집계용으로 나중에 바뀔 수 있어
+				// 안내 문구는 접수 시점에 고정하는 deferredNotice로 판단한다(F3 R10과 같은 규칙).
+				followUp.markDeferredNotice();
 			}
 		}
 		Inquiry inquiry = inquiries.saveInquiry(followUp);
@@ -170,7 +173,7 @@ public class SubmitFollowUpService implements SubmitFollowUpUseCase {
 
 	private static FollowUpSubmittedResult resultOf(Inquiry inquiry, UUID threadRootId) {
 		return new FollowUpSubmittedResult(inquiry.getId(), threadRootId, inquiry.isUrgent(),
-				inquiry.getSubmittedAt(), GuidancePolicy.noticesFor(inquiry.isUrgent(), inquiry.isNotificationDeferred()),
+				inquiry.getSubmittedAt(), GuidancePolicy.noticesFor(inquiry.isUrgent(), inquiry.isDeferredNotice()),
 				GuidancePolicy.hotlinesFor(inquiry.isUrgent(), inquiry.getCrisisType()));
 	}
 

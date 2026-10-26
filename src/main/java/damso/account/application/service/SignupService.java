@@ -64,6 +64,29 @@ public class SignupService implements SignupUseCase {
 	}
 
 	@Override
+	public Role checkInviteCode(String inviteCode, String email) {
+		return roleOf(validateInviteCode(inviteCode, UserAccount.normalizeEmail(email)));
+	}
+
+	/** 가입 1단계와 코드 확인이 같은 규칙을 쓴다: 잠금 확인 → 검증 → 코드 무효면 이메일 기준 실패 기록(FR-011). */
+	private InviteTarget validateInviteCode(String inviteCode, String email) {
+		attempts.ensureAllowed(AttemptKind.INVITE_CODE, email);
+		try {
+			return invites.validate(inviteCode);
+		}
+		catch (BusinessException invalidCode) {
+			if (invalidCode.errorCode() == ErrorCode.INVALID_INVITE_CODE) {
+				attempts.recordFailure(AttemptKind.INVITE_CODE, email);
+			}
+			throw invalidCode;
+		}
+	}
+
+	private static Role roleOf(InviteTarget target) {
+		return target.kind() == InviteKind.TEACHER ? Role.TEACHER : Role.PARENT;
+	}
+
+	@Override
 	public PendingSignupResult start(StartSignupCommand command) {
 		String email = UserAccount.normalizeEmail(command.email());
 		String name = normalizedName(command.name());
@@ -73,17 +96,7 @@ public class SignupService implements SignupUseCase {
 			throw new InvalidInputException("termsAgreed", "동의가 필요합니다");
 		}
 
-		attempts.ensureAllowed(AttemptKind.INVITE_CODE, email);
-		InviteTarget target;
-		try {
-			target = invites.validate(command.inviteCode());
-		}
-		catch (BusinessException invalidCode) {
-			if (invalidCode.errorCode() == ErrorCode.INVALID_INVITE_CODE) {
-				attempts.recordFailure(AttemptKind.INVITE_CODE, email);
-			}
-			throw invalidCode;
-		}
+		InviteTarget target = validateInviteCode(command.inviteCode(), email);
 
 		// 가입된 이메일이든 아니든 처리 시간과 응답이 같도록 비밀번호 해시를 항상 먼저 계산한다 (research R8)
 		String passwordHash = passwordEncoder.encode(command.password());
@@ -135,7 +148,7 @@ public class SignupService implements SignupUseCase {
 		// 여기부터는 한 트랜잭션: 어느 단계든 실패하면 계정·연결·코드 소모가 모두 되돌려진다
 		String name = pending.getName().reveal();
 		InviteTarget target = invites.resolve(pending.getInviteCodeId());
-		Role role = target.kind() == InviteKind.TEACHER ? Role.TEACHER : Role.PARENT;
+		Role role = roleOf(target);
 		UserAccount account = accounts.save(
 				UserAccount.signUp(email, pending.getPasswordHash(), name, role, now));
 		invites.redeem(target.inviteCodeId(), account.getId(), name);

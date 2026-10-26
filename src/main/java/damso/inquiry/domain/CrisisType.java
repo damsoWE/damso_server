@@ -1,6 +1,9 @@
 package damso.inquiry.domain;
 
-/** 긴급 문의의 위기 종류. F2에서는 UNCLASSIFIED만 쓰고, 분류는 F3가 연결 지점으로 넘긴다 (FR-018·019). */
+/**
+ * 긴급 문의의 위기 종류. 접수 때는 UNCLASSIFIED이고, F3 RefinementRunner가 가명화 게이트웨이를 거친 분류 결과를 연결 지점으로
+ * 넘기면 정해진다. 분류가 실패하면 UNCLASSIFIED(기본 안내 112·109)로 남는다 (F2 FR-018·019, F3 FR-036~040).
+ */
 public enum CrisisType {
 
 	UNCLASSIFIED,

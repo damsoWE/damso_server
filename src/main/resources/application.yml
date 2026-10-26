@@ -44,6 +44,12 @@ damso:
     secret: ${DAMSO_JWT_SECRET}
   openai:
     api-key: ${DAMSO_OPENAI_API_KEY}
+    # 모델 이름은 코드에 두지 않고 배포 환경에서 정한다 (F3 research R5, D2)
+    model: ${DAMSO_OPENAI_MODEL}
+    timeout:
+      connect: 3s
+      # 외부 AI 한 번의 처리 시간 상한. 넘으면 응답 없음으로 보고 실패와 같이 다룬다 (F3 FR-013a)
+      read: 15s
   mail:
     from: ${DAMSO_MAIL_FROM}
   auth:
@@ -57,6 +63,11 @@ damso:
     retry-delays: 1m,5m,15m
   inquiry:
     submit-interval: 60s
+  refinement:
+    # 정리 작업 안전망 실행 주기. 평소에는 접수 커밋 직후 바로 실행한다 (F3 research R7)
+    dispatch-interval: 10s
+    dispatch-on-commit: true
+    lease: 60s
   super-admin:
     email: ${DAMSO_SUPER_ADMIN_EMAIL:}
     password: ${DAMSO_SUPER_ADMIN_PASSWORD:}
