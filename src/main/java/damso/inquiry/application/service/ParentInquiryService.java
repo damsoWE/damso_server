@@ -74,7 +74,9 @@ public class ParentInquiryService implements ParentInquiryQuery {
 		return inquiries.findThreadMessages(rootId).stream()
 				.filter(message -> message.getThreadRootId() != null)
 				.map(message -> new FollowUpView(message.getId(), message.getContent().reveal(), message.isUrgent(),
-						message.getStage(), message.getSubmittedAt()))
+						message.getStage(), message.getSubmittedAt(),
+						GuidancePolicy.noticesFor(message.isUrgent(), message.isNotificationDeferred()),
+						GuidancePolicy.hotlinesFor(message.isUrgent(), message.getCrisisType())))
 				.toList();
 	}
 

@@ -22,8 +22,12 @@ public interface ParentInquiryQuery {
 
 	}
 
-	/** 스레드 타임라인에 포함되는 재문의 하나 — 학부모 본인 글이라 본문이 평문으로 보인다(F4). */
-	record FollowUpView(UUID inquiryId, String content, boolean urgent, InquiryStage stage, Instant submittedAt) {
+	/**
+	 * 스레드 타임라인에 포함되는 재문의 하나 — 학부모 본인 글이라 본문이 평문으로 보인다(F4). 긴급 재문의도
+	 * 최초 문의와 같은 안내 코드를 담는다(FR-015·016, PR #10 리뷰).
+	 */
+	record FollowUpView(UUID inquiryId, String content, boolean urgent, InquiryStage stage, Instant submittedAt,
+			List<NoticeCode> notices, List<HotlineCode> hotlines) {
 
 		/** 본문이 로그·예외에 섞이지 않도록 가린다. */
 		@Override

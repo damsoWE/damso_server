@@ -22,6 +22,7 @@ import damso.inquiry.application.port.in.SubmitFollowUpUseCase;
 import damso.inquiry.application.port.out.InquiryPort;
 import damso.inquiry.application.port.out.InquiryStageHistoryPort;
 import damso.inquiry.application.port.out.UrgentExpressionSource;
+import damso.inquiry.domain.GuidancePolicy;
 import damso.inquiry.domain.Inquiry;
 import damso.inquiry.domain.InquiryContentPolicy;
 import damso.inquiry.domain.InquiryStage;
@@ -157,16 +158,20 @@ public class SubmitFollowUpService implements SubmitFollowUpUseCase {
 			histories.append(InquiryStageHistory.of(inquiry.getId(), InquiryStage.DELIVERED, now));
 			notifications.requestUrgent(inquiry.getId(), inquiry.getTeacherId());
 		}
-		return new FollowUpSubmittedResult(inquiry.getId(), threadRootId, inquiry.isUrgent(),
-				inquiry.getSubmittedAt());
+		return resultOf(inquiry, threadRootId);
 	}
 
 	private FollowUpSubmittedResult replay(Inquiry inquiry, String requestHash) {
 		if (!inquiry.getRequestHash().equals(requestHash)) {
 			throw new BusinessException(ErrorCode.CONFLICT);
 		}
-		return new FollowUpSubmittedResult(inquiry.getId(), inquiry.getThreadRootId(), inquiry.isUrgent(),
-				inquiry.getSubmittedAt());
+		return resultOf(inquiry, inquiry.getThreadRootId());
+	}
+
+	private static FollowUpSubmittedResult resultOf(Inquiry inquiry, UUID threadRootId) {
+		return new FollowUpSubmittedResult(inquiry.getId(), threadRootId, inquiry.isUrgent(),
+				inquiry.getSubmittedAt(), GuidancePolicy.noticesFor(inquiry.isUrgent(), inquiry.isNotificationDeferred()),
+				GuidancePolicy.hotlinesFor(inquiry.isUrgent(), inquiry.getCrisisType()));
 	}
 
 }

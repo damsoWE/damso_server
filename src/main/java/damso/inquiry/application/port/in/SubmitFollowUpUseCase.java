@@ -1,12 +1,20 @@
 package damso.inquiry.application.port.in;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
+
+import damso.inquiry.domain.HotlineCode;
+import damso.inquiry.domain.NoticeCode;
 
 public interface SubmitFollowUpUseCase {
 
-	/** 재문의 자신의 접수 결과(F2 InquirySubmittedResult와 같은 모양, 안내 코드는 없다). */
-	record FollowUpSubmittedResult(UUID inquiryId, UUID threadRootId, boolean urgent, Instant submittedAt) {
+	/**
+	 * 재문의 자신의 접수 결과(F2 InquirySubmittedResult와 같은 모양). 긴급 재문의도 최초 문의와 같은 안내
+	 * 코드(notices·hotlines)를 받는다 — 재문의도 "즉시 전달 경로를 그대로 따른다"(FR-015·016, PR #10 리뷰).
+	 */
+	record FollowUpSubmittedResult(UUID inquiryId, UUID threadRootId, boolean urgent, Instant submittedAt,
+			List<NoticeCode> notices, List<HotlineCode> hotlines) {
 	}
 
 	/**
