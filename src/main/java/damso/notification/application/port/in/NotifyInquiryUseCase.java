@@ -21,7 +21,16 @@ public interface NotifyInquiryUseCase {
 	/** 긴급 문의 알림 요청을 지금 시각으로 저장하고, 커밋 직후 즉시 발송하도록 알린다. 어떤 알림 설정에도 지연·차단되지 않는다. */
 	UUID requestUrgent(UUID inquiryId, UUID teacherId);
 
-	/** 일반 문의 알림. 교사의 알림 설정(끔·응답 가능 시간)에 따라 즉시·지연·없음 중 하나를 돌려준다. 설정 변경은 이후 문의부터 적용된다. */
+	/**
+	 * 일반 문의 알림. 교사의 알림 설정(끔·응답 가능 시간)에 따라 즉시·지연·없음 중 하나를 돌려준다.
+	 * F3부터 문의는 접수 때가 아니라 정리가 확정됐을 때 이 메서드를 부른다(specs/003 FR-032) — 판정 기준 시각은 호출한 시각이다.
+	 */
 	NotificationDecision requestGeneral(UUID inquiryId, UUID teacherId);
+
+	/**
+	 * 지금 일반 문의 알림을 요청한다면 어떻게 될지 판정만 한다. 아무것도 저장하지 않는다.
+	 * 접수 때 학부모에게 "응답 가능 시간에 전달됩니다"를 보일지 정하는 데 쓴다(specs/003 research R10).
+	 */
+	NotificationDecision previewGeneral(UUID teacherId);
 
 }

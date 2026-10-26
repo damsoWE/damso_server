@@ -19,6 +19,7 @@ import java.util.concurrent.Future;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
@@ -40,8 +41,10 @@ import damso.support.IntegrationTestSupport;
 /**
  * F2 US1 시나리오 7~8·10~11 / FR-002a·002b, SC-014: 중복 제출(같은 결과)·1분 제한·같은 키 다른 내용(409)·
  * 제한 저장소 장애 시 일반 문의도 접수(fail-open).
+ * F3 이후 일반 문의는 커밋 직후 정리되므로, 이 클래스는 정리 확정 전 상태(접수 단계·이력 1줄)를 보도록 즉시 실행을 끈다.
  */
 @ExtendWith(OutputCaptureExtension.class)
+@TestPropertySource(properties = "damso.refinement.dispatch-on-commit=false")
 class SubmitInquiryRateLimitTest extends IntegrationTestSupport {
 
 	/** 문의 제출 제한(INQUIRY_SUBMIT)만 Redis 장애처럼 실패시키는 포트. 이 테스트 클래스에서만 쓴다. */

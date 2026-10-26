@@ -33,7 +33,7 @@ teacher ─1:0..1─ teacher_notification_setting ─1:0..7─ teacher_availabil
 | `urgent` | boolean | 접수 시 규칙 판정. `updatable = false` | FR-009·015 |
 | `crisis_type` | varchar(20) | `UNCLASSIFIED`(기본) · `SELF_HARM` · `ABUSE` · `OTHER_SAFETY`. 연결 지점만 바꾼다 | FR-018·019 |
 | `stage` | varchar(20) | `RECEIVED` · `DELIVERED` · `REFINING` · `TEACHER_CONFIRMED` · `ANSWERED` | FR-021 |
-| `notification_deferred` | boolean | 응답 가능 시간 밖이라 알림이 미뤄진 일반 문의 | FR-027·028 |
+| `notification_deferred` | boolean | 응답 가능 시간 밖이라 알림이 미뤄진 일반 문의. *F3 이후: 정리 확정 때 실제로 알림이 미뤄졌는지(묶음 건수 집계 대상)만 뜻하고, 학부모 안내는 새 컬럼 `deferred_notice`로 만든다 — specs/003 data-model* | FR-027·028 |
 | `deferred_notified_at` | timestamptz, NULL 허용 | 묶음 알림에 포함되어 나간 시각(묶음 건수 계산용) | clarify Q3 |
 | `idempotency_key` | UUID | 클라이언트가 보낸 키 | FR-002a |
 | `request_hash` | char(64) | 자녀 UUID와 본문을 서버 키 HMAC-SHA256(F1 `CodeHasher`)으로 해시한 값. 같은 키가 다른 내용으로 재사용됐는지 비교용이며 원문은 저장하지 않는다 | FR-002a |

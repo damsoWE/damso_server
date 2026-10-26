@@ -18,8 +18,8 @@ import damso.inquiry.domain.Inquiry;
 import damso.school.application.port.in.InquiryTargetQuery;
 
 /**
- * 긴급 문의 원문 열람 (FR-024~026). 순서가 중요하다:
- * ① 현재 담임인지 ② 긴급인지 ③ 열람 시도 기록 ④ 첫 열람이면 단계 전이 ⑤ 열람 완료 기록 ⑥ 본문 반환.
+ * 원문 열람 (F2 FR-024~026, F3 FR-019·025 — 일반 문의도 정리 상태와 상관없이 열람할 수 있다). 순서가 중요하다:
+ * ① 현재 담임인지 ② 열람 시도 기록 ③ 첫 열람이면 단계 전이(긴급, 원문 확인 필요 일반) ④ 열람 완료 기록 ⑤ 본문 반환.
  * 이 서비스는 바깥 트랜잭션을 만들지 않는다. 시도 기록은 단계 전이보다 먼저 자기 트랜잭션으로 커밋되므로,
  * 기록이 실패하면 전이도 본문 반환도 일어나지 않고(원칙 III), 전이가 일어났다면 열람 기록은 이미 남아 있다.
  * 전이가 실패해 본문이 나가지 않으면 시도 뒤에 실패 기록이 이어져, 실제 열람(완료 기록)과 구분된다.
@@ -51,13 +51,10 @@ public class ViewInquiryContentService implements ViewInquiryContentUseCase {
 		Inquiry inquiry = inquiries.findInquiryById(inquiryId)
 				.filter(found -> targets.isCurrentHomeroomTeacher(teacherId, found.getClassroomId()))
 				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
-		if (!inquiry.isUrgent()) {
-			throw new BusinessException(ErrorCode.INQUIRY_CONTENT_UNAVAILABLE);
-		}
 
 		audit.record(teacherId, AuditAction.INQUIRY_CONTENT_VIEW_ATTEMPTED, AuditTargetType.INQUIRY, inquiryId);
 		try {
-			confirmation.confirmIfDelivered(inquiryId);
+			confirmation.confirmOnOriginalView(inquiryId);
 		}
 		catch (OptimisticLockingFailureException ex) {
 			// 다른 열람이 먼저 확인 처리했다(낙관적 락 충돌). 이미 확인된 것으로 보고 열람은 계속한다.

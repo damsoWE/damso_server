@@ -1,13 +1,13 @@
 openapi: 3.0.3
 info:
   title: DAMSO API
-  version: 0.3.0
+  version: 0.4.0
   description: |
     담소 통합 API 명세 (원본). 변경 시 이 파일을 먼저 수정하고 api-vX.Y 태그를 찍는다.
     - 인증: Authorization 헤더의 Bearer 토큰(HS256). 쿠키·세션 없음.
     - 모든 오류는 ErrorResponse 형식. 스택트레이스·예외명·내부 경로·SQL 없음.
     - 식별자는 UUID만 노출.
-    출처: specs/000-foundation (공통 기반), specs/001-auth-signup (F1 인증·회원가입·학급 연결), specs/002-inquiry-intake-urgent (F2 문의 접수·긴급 분류)
+    출처: specs/000-foundation (공통 기반), specs/001-auth-signup (F1 인증·회원가입·학급 연결), specs/002-inquiry-intake-urgent (F2 문의 접수·긴급 분류), specs/003-pseudonymization-pipeline (F3 가명화·정제 파이프라인)
   license:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
@@ -736,11 +736,14 @@ paths:
     get:
       tags: [teacher-inquiry]
       operationId: viewInquiryContent
-      summary: 원문 열람 (F2는 긴급 문의만) — 열람 기록이 남는다
+      summary: 원문 열람 (일반·긴급) — 열람 기록이 남는다
       description: |
-        원문을 돌려주기 전에 같은 트랜잭션에서 감사 기록(열람자·대상·시각)을 남긴다.
-        처음 열람하면 처리 단계가 TEACHER_CONFIRMED로 바뀌고 재알림이 멈춘다. 두 번째부터는 기록만 남는다.
-        일반 문의의 원문 열람은 F3 범위라 INQUIRY_CONTENT_UNAVAILABLE.
+        원문을 돌려주기 전에 열람 시도 기록을 먼저 남기고(실패하면 원문을 내보내지 않는다), 원문을 내보내면 열람 완료 기록을 남긴다.
+        단계 전이:
+        - 긴급 문의: 처음 열람하면 TEACHER_CONFIRMED로 바뀌고 재알림이 멈춘다. 두 번째부터는 기록만 남는다.
+        - 일반 문의 중 refinementStatus = NEEDS_ORIGINAL: 처음 열람하면 TEACHER_CONFIRMED.
+        - 그 밖의 일반 문의: 단계가 바뀌지 않는다(번역본 첫 열람이 기준).
+        정리 전이거나 정리 중인 문의도 열람할 수 있다. (0.4.0부터 INQUIRY_CONTENT_UNAVAILABLE을 응답하지 않는다)
       responses:
         '200':
           description: 원문
@@ -750,12 +753,61 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/v1/teacher/inquiries/{inquiryId}/refinement:
+    parameters:
+      - { name: inquiryId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    get:
+      tags: [teacher-inquiry]
+      operationId: viewInquiryRefinement
+      summary: 번역본 열람 — 사실관계·요청사항·정서강도
+      description: |
+        일반 문의의 정리 결과(번역본)를 돌려준다. 이름·학급은 원래 값으로 되돌려져 있다.
+        처음 열람하면 처리 단계가 TEACHER_CONFIRMED로 바뀐다(REFINING일 때). 두 번째부터는 단계가 바뀌지 않는다.
+        번역본 열람은 감사 기록 대상이 아니다(원문 열람만 기록).
+        번역본이 없으면(정리 전·원문 확인 필요·긴급 문의) 409 REFINEMENT_NOT_READY.
+      responses:
+        '200':
+          description: 번역본
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InquiryRefinement' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
         '409':
-          description: INQUIRY_CONTENT_UNAVAILABLE (F2에서 일반 문의)
+          description: REFINEMENT_NOT_READY
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
-              example: { code: INQUIRY_CONTENT_UNAVAILABLE, message: 아직 열람할 수 없는 문의입니다. }
+              example: { code: REFINEMENT_NOT_READY, message: 아직 정리된 내용이 없습니다. }
+
+  /api/v1/teacher/inquiries/{inquiryId}/refinement/retry:
+    parameters:
+      - { name: inquiryId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    post:
+      tags: [teacher-inquiry]
+      operationId: retryInquiryRefinement
+      summary: 자동 정리에 실패한 문의를 다시 정리한다 (문의 1건당 1회)
+      description: |
+        refinementStatus가 NEEDS_ORIGINAL이고 아직 재시도를 쓰지 않은 일반 문의만 받는다. 정리는 뒤에서 진행되고 결과는 상세의 refinementStatus로 확인한다.
+        동시에 여러 번 요청해도 한 번만 실행되고 나머지는 409.
+        재시도가 성공해도 교사에게 추가 알림은 가지 않는다.
+      responses:
+        '202':
+          description: 재시도를 시작했다
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RefinementRetryAccepted' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: REFINEMENT_RETRY_UNAVAILABLE (원문 확인 필요가 아님·이미 재시도함·긴급 문의·동시 요청)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example: { code: REFINEMENT_RETRY_UNAVAILABLE, message: 다시 정리할 수 없는 문의입니다. }
 
   /api/v1/teacher/notification-settings:
     get:
@@ -854,7 +906,9 @@ components:
         - STUDENT_HAS_GUARDIAN
         - NO_HOMEROOM_TEACHER
         - INQUIRY_CONTENT_UNAVAILABLE
-      description: 기능별 코드는 각 기능 contract에서 추가한다. 기존 코드의 의미는 바꾸지 않는다. F1이 6개(INVALID_INVITE_CODE 이하), F2가 2개(NO_HOMEROOM_TEACHER, INQUIRY_CONTENT_UNAVAILABLE)를 추가했다.
+        - REFINEMENT_NOT_READY
+        - REFINEMENT_RETRY_UNAVAILABLE
+      description: 기능별 코드는 각 기능 contract에서 추가한다. 기존 코드의 의미는 바꾸지 않는다. F1이 6개(INVALID_INVITE_CODE 이하), F2가 2개(NO_HOMEROOM_TEACHER, INQUIRY_CONTENT_UNAVAILABLE), F3가 2개(REFINEMENT_NOT_READY, REFINEMENT_RETRY_UNAVAILABLE)를 추가했다. INQUIRY_CONTENT_UNAVAILABLE은 0.4.0부터 응답하지 않는다(값은 남긴다).
 
     FieldError:
       type: object
@@ -1074,8 +1128,10 @@ components:
     InquiryStage:
       type: string
       description: |
-        RECEIVED(접수) · DELIVERED(교사에게 전달됨, 긴급만) · REFINING(정제, F3) · TEACHER_CONFIRMED(교사 확인) · ANSWERED(답변 완료, F4).
-        일반: RECEIVED → REFINING → TEACHER_CONFIRMED → ANSWERED / 긴급: RECEIVED → DELIVERED → TEACHER_CONFIRMED → ANSWERED
+        RECEIVED(접수) · DELIVERED(교사에게 전달됨, 긴급만) · REFINING(정제) · TEACHER_CONFIRMED(교사 확인) · ANSWERED(답변 완료, F4).
+        REFINING은 "정제 중"이 아니라 "정제 완료"다 — 검증을 통과한 정리 결과(번역본)가 생긴 시점에 기록된다. 이름은 F2 계약이라 유지한다.
+        일반: RECEIVED → REFINING → TEACHER_CONFIRMED → ANSWERED. 자동 정리에 실패한 문의는 원문 첫 열람 때 RECEIVED → TEACHER_CONFIRMED.
+        긴급: RECEIVED → DELIVERED → TEACHER_CONFIRMED → ANSWERED
       enum: [RECEIVED, DELIVERED, REFINING, TEACHER_CONFIRMED, ANSWERED]
 
     NoticeCode:
@@ -1178,10 +1234,15 @@ components:
         urgent: { type: boolean }
         title:
           type: string
-          description: '고정 문구 — 긴급 "긴급 문의", 정리 전 "정리 중". F3 이후 정제 결과 제목'
+          description: '긴급 "긴급 문의", 정리 중 "정리 중", 자동 정리 실패 "원문 확인 필요", 정리 완료 시 번역본 제목'
         stage: { $ref: '#/components/schemas/InquiryStage' }
+        refinementStatus:
+          type: string
+          nullable: true
+          enum: [PENDING, REFINED, NEEDS_ORIGINAL]
+          description: 'RefinementStatus 값. 긴급 문의는 null'
         submittedAt: { type: string, format: date-time }
-      required: [inquiryId, studentId, studentName, urgent, title, stage, submittedAt]
+      required: [inquiryId, studentId, studentName, urgent, title, stage, refinementStatus, submittedAt]
       additionalProperties: false
 
     TeacherInquiryPage:
@@ -1198,7 +1259,7 @@ components:
 
     TeacherInquiryDetail:
       type: object
-      description: 본문은 없다. 원문은 /content로만 열람한다(감사 기록)
+      description: 본문·번역본은 없다. 원문은 /content(감사 기록), 번역본은 /refinement로 따로 연다
       properties:
         inquiryId: { $ref: '#/components/schemas/Uuid' }
         studentId: { $ref: '#/components/schemas/Uuid' }
@@ -1206,11 +1267,64 @@ components:
         urgent: { type: boolean }
         title: { type: string }
         stage: { $ref: '#/components/schemas/InquiryStage' }
+        refinementStatus:
+          type: string
+          nullable: true
+          enum: [PENDING, REFINED, NEEDS_ORIGINAL]
+          description: 'RefinementStatus 값. 긴급 문의는 null'
+        retryAvailable:
+          type: boolean
+          description: NEEDS_ORIGINAL이고 아직 교사 재시도를 쓰지 않았으면 true
         submittedAt: { type: string, format: date-time }
         timeline:
           type: array
           items: { $ref: '#/components/schemas/StageEvent' }
-      required: [inquiryId, studentId, studentName, urgent, title, stage, submittedAt, timeline]
+      required: [inquiryId, studentId, studentName, urgent, title, stage, refinementStatus, retryAvailable, submittedAt, timeline]
+      additionalProperties: false
+
+    RefinementStatus:
+      type: string
+      description: |
+        일반 문의의 정리 상태. 긴급 문의는 null(정리 대상 아님).
+        - PENDING: 정리 중
+        - REFINED: 번역본 있음
+        - NEEDS_ORIGINAL: 자동 정리에 실패했다. 앱은 고정 문구 "자동 정리에 실패했습니다. 원문을 확인해 주세요"와 원문 열람 버튼, retryAvailable이면 재시도 버튼을 보여 준다
+      enum: [PENDING, REFINED, NEEDS_ORIGINAL]
+
+    EmotionLevel:
+      type: string
+      description: 정서강도 — LOW(낮음) · MEDIUM(보통) · HIGH(높음)
+      enum: [LOW, MEDIUM, HIGH]
+
+    EmotionLabel:
+      type: string
+      description: 감정 라벨 — ANXIETY(불안) · DISSATISFACTION(불만) · ANGER(분노) · WORRY(걱정) · FRUSTRATION(답답함) · SADNESS(슬픔)
+      enum: [ANXIETY, DISSATISFACTION, ANGER, WORRY, FRUSTRATION, SADNESS]
+
+    InquiryRefinement:
+      type: object
+      description: 번역본. 이름·학급은 원래 값으로 되돌려져 있다
+      properties:
+        inquiryId: { $ref: '#/components/schemas/Uuid' }
+        title: { type: string, minLength: 1, maxLength: 30 }
+        facts: { type: string, minLength: 1, maxLength: 1000, description: 사실관계 }
+        requests: { type: string, maxLength: 1000, description: '요청사항. 없으면 빈 문자열' }
+        emotionLevel: { $ref: '#/components/schemas/EmotionLevel' }
+        emotionLabels:
+          type: array
+          maxItems: 2
+          uniqueItems: true
+          items: { $ref: '#/components/schemas/EmotionLabel' }
+        refinedAt: { type: string, format: date-time }
+      required: [inquiryId, title, facts, requests, emotionLevel, emotionLabels, refinedAt]
+      additionalProperties: false
+
+    RefinementRetryAccepted:
+      type: object
+      properties:
+        inquiryId: { $ref: '#/components/schemas/Uuid' }
+        refinementStatus: { $ref: '#/components/schemas/RefinementStatus' }
+      required: [inquiryId, refinementStatus]
       additionalProperties: false
 
     InquiryContent:
