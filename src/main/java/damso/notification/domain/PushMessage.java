@@ -44,6 +44,7 @@ public record PushMessage(NotificationKind kind, UUID inquiryId, Integer digestC
 			case URGENT_REMINDER -> "확인하지 않은 긴급 문의가 있습니다";
 			case GENERAL -> "새 문의가 도착했습니다";
 			case GENERAL_DIGEST -> "쌓인 문의가 있습니다";
+			case ANSWER -> "답변이 도착했습니다";
 		};
 	}
 
@@ -53,6 +54,7 @@ public record PushMessage(NotificationKind kind, UUID inquiryId, Integer digestC
 			case URGENT_REMINDER -> "긴급 문의를 아직 확인하지 않으셨습니다. 지금 확인해 주세요.";
 			case GENERAL -> "문의 목록에서 확인해 주세요.";
 			case GENERAL_DIGEST -> "응답 가능 시간 밖에 접수된 문의가 " + digestCount + "건 있습니다.";
+			case ANSWER -> "문의 상세에서 답변을 확인해 주세요.";
 		};
 	}
 

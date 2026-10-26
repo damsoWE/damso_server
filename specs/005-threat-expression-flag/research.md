@@ -99,6 +99,7 @@
 
 ## R10. 앱 계약 버전 — 다음 마이너 버전
 
+- **결과 (2026-10-26)**: F4(PR #10)가 먼저 병합되어 0.5.0을 가져갔으므로 이 기능은 **0.6.0**이다. 같은 이유로 spec 폴더도 F4의 `specs/004-answer-review-send`와 겹치지 않게 `specs/005-threat-expression-flag`로 옮겼다. 병합하면서 F4의 재문의도 판정 대상에 넣고(FR-005c) `TeacherFollowUpView`에 `threatFlagged`를 더했다.
 - **Decision**: 교사 목록·상세에 필수 필드가 하나씩 늘어나므로 `docs/api/openapi.yaml`의 마이너 버전을 올리고 `api-vX.Y` 태그를 찍는다(contract-first). **F4 브랜치(`features/f4-answer-review-send`)가 이미 0.5.0을 쓰고 있다.** 먼저 main에 병합되는 쪽이 0.5.0을 갖고, 나중 쪽은 병합 전에 0.6.0으로 올린다. **[사용자 승인 2026-10-26: D2]**
 - **Rationale**: 버전 충돌을 병합 시점에 정리한다. 이 계약 조각(`contracts/threat-flag.openapi.yaml`)은 버전과 무관하게 필드 추가만 담는다.
 - **Alternatives considered**: F4와 같은 0.5.0에 합치기 — 두 PR의 병합 순서가 정해져 있지 않아 태그 시점이 꼬인다.

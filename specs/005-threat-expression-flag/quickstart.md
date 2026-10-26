@@ -37,7 +37,7 @@
 ## 2. 계약 확인
 
 ```bash
-npx -y @redocly/cli@1.34.5 lint specs/004-threat-expression-flag/contracts/threat-flag.openapi.yaml
+npx -y @redocly/cli@1.34.5 lint specs/005-threat-expression-flag/contracts/threat-flag.openapi.yaml
 ```
 
 - 오류 0건. 통합 뒤에는 `docs/api/openapi.yaml`을 같은 명령으로 검사하고, `info.version`을 R10에 따라 올린다.

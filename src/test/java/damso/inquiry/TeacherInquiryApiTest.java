@@ -261,7 +261,7 @@ class TeacherInquiryApiTest extends IntegrationTestSupport {
 	}
 
 	/**
-	 * spec 004 T016 / contracts threat-flag.openapi.yaml: 목록 항목·상세의 키는 계약의 required와 정확히 같다(additionalProperties: false).
+	 * spec 005 T016 / contracts threat-flag.openapi.yaml: 목록 항목·상세의 키는 계약의 required와 정확히 같다(additionalProperties: false).
 	 * 이 클래스는 즉시 정리를 끄므로 정리 전(PENDING)에도 위협·폭언 표시가 보이는지 함께 본다(US1 시나리오 3).
 	 */
 	@Test
@@ -280,7 +280,8 @@ class TeacherInquiryApiTest extends IntegrationTestSupport {
 		MockHttpServletResponse detail = send(get("/api/v1/teacher/inquiries/" + threat), s.teacher().accessToken());
 		Map<String, Object> body = read(detail, "$");
 		assertThat(body.keySet()).containsExactlyInAnyOrder("inquiryId", "studentId", "studentName", "urgent", "title",
-				"stage", "refinementStatus", "retryAvailable", "threatFlagged", "submittedAt", "timeline");
+				"stage", "refinementStatus", "retryAvailable", "threatFlagged", "submittedAt", "timeline", "followUps",
+				"answers");
 
 		assertThat((String) read(detail, "$.refinementStatus")).isEqualTo("PENDING");
 		assertThat((Boolean) read(detail, "$.threatFlagged")).isTrue();

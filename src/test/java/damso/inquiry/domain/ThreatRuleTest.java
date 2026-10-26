@@ -15,7 +15,7 @@ import damso.inquiry.adapter.out.resource.ClasspathThreatExpressionSource;
 import damso.inquiry.adapter.out.resource.ClasspathUrgentExpressionSource;
 
 /**
- * spec 004 T006 / FR-003·004a·005a·006, SC-001: 위협·폭언 판정은 정규화한 본문에 표현이 포함되는지만 본다.
+ * spec 005 T006 / FR-003·004a·005a·006, SC-001: 위협·폭언 판정은 정규화한 본문에 표현이 포함되는지만 본다.
  * 대표 사례(표시할 문장 / 표시하지 않을 문장)가 목록 변경의 회귀 기준이다.
  */
 class ThreatRuleTest {

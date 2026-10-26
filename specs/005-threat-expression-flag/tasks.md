@@ -1,11 +1,11 @@
 ---
 
-description: "Task list for 004-threat-expression-flag"
+description: "Task list for 005-threat-expression-flag"
 ---
 
 # Tasks: 일반 문의 위협·폭언 표현 표시
 
-**Input**: Design documents from `specs/004-threat-expression-flag/`
+**Input**: Design documents from `specs/005-threat-expression-flag/`
 
 **Prerequisites**: [plan.md](./plan.md), [spec.md](./spec.md), [research.md](./research.md), [data-model.md](./data-model.md), [contracts/](./contracts/threat-flag.openapi.yaml), [quickstart.md](./quickstart.md)
 
@@ -37,10 +37,10 @@ description: "Task list for 004-threat-expression-flag"
 - [X] T001 작업 브랜치 확인: `git branch --show-current`가 `features/f3-threat-expression-flag`(이슈 #9 연결)인지 확인한다. 아니면 `git switch features/f3-threat-expression-flag`
 - [X] T002 [P] 표현 목록 초안 `src/main/resources/threat/expressions.txt` 작성. 머리 주석은 `src/main/resources/urgent/expressions.txt`의 형식을 따른다: 한 줄에 표현 하나, 빈 줄·`#` 줄 무시, 정규화(공백·줄바꿈 제거, 소문자, 전각→반각) 뒤 포함 검사, **오탐 최소화**(분명한 위협·폭언만, 짧은 어간 금지 — 공백을 지우고 보므로 낱말 경계가 없다), **긴급 목록과 겹치는 표현 금지**(`협박`·`위협`·`죽이겠`·`죽여버리`·`칼을`·`흉기`·`학교폭력` 등은 이미 긴급, research R4), PR 리뷰로만 변경, 비면 기동 거부, 회귀 테스트는 `ThreatRuleTest`와 `src/test/resources/threat/must-flag.txt`·`must-not-flag.txt`. 맨 위에 `# [초안] 팀 리뷰 전이다. 머지 전에 리뷰한 사람·날짜를 PR 설명에 적는다.`를 둔다. 묶음 예: `# --- 신상·직위 위협 ---`(교사·학생에게 해를 끼치겠다는 비폭력 위협), `# --- 모욕·폭언 ---`(교사·학생을 향한 욕설·비하). 정당한 의사 표현(교육청 민원·면담·교장 상담·정식 이의 제기)에 걸릴 수 있는 표현은 넣지 않는다 (FR-001·002·004a, D3)
 - [X] T003 [P] 대표 사례 초안 2개 작성(가짜 이름만). `src/test/resources/threat/must-flag.txt` — 반드시 표시되어야 하는 문장 15개 이상, T002 목록의 각 묶음에서 고르게, 띄어쓰기 변형 문장 포함. `src/test/resources/threat/must-not-flag.txt` — 절대 표시되면 안 되는 문장 15개 이상: 교육청 민원("교육청에 민원 넣겠습니다"), 면담 요청("면담을 요청드립니다"), 교장·교감 상담 요청("교장 선생님과 상담하고 싶습니다"), 정식 이의 제기, 강한 불만이지만 위협·폭언이 아닌 문장, 일상 문의를 **반드시** 포함한다. 두 파일 모두 머리 주석에 형식(한 줄에 하나, `#` 무시)·목적·`[초안] 팀 리뷰 전`을 적는다. **긴급 표현이 든 문장은 어느 파일에도 넣지 않는다**(긴급이 먼저라 이 판정의 대상이 아님) (FR-002·003, SC-001, D3)
-- [X] T004 **Contract-first — 구현 전에** `docs/api/openapi.yaml`에 `specs/004-threat-expression-flag/contracts/threat-flag.openapi.yaml`을 통합한다.
+- [X] T004 **Contract-first — 구현 전에** `docs/api/openapi.yaml`에 `specs/005-threat-expression-flag/contracts/threat-flag.openapi.yaml`을 통합한다.
   - `components.schemas`에 `ThreatFlagged`(boolean, 설명 그대로)를 추가한다.
   - `TeacherInquirySummary`·`TeacherInquiryDetail`에 `threatFlagged: { $ref: '#/components/schemas/ThreatFlagged' }`를 넣고 각 `required`에 추가한다. 위치는 Summary는 `refinementStatus` 뒤, Detail은 `retryAvailable` 뒤다.
-  - `info.description`의 출처에 `specs/004-threat-expression-flag (위협·폭언 표현 표시)`를 덧붙인다.
+  - `info.description`의 출처에 `specs/005-threat-expression-flag (위협·폭언 표현 표시)`를 덧붙인다.
   - `info.version`은 research R10대로 정한다. main에 F4 병합 전이면 `0.4.0` → `0.5.0`, F4가 먼저 병합됐으면 `0.5.0` → `0.6.0`. 정하기 전에 `git fetch origin && git show origin/main:docs/api/openapi.yaml | sed -n 4p`로 확인한다.
   - `npx -y @redocly/cli@1.34.5 lint docs/api/openapi.yaml`이 valid(오류 0건)여야 한다.
   - 태그는 PR merge 후 main에서 `/api-release api-vX.Y`로 찍는다. (constitution Contract-first, D2)
@@ -88,7 +88,7 @@ description: "Task list for 004-threat-expression-flag"
   - 못 읽으면 `IllegalStateException("위협·폭언 표현 목록을 읽을 수 없습니다")`, 비면 `IllegalStateException("위협·폭언 표현 목록이 비어 있습니다")`.
 - [X] T011 `src/main/java/damso/inquiry/domain/Inquiry.java`에 판정 결과 컬럼을 추가한다. (data-model "inquiry (변경)", research R6, D1)
   - 필드: `@Column(name = "threat_flagged", nullable = false, updatable = false, columnDefinition = "boolean default false") private boolean threatFlagged;`
-  - 필드 주석: "접수 때 정한 위협·폭언 표현 표시. 긴급 문의는 항상 false. 바뀌지 않는다(spec 004 FR-007)". `columnDefinition` 위에는 `deferred_notice`와 같은 이유 주석을 붙인다.
+  - 필드 주석: "접수 때 정한 위협·폭언 표현 표시. 긴급 문의는 항상 false. 바뀌지 않는다(spec 005 FR-007)". `columnDefinition` 위에는 `deferred_notice`와 같은 이유 주석을 붙인다.
   - `receive(...)`와 private 생성자에 `boolean threatFlagged`를 `urgent` 바로 뒤에 추가하고, 생성자에서 `this.threatFlagged = !urgent && threatFlagged;`로 둔다.
   - getter `isThreatFlagged()`만 두고 setter·변경 메서드는 두지 않는다.
   - 클래스 Javadoc의 "content·urgent는 updatable = false" 문장에 `threat_flagged`를 더한다.
@@ -126,9 +126,9 @@ description: "Task list for 004-threat-expression-flag"
 
 ### Implementation for User Story 1
 
-- [X] T017 [US1] `src/main/java/damso/inquiry/application/port/in/TeacherInquiryQuery.java` — `InquirySummary`는 `refinementStatus` 뒤에, `InquiryDetail`은 `retryAvailable` 뒤에 `boolean threatFlagged`를 추가한다. 두 record의 Javadoc에 "threatFlagged: 접수 때 정한 위협·폭언 표현 표시, 긴급은 항상 false(spec 004)"를 덧붙이고, `toString`은 그대로 둔다(UUID만) (R8)
+- [X] T017 [US1] `src/main/java/damso/inquiry/application/port/in/TeacherInquiryQuery.java` — `InquirySummary`는 `refinementStatus` 뒤에, `InquiryDetail`은 `retryAvailable` 뒤에 `boolean threatFlagged`를 추가한다. 두 record의 Javadoc에 "threatFlagged: 접수 때 정한 위협·폭언 표현 표시, 긴급은 항상 false(spec 005)"를 덧붙이고, `toString`은 그대로 둔다(UUID만) (R8)
 - [X] T018 [US1] `src/main/java/damso/inquiry/application/service/TeacherInquiryService.java` — `summaryOf`·`get`에서 `inquiry.isThreatFlagged()`를 넘긴다. 정렬(긴급 먼저, 그다음 최신순)은 바꾸지 않는다 (R8, FR-010)
-- [X] T019 [P] [US1] `src/main/java/damso/inquiry/adapter/in/controller/dto/response/TeacherInquirySummaryResponseDTO.java`·`TeacherInquiryDetailResponseDTO.java`에 `boolean threatFlagged`를 같은 위치(Summary는 `refinementStatus` 뒤, Detail은 `retryAvailable` 뒤)에 추가하고 `from(...)`을 고친다. 클래스 Javadoc에 "threatFlagged는 교사에게만 보이는 위협·폭언 표현 표시(spec 004)"를 덧붙인다 (contracts)
+- [X] T019 [P] [US1] `src/main/java/damso/inquiry/adapter/in/controller/dto/response/TeacherInquirySummaryResponseDTO.java`·`TeacherInquiryDetailResponseDTO.java`에 `boolean threatFlagged`를 같은 위치(Summary는 `refinementStatus` 뒤, Detail은 `retryAvailable` 뒤)에 추가하고 `from(...)`을 고친다. 클래스 Javadoc에 "threatFlagged는 교사에게만 보이는 위협·폭언 표현 표시(spec 005)"를 덧붙인다 (contracts)
 - [X] T020 [US1] `./gradlew test --tests "damso.inquiry.ThreatFlagApiTest" --tests "damso.inquiry.TeacherInquiryApiTest"` 통과 확인
 
 **Checkpoint**: MVP — 교사가 목록·상세에서 위협·폭언 표시를 본다
@@ -194,7 +194,7 @@ description: "Task list for 004-threat-expression-flag"
 - [X] T028 [P] `docs/security-checklist.md`를 갱신한다. 기존 근거 문장은 지우지 않고 덧붙인다.
   - 구현단계 "부적절한 예외 처리" 행: `SubmitInquiryService.screenThreat`가 판정 예외를 잡아 고정 문구 경고 한 줄을 남기고 표시 없이 접수를 계속하는 이유(FR-005b, 접수권 보호)를 적는다. 근거 테스트는 `ThreatFlagApiTest`의 판정 실패 테스트 이름이다.
   - "제거되지 않고 남은 디버그 코드"(본문 로그 금지) 행: T025 테스트 이름을 덧붙인다. (quickstart 1절)
-- [X] T029 [P] F2 문서에 덧붙인다. `specs/002-inquiry-intake-urgent/spec.md`의 FR-009a 아래에 "위협·폭언 표시(specs/004)는 긴급 판정 뒤, 긴급이 아닌 문의에만 한다. 긴급 판정은 바뀌지 않는다" 주석 한 줄을 붙인다. 원래 문장은 지우지 않는다(이력 보존) (research R4)
+- [X] T029 [P] F2 문서에 덧붙인다. `specs/002-inquiry-intake-urgent/spec.md`의 FR-009a 아래에 "위협·폭언 표시(specs/005)는 긴급 판정 뒤, 긴급이 아닌 문의에만 한다. 긴급 판정은 바뀌지 않는다" 주석 한 줄을 붙인다. 원래 문장은 지우지 않는다(이력 보존) (research R4)
 - [X] T030 [P] `src/main/resources/urgent/expressions.txt`는 고치지 않는다. 대신 T002 파일 머리 주석에 "긴급 목록을 바꿀 때는 ThreatRuleTest ④(겹침 금지)도 함께 돈다"를 적었는지 확인한다 (research R4)
 - [X] T031 전체 검증을 한다. 실패는 숨기지 않고 출력과 함께 보고한다.
   - `./gradlew test`(Windows `.\gradlew.bat test`, Docker 실행 중)가 전부 통과해야 한다.

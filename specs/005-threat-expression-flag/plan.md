@@ -2,7 +2,7 @@
 
 **Branch**: `features/f3-threat-expression-flag` (이슈 #9) | **Date**: 2026-10-26 | **Spec**: [spec.md](./spec.md)
 
-**Input**: Feature specification from `specs/004-threat-expression-flag/spec.md`
+**Input**: Feature specification from `specs/005-threat-expression-flag/spec.md`
 
 ## Summary
 
@@ -11,7 +11,7 @@
 - **판정**: F2 긴급 판정과 같은 모양의 순수 함수 `ThreatRule`(정규화 + 포함 검사). 표현 목록은 `threat/expressions.txt`이고, 비면 기동을 거부한다.
 - **순서**: 긴급 판정 → 긴급이 아니면 위협·폭언 판정. 긴급 문의는 항상 false다. 판정이 실패하면 false로 두고 접수를 계속한다.
 - **저장**: `inquiry.threat_flagged`(변경 불가). 걸린 표현은 저장하지도 로그에 남기지도 않는다.
-- **노출**: 교사 목록·상세에 `threatFlagged` 필드를 더한다. 학부모 응답과 알림은 그대로 두고 테스트로 확인한다.
+- **노출**: 교사 목록·상세(재문의 항목 포함)에 `threatFlagged` 필드를 더한다. 재문의(F4)도 같은 규칙으로 판정한다(FR-005c). 학부모 응답과 알림은 그대로 두고 테스트로 확인한다.
 - **검증 기준**: 팀이 정한 대표 사례(표시할 문장 / 정당한 의사 표현을 포함한 표시하지 않을 문장)를 테스트로 묶는다.
 
 ## Technical Context
@@ -77,7 +77,7 @@
 ### Documentation (this feature)
 
 ```text
-specs/004-threat-expression-flag/
+specs/005-threat-expression-flag/
 ├── spec.md
 ├── plan.md              # 이 파일
 ├── research.md          # R1~R10 결정 근거

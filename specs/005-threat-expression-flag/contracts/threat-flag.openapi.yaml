@@ -10,8 +10,9 @@ info:
     - threatFlagged는 교사에게만 보인다. 학부모 API(접수 응답·목록·상세)와 알림에는 없다.
     변경 요약
     - 변경: TeacherInquirySummary·TeacherInquiryDetail에 threatFlagged(boolean, 필수) 추가
+    - 변경(F4 병합 뒤): TeacherFollowUpView에 threatFlagged(boolean, 필수) 추가 — 통합본 docs/api/openapi.yaml 0.6.0 기준
     - 변경 없음: 경로·에러 코드·학부모 API·목록 정렬(긴급 먼저, 그다음 최신순)
-    출처: specs/004-threat-expression-flag
+    출처: specs/005-threat-expression-flag
   license:
     name: Apache-2.0
     url: https://www.apache.org/licenses/LICENSE-2.0

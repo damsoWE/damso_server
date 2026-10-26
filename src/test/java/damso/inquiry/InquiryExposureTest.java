@@ -93,7 +93,7 @@ class InquiryExposureTest extends IntegrationTestSupport {
 	}
 
 	/**
-	 * spec 004 T024 / US3 시나리오 1·2, FR-012, SC-004: 위협·폭언 표시는 학부모에게 나가지 않는다. 표시된 문의와 표시되지 않은 문의의
+	 * spec 005 T024 / US3 시나리오 1·2, FR-012, SC-004: 위협·폭언 표시는 학부모에게 나가지 않는다. 표시된 문의와 표시되지 않은 문의의
 	 * 학부모 응답은 키와 안내 코드가 같아 표시 여부를 짐작할 수 없다.
 	 */
 	@Test

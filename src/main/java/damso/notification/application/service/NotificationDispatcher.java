@@ -222,7 +222,8 @@ public class NotificationDispatcher {
 	}
 
 	private Optional<UUID> recipientOf(NotificationRequest request) {
-		if (request.getKind() == NotificationKind.GENERAL_DIGEST) {
+		// 묶음·답변 알림은 "현재 담임"을 다시 찾지 않는다 — 받는 사람이 이미 정해져 있다(묶음: 교사, 답변: 학부모, F4).
+		if (request.getKind() == NotificationKind.GENERAL_DIGEST || request.getKind() == NotificationKind.ANSWER) {
 			return Optional.of(request.getRecipientId());
 		}
 		return reminders.currentRecipient(request.getInquiryId());

@@ -1,5 +1,6 @@
 package damso.support;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import java.time.Clock;
@@ -114,6 +115,9 @@ public abstract class IntegrationTestSupport {
 	protected FakeExternalAi fakeAi;
 
 	@Autowired
+	protected FailableThreatFlagScreener threatScreener;
+
+	@Autowired
 	protected RefinementRunner refinementRunner;
 
 	@Autowired
@@ -136,6 +140,7 @@ public abstract class IntegrationTestSupport {
 		mail.clear();
 		pushes.clear();
 		fakeAi.clear();
+		threatScreener.reset();
 	}
 
 	/** 테스트마다 모든 테이블을 비워 서로 영향을 주지 않게 한다(학년·반 유니크 등 충돌 방지). */
@@ -329,6 +334,37 @@ public abstract class IntegrationTestSupport {
 
 	/** 가입 완료된 사용자. */
 	protected record SignedUp(String email, UUID userId, String accessToken, String refreshToken) {
+	}
+
+	// ---- 답변·점검·전송·재문의 (F4) ----
+
+	/** teacherWithClassroom() + 긴급 문의 1건 + 교사가 원문을 열람해 TEACHER_CONFIRMED까지 만들어 둔 상태. */
+	protected record ConfirmedInquiry(Scenario scenario, UUID inquiryId) {
+	}
+
+	/**
+	 * 답변·점검·종료 테스트의 공통 전제조건. 일반 문의는 F3의 REFINING → TEACHER_CONFIRMED 전이가 아직 없어
+	 * (research R3) 긴급 문의로 만든다.
+	 */
+	protected ConfirmedInquiry urgentInquiryConfirmedByTeacher() throws Exception {
+		Scenario scenario = teacherWithClassroom();
+		MockHttpServletResponse submitted = submitInquiry(scenario.parent().accessToken(), scenario.student().getId(),
+				URGENT_SAMPLE);
+		UUID inquiryId = UUID.fromString(read(submitted, "$.inquiryId"));
+		send(get("/api/v1/teacher/inquiries/" + inquiryId + "/content"), scenario.teacher().accessToken());
+		return new ConfirmedInquiry(scenario, inquiryId);
+	}
+
+	/** 재문의 제출 요청. 새 Idempotency-Key를 붙인다. */
+	protected MockHttpServletResponse submitFollowUp(String token, UUID inquiryId, String content) throws Exception {
+		return submitFollowUp(token, inquiryId, content, UUID.randomUUID());
+	}
+
+	protected MockHttpServletResponse submitFollowUp(String token, UUID inquiryId, String content,
+			UUID idempotencyKey) throws Exception {
+		String body = JSON.writeValueAsString(Map.of("content", content));
+		return send(json(post("/api/v1/parent/inquiries/" + inquiryId + "/follow-ups"), body)
+				.header("Idempotency-Key", idempotencyKey.toString()), token);
 	}
 
 	/** 초대 코드로 1·2단계를 모두 거쳐 가입한다. 보내진 이메일 인증 코드를 가짜 메일 포트에서 읽는다. */

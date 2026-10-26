@@ -14,7 +14,7 @@
 |---|---|---|---|
 | `threat_flagged` | boolean, NOT NULL, `default false` | **추가**. 일반 문의를 접수할 때 위협·폭언 판정 결과. 긴급 문의는 항상 false. `updatable = false`, setter 없음 — 한 번 정해지면 바뀌지 않는다 | FR-005·005a·007, R6 |
 
-- 값은 `Inquiry.receive(..., urgent, threatFlagged, ...)`로만 들어간다. 생성자가 `urgent`이면 `threatFlagged`를 무시하고 false로 둔다(FR-005a를 엔티티에서도 보장).
+- 값은 `Inquiry.receive(..., urgent, threatFlagged, ...)`와 재문의용 `Inquiry.followUp(..., urgent, threatFlagged, ...)`(F4)로만 들어간다. 생성자가 `urgent`이면 `threatFlagged`를 무시하고 false로 둔다(FR-005a를 엔티티에서도 보장).
 - 기존 행: `default false`로 채워지고 다시 판정하지 않는다(spec Assumptions).
 - 인덱스: 추가하지 않는다. 표시로 필터·정렬하지 않는다(R8).
 
@@ -59,6 +59,7 @@ normalize = UrgentRule.normalize # NFKC, 소문자, 공백·줄바꿈 제거
 |---|---|---|
 | `TeacherInquiryQuery.InquirySummary` / `TeacherInquirySummaryResponseDTO` | `boolean threatFlagged` 추가 | FR-010, R8 |
 | `TeacherInquiryQuery.InquiryDetail` / `TeacherInquiryDetailResponseDTO` | `boolean threatFlagged` 추가 | FR-010, R8 |
+| `TeacherInquiryQuery.FollowUpView` / `TeacherFollowUpViewResponseDTO`(F4) | `boolean threatFlagged` 추가 | FR-005c |
 | 학부모 응답(`ParentInquirySummary`·`ParentInquiryDetail`·`InquirySubmitted`) | **변경 없음** | FR-012, R9 |
 | 교사 알림 문구 | **변경 없음** | FR-014 |
 

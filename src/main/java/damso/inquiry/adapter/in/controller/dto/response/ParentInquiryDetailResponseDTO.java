@@ -15,13 +15,15 @@ import damso.inquiry.domain.NoticeCode;
  */
 public record ParentInquiryDetailResponseDTO(UUID inquiryId, UUID studentId, String studentName, String content,
 		boolean urgent, InquiryStage stage, Instant submittedAt, List<StageEventResponseDTO> timeline,
-		List<NoticeCode> notices, List<HotlineCode> hotlines) {
+		List<NoticeCode> notices, List<HotlineCode> hotlines, List<ParentFollowUpViewResponseDTO> followUps,
+		List<AnswerViewResponseDTO> answers) {
 
 	public static ParentInquiryDetailResponseDTO from(InquiryDetail detail) {
 		return new ParentInquiryDetailResponseDTO(detail.inquiryId(), detail.studentId(), detail.studentName(),
 				detail.content(), detail.urgent(), detail.stage(), detail.submittedAt(),
 				detail.timeline().stream().map(StageEventResponseDTO::from).toList(), detail.notices(),
-				detail.hotlines());
+				detail.hotlines(), detail.followUps().stream().map(ParentFollowUpViewResponseDTO::from).toList(),
+				detail.answers().stream().map(AnswerViewResponseDTO::from).toList());
 	}
 
 	/** 본문·학생 이름이 로그에 섞이지 않도록 가린다. */

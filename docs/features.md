@@ -19,7 +19,7 @@ F5 감사 로그·이력 보존  ← F2~F4 전 구간에 걸침 (F2와 함께 �
 | F1 | 인증·회원가입·학급 연결 | `specs/001-auth-signup` | 구현 완료 |
 | F2 | 문의 접수·긴급 분류 | `specs/002-inquiry-intake-urgent` | 구현 완료 |
 | F3 | 가명화·정제 파이프라인 | `specs/003-pseudonymization-pipeline` | 구현 완료 |
-| F4 | 답변 작성·점검·전송 | — | spec 준비됨 |
+| F4 | 답변 작성·점검·전송 | `specs/004-answer-review-send` | 구현 완료 |
 | F5 | 감사 로그·이력 보존 | — | spec 준비됨 |
 
 ---

@@ -205,7 +205,7 @@ class InquirySensitiveLoggingTest extends IntegrationTestSupport {
 	}
 
 	/**
-	 * spec 004 T025 / FR-013·014, SC-005, US3 시나리오 3: 위협·폭언 표시가 붙는 문의를 접수·조회·정리·알림까지 지나도 본문과
+	 * spec 005 T025 / FR-013·014, SC-005, US3 시나리오 3: 위협·폭언 표시가 붙는 문의를 접수·조회·정리·알림까지 지나도 본문과
 	 * 판정에 걸린 표현이 로그에 남지 않고, 교사 알림은 표시 여부와 무관하게 같은 종류(고정 문구)다.
 	 */
 	@Test

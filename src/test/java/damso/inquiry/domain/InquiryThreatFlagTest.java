@@ -10,7 +10,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
-/** spec 004 T008 / FR-005a·007: 표시는 접수 때 한 번 정해지고, 긴급 문의에는 붙지 않으며, 바꾸는 길이 없다. */
+/** spec 005 T008 / FR-005a·007: 표시는 접수 때 한 번 정해지고, 긴급 문의에는 붙지 않으며, 바꾸는 길이 없다. */
 class InquiryThreatFlagTest {
 
 	private static Inquiry inquiry(boolean urgent, boolean threatFlagged) {

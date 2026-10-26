@@ -31,8 +31,13 @@ import damso.common.entity.BaseEntity;
 				@Index(name = "idx_inquiry_classroom_urgent", columnList = "classroom_id, urgent, submitted_at"),
 				@Index(name = "idx_inquiry_parent", columnList = "parent_id, submitted_at"),
 				@Index(name = "idx_inquiry_deferred",
-						columnList = "teacher_id, notification_deferred, deferred_notified_at") })
+						columnList = "teacher_id, notification_deferred, deferred_notified_at"),
+				@Index(name = "idx_inquiry_thread_root", columnList = "thread_root_id") })
 public class Inquiry extends BaseEntity {
+
+	/** 최초 문의는 NULL(자기 자신이 스레드 루트). 재문의는 스레드 최초 문의의 id (F4, FR-014~016). */
+	@Column(name = "thread_root_id", updatable = false)
+	private UUID threadRootId;
 
 	@Column(name = "parent_id", nullable = false, updatable = false)
 	private UUID parentId;
@@ -55,7 +60,7 @@ public class Inquiry extends BaseEntity {
 	@Column(nullable = false, updatable = false)
 	private boolean urgent;
 
-	/** 접수 때 정한 위협·폭언 표현 표시. 긴급 문의는 항상 false. 바뀌지 않는다(spec 004 FR-005a·007). */
+	/** 접수 때 정한 위협·폭언 표현 표시. 긴급 문의는 항상 false. 바뀌지 않는다(spec 005 FR-005a·007). */
 	// 기본값을 컬럼에 둔다 — 행이 있는 DB에 자동 스키마 갱신으로 NOT NULL 컬럼을 더할 때 실패하지 않게(deferred_notice와 같은 이유)
 	@Column(name = "threat_flagged", nullable = false, updatable = false, columnDefinition = "boolean default false")
 	private boolean threatFlagged;
@@ -96,15 +101,17 @@ public class Inquiry extends BaseEntity {
 	protected Inquiry() {
 	}
 
-	private Inquiry(UUID parentId, UUID studentId, UUID classroomId, UUID teacherId, String content, boolean urgent,
-			boolean threatFlagged, UUID idempotencyKey, String requestHash, Instant submittedAt) {
+	private Inquiry(UUID threadRootId, UUID parentId, UUID studentId, UUID classroomId, UUID teacherId,
+			String content, boolean urgent, boolean threatFlagged, UUID idempotencyKey, String requestHash,
+			Instant submittedAt) {
+		this.threadRootId = threadRootId;
 		this.parentId = parentId;
 		this.studentId = studentId;
 		this.classroomId = classroomId;
 		this.teacherId = teacherId;
 		this.content = SensitiveText.of(content);
 		this.urgent = urgent;
-		// 긴급이 먼저다 — 긴급 문의에는 위협·폭언 표시를 붙이지 않는다(spec 004 FR-005a)
+		// 긴급이 먼저다 — 긴급 문의에는 위협·폭언 표시를 붙이지 않는다(spec 005 FR-005a)
 		this.threatFlagged = !urgent && threatFlagged;
 		this.refinementStatus = urgent ? null : RefinementStatus.PENDING;
 		this.idempotencyKey = idempotencyKey;
@@ -112,11 +119,23 @@ public class Inquiry extends BaseEntity {
 		this.submittedAt = submittedAt;
 	}
 
-	/** 접수. 본문 규칙은 InquiryContentPolicy가 먼저 검사한다. 단계는 RECEIVED로 시작한다. */
+	/** 접수(스레드 최초 문의). 본문 규칙은 InquiryContentPolicy가 먼저 검사한다. 단계는 RECEIVED로 시작한다. */
 	public static Inquiry receive(UUID parentId, UUID studentId, UUID classroomId, UUID teacherId, String content,
 			boolean urgent, boolean threatFlagged, UUID idempotencyKey, String requestHash, Instant now) {
-		return new Inquiry(parentId, studentId, classroomId, teacherId, content, urgent, threatFlagged, idempotencyKey,
-				requestHash, now);
+		return new Inquiry(null, parentId, studentId, classroomId, teacherId, content, urgent, threatFlagged,
+				idempotencyKey, requestHash, now);
+	}
+
+	/**
+	 * 같은 스레드에 이어서 제출하는 재문의. receive와 같지만 threadRootId를 받는다(F4, research R5).
+	 * 대상(학급·담임)은 매번 다시 확인한 현재 값을 받는다 — 스레드 시작 시점으로 고정하지 않는다.
+	 * 위협·폭언 표시도 재문의마다 접수 때 정한다(spec 005).
+	 */
+	public static Inquiry followUp(UUID threadRootId, UUID parentId, UUID studentId, UUID classroomId,
+			UUID teacherId, String content, boolean urgent, boolean threatFlagged, UUID idempotencyKey,
+			String requestHash, Instant now) {
+		return new Inquiry(threadRootId, parentId, studentId, classroomId, teacherId, content, urgent, threatFlagged,
+				idempotencyKey, requestHash, now);
 	}
 
 	/** 허용된 전이만 한다. 아니면 IllegalStateException. */
@@ -203,6 +222,10 @@ public class Inquiry extends BaseEntity {
 	/** 묶음 알림에 포함되어 나간 시각을 남긴다. */
 	public void markDeferredNotified(Instant at) {
 		this.deferredNotifiedAt = at;
+	}
+
+	public UUID getThreadRootId() {
+		return threadRootId;
 	}
 
 	public UUID getParentId() {
