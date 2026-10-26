@@ -25,7 +25,9 @@ public class SecretsValidator implements EnvironmentPostProcessor, Ordered {
 
 	static final List<String> REQUIRED = List.of(
 			"DAMSO_DB_URL", "DAMSO_DB_USERNAME", "DAMSO_DB_PASSWORD", "DAMSO_OPENAI_API_KEY",
-			"DAMSO_MAIL_HOST", "DAMSO_MAIL_FROM", "DAMSO_REDIS_HOST");
+			"DAMSO_MAIL_HOST", "DAMSO_MAIL_FROM", "DAMSO_REDIS_HOST",
+			// F3: 외부 AI 모델 이름. 코드에 두지 않고 배포 환경에서 정한다 (specs/003 research R5)
+			"DAMSO_OPENAI_MODEL");
 
 	static final List<String> REQUIRED_KEYS = List.of(
 			"DAMSO_COLUMN_ENCRYPTION_KEY", "DAMSO_JWT_SECRET", "DAMSO_CODE_HASH_KEY");

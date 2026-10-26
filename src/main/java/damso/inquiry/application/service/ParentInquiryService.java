@@ -56,7 +56,8 @@ public class ParentInquiryService implements ParentInquiryQuery {
 				.toList();
 		return new InquiryDetail(inquiry.getId(), inquiry.getStudentId(), studentName, inquiry.getContent().reveal(),
 				inquiry.isUrgent(), inquiry.getStage(), inquiry.getSubmittedAt(), timeline,
-				GuidancePolicy.noticesFor(inquiry.isUrgent(), inquiry.isNotificationDeferred()),
+				// 접수 때 보인 안내와 같아야 한다 — 실제 알림 지연(notification_deferred)이 아니라 접수 때 판정한 값을 쓴다 (F3 R10)
+				GuidancePolicy.noticesFor(inquiry.isUrgent(), inquiry.isDeferredNotice()),
 				GuidancePolicy.hotlinesFor(inquiry.isUrgent(), inquiry.getCrisisType()));
 	}
 

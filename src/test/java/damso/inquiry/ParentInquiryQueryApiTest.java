@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import damso.account.domain.Role;
@@ -17,7 +18,12 @@ import damso.school.domain.Classroom;
 import damso.school.domain.Student;
 import damso.support.IntegrationTestSupport;
 
-/** F2 US4 시나리오 1~4 / FR-023, SC-005: 학부모가 본인 문의의 처리 단계·안내를 본다. */
+/**
+ * F2 US4 시나리오 1~4 / FR-023, SC-005: 학부모가 본인 문의의 처리 단계·안내를 본다.
+ * F3 이후 일반 문의는 커밋 직후 정리되므로, 이 클래스는 정리 확정 전 상태(접수 단계)를 보도록 즉시 실행을 끈다.
+ * 정제·교사 확인 단계는 specs/003의 ParentRefinementTimelineTest가 확인한다.
+ */
+@TestPropertySource(properties = "damso.refinement.dispatch-on-commit=false")
 class ParentInquiryQueryApiTest extends IntegrationTestSupport {
 
 	private UUID submit(Scenario s, String content) throws Exception {

@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.task.SyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 
-/** 통합 테스트 전용 빈: 시간을 옮길 수 있는 Clock, 실제로 보내지 않는 메일·푸시 포트. */
+/** 통합 테스트 전용 빈: 시간을 옮길 수 있는 Clock, 실제로 보내지 않는 메일·푸시·외부 AI 포트. */
 @TestConfiguration
 public class TestSupportConfig {
 
@@ -36,6 +36,13 @@ public class TestSupportConfig {
 	@Primary
 	FakePushSender fakePushSender() {
 		return new FakePushSender();
+	}
+
+	/** 외부 AI에 접속하지 않는다. 받은 가린 본문을 기록하고 응답을 테스트가 정한다 (F3). */
+	@Bean
+	@Primary
+	FakeExternalAi fakeExternalAi() {
+		return new FakeExternalAi();
 	}
 
 }

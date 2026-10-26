@@ -47,19 +47,33 @@ public class NotifyInquiryService implements NotifyInquiryUseCase {
 
 	@Override
 	public NotificationDecision requestGeneral(UUID inquiryId, UUID teacherId) {
+		Instant now = clock.instant();
+		NotificationDecision decision = decide(teacherId, now);
+		if (decision == NotificationDecision.IMMEDIATE) {
+			requests.save(NotificationRequest.general(teacherId, inquiryId, now));
+		}
+		if (decision == NotificationDecision.DEFERRED) {
+			// 교사 앞으로 대기 중인 묶음이 없을 때만 다음 시작 시각에 만든다. 이미 있으면 그 시각을 바꾸지 않는다.
+			requests.createDigestIfAbsent(teacherId, AvailabilityCalendar.nextStart(settings.findWindows(teacherId), now),
+					now);
+		}
+		return decision;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public NotificationDecision previewGeneral(UUID teacherId) {
+		return decide(teacherId, clock.instant());
+	}
+
+	private NotificationDecision decide(UUID teacherId, Instant now) {
 		boolean enabled = settings.findSetting(teacherId).map(TeacherNotificationSetting::isGeneralEnabled).orElse(true);
 		if (!enabled) {
 			return NotificationDecision.OFF;
 		}
-		Instant now = clock.instant();
 		List<AvailabilityWindow> windows = settings.findWindows(teacherId);
-		if (AvailabilityCalendar.isAvailable(windows, now)) {
-			requests.save(NotificationRequest.general(teacherId, inquiryId, now));
-			return NotificationDecision.IMMEDIATE;
-		}
-		// 교사 앞으로 대기 중인 묶음이 없을 때만 다음 시작 시각에 만든다. 이미 있으면 그 시각을 바꾸지 않는다.
-		requests.createDigestIfAbsent(teacherId, AvailabilityCalendar.nextStart(windows, now), now);
-		return NotificationDecision.DEFERRED;
+		return AvailabilityCalendar.isAvailable(windows, now) ? NotificationDecision.IMMEDIATE
+				: NotificationDecision.DEFERRED;
 	}
 
 }
