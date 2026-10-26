@@ -95,7 +95,9 @@ public class SubmitFollowUpService implements SubmitFollowUpUseCase {
 				return replay(existing.get(), requestHash);
 			}
 
-			Inquiry root = inquiries.findInquiryById(rootInquiryId)
+			// 쓰기 잠금으로 조회한다 — 종료(CloseInquiryService)가 같은 행을 쓰는 동안 이 트랜잭션이 기다리게 해,
+			// "검사(stage 확인) 뒤 사용(재문의 저장)" 사이에 종료가 끼어드는 TOCTOU를 막는다(PR #10 리뷰).
+			Inquiry root = inquiries.findInquiryByIdForUpdate(rootInquiryId)
 					.filter(found -> parentId.equals(found.getParentId()))
 					// {inquiryId}는 항상 스레드 루트다 — 재문의 자신의 id로는 이 경로를 쓸 수 없다(research R1).
 					.filter(found -> found.getThreadRootId() == null)

@@ -4,8 +4,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import jakarta.persistence.LockModeType;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -14,6 +17,11 @@ import damso.inquiry.domain.Inquiry;
 interface SpringDataInquiryRepository extends JpaRepository<Inquiry, UUID> {
 
 	Optional<Inquiry> findByParentIdAndIdempotencyKey(UUID parentId, UUID idempotencyKey);
+
+	/** SELECT ... FOR UPDATE. InquiryPort.findInquiryByIdForUpdate 전용 — 다른 곳에서 직접 쓰지 않는다. */
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select i from Inquiry i where i.id = :id")
+	Optional<Inquiry> findByIdForUpdate(@Param("id") UUID id);
 
 	/** 이 트랜잭션 안에서만 락 대기 시간을 제한한다(트랜잭션이 끝나면 원래 값으로 돌아간다). */
 	@Query(value = "select set_config('lock_timeout', :millis, true)", nativeQuery = true)
