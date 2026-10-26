@@ -27,10 +27,7 @@ public class ParentNotificationSettingsService implements ParentNotificationSett
 
 	@Override
 	public boolean save(UUID parentId, boolean answerNotifyEnabled) {
-		ParentNotificationSetting setting = settings.findByParentId(parentId)
-				.orElseGet(() -> new ParentNotificationSetting(parentId, answerNotifyEnabled));
-		setting.changeAnswerNotifyEnabled(answerNotifyEnabled);
-		return settings.save(setting).isAnswerNotifyEnabled();
+		return settings.upsertAnswerNotifyEnabled(parentId, answerNotifyEnabled);
 	}
 
 }

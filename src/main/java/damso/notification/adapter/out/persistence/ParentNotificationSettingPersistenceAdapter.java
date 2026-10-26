@@ -23,8 +23,8 @@ class ParentNotificationSettingPersistenceAdapter implements ParentNotificationS
 	}
 
 	@Override
-	public ParentNotificationSetting save(ParentNotificationSetting setting) {
-		return settings.saveAndFlush(setting);
+	public boolean upsertAnswerNotifyEnabled(UUID parentId, boolean answerNotifyEnabled) {
+		return settings.upsertAnswerNotifyEnabled(UUID.randomUUID(), parentId, answerNotifyEnabled);
 	}
 
 }
