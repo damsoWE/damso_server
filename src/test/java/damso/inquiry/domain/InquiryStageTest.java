@@ -13,7 +13,7 @@ class InquiryStageTest {
 
 	private static Inquiry inquiry(boolean urgent) {
 		return Inquiry.receive(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "본문",
-				urgent, UUID.randomUUID(), "0".repeat(64), Instant.now());
+				urgent, false, UUID.randomUUID(), "0".repeat(64), Instant.now());
 	}
 
 	@Test

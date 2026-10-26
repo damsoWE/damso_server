@@ -11,15 +11,16 @@ import damso.inquiry.domain.RefinementStatus;
 /**
  * 교사의 문의 상세. 본문·번역본은 없다 — 원문은 /content(감사 기록), 번역본은 /refinement로 따로 연다.
  * refinementStatus는 긴급 문의면 null, retryAvailable은 원문 확인 필요이고 교사 재시도를 아직 쓰지 않았으면 true(F3).
+ * threatFlagged는 교사에게만 보이는 위협·폭언 표현 표시(spec 004).
  */
 public record TeacherInquiryDetailResponseDTO(UUID inquiryId, UUID studentId, String studentName, boolean urgent,
 		String title, InquiryStage stage, RefinementStatus refinementStatus, boolean retryAvailable,
-		Instant submittedAt, List<StageEventResponseDTO> timeline) {
+		boolean threatFlagged, Instant submittedAt, List<StageEventResponseDTO> timeline) {
 
 	public static TeacherInquiryDetailResponseDTO from(InquiryDetail detail) {
 		return new TeacherInquiryDetailResponseDTO(detail.inquiryId(), detail.studentId(), detail.studentName(),
 				detail.urgent(), detail.title(), detail.stage(), detail.refinementStatus(), detail.retryAvailable(),
-				detail.submittedAt(), detail.timeline().stream().map(StageEventResponseDTO::from).toList());
+				detail.threatFlagged(), detail.submittedAt(), detail.timeline().stream().map(StageEventResponseDTO::from).toList());
 	}
 
 	@Override

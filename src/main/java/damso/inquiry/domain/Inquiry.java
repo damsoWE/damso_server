@@ -17,7 +17,7 @@ import damso.common.entity.BaseEntity;
 /**
  * 학부모가 제출한 문의. 원문은 암호화해 저장하고 수정·삭제하지 않는다 (원칙 III, FR-005·006).
  * - 접수 시점의 학생·학급·담임은 변경할 수 없다(알림 대상은 보낼 때 현재 담임으로 다시 확인한다).
- * - content·urgent는 updatable = false이고 setter가 없다. 바뀌는 것은 단계·위기 종류·알림 표시·정리 상태와,
+ * - content·urgent·threat_flagged는 updatable = false이고 setter가 없다. 바뀌는 것은 단계·위기 종류·알림 표시·정리 상태와,
  *   비어 있던 제목을 정리 결과로 한 번 채우는 것뿐이다(F3).
  * - 단계 전이는 InquiryStage의 허용표로만 하고, 동시 전이는 @Version이 막는다.
  * - request_hash는 같은 Idempotency-Key가 다른 내용으로 재사용됐는지 비교하는 값이며 원문은 담지 않는다.
@@ -54,6 +54,11 @@ public class Inquiry extends BaseEntity {
 
 	@Column(nullable = false, updatable = false)
 	private boolean urgent;
+
+	/** 접수 때 정한 위협·폭언 표현 표시. 긴급 문의는 항상 false. 바뀌지 않는다(spec 004 FR-005a·007). */
+	// 기본값을 컬럼에 둔다 — 행이 있는 DB에 자동 스키마 갱신으로 NOT NULL 컬럼을 더할 때 실패하지 않게(deferred_notice와 같은 이유)
+	@Column(name = "threat_flagged", nullable = false, updatable = false, columnDefinition = "boolean default false")
+	private boolean threatFlagged;
 
 	@Enumerated(EnumType.STRING)
 	@Column(name = "crisis_type", nullable = false, length = 20)
@@ -92,13 +97,15 @@ public class Inquiry extends BaseEntity {
 	}
 
 	private Inquiry(UUID parentId, UUID studentId, UUID classroomId, UUID teacherId, String content, boolean urgent,
-			UUID idempotencyKey, String requestHash, Instant submittedAt) {
+			boolean threatFlagged, UUID idempotencyKey, String requestHash, Instant submittedAt) {
 		this.parentId = parentId;
 		this.studentId = studentId;
 		this.classroomId = classroomId;
 		this.teacherId = teacherId;
 		this.content = SensitiveText.of(content);
 		this.urgent = urgent;
+		// 긴급이 먼저다 — 긴급 문의에는 위협·폭언 표시를 붙이지 않는다(spec 004 FR-005a)
+		this.threatFlagged = !urgent && threatFlagged;
 		this.refinementStatus = urgent ? null : RefinementStatus.PENDING;
 		this.idempotencyKey = idempotencyKey;
 		this.requestHash = requestHash;
@@ -107,9 +114,9 @@ public class Inquiry extends BaseEntity {
 
 	/** 접수. 본문 규칙은 InquiryContentPolicy가 먼저 검사한다. 단계는 RECEIVED로 시작한다. */
 	public static Inquiry receive(UUID parentId, UUID studentId, UUID classroomId, UUID teacherId, String content,
-			boolean urgent, UUID idempotencyKey, String requestHash, Instant now) {
-		return new Inquiry(parentId, studentId, classroomId, teacherId, content, urgent, idempotencyKey, requestHash,
-				now);
+			boolean urgent, boolean threatFlagged, UUID idempotencyKey, String requestHash, Instant now) {
+		return new Inquiry(parentId, studentId, classroomId, teacherId, content, urgent, threatFlagged, idempotencyKey,
+				requestHash, now);
 	}
 
 	/** 허용된 전이만 한다. 아니면 IllegalStateException. */
@@ -224,6 +231,10 @@ public class Inquiry extends BaseEntity {
 
 	public boolean isUrgent() {
 		return urgent;
+	}
+
+	public boolean isThreatFlagged() {
+		return threatFlagged;
 	}
 
 	public CrisisType getCrisisType() {

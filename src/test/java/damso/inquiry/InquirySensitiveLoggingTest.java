@@ -24,6 +24,7 @@ import damso.audit.adapter.out.persistence.AuditLogRepository;
 import damso.audit.application.port.out.AuditLogPort;
 import damso.audit.domain.AuditLog;
 import damso.audit.domain.AuditTargetType;
+import damso.inquiry.application.port.out.ThreatExpressionSource;
 import damso.notification.application.service.NotificationDispatcher;
 import damso.school.domain.Classroom;
 import damso.school.domain.Student;
@@ -80,6 +81,9 @@ class InquirySensitiveLoggingTest extends IntegrationTestSupport {
 
 	@Autowired
 	private NotificationDispatcher dispatcher;
+
+	@Autowired
+	private ThreatExpressionSource threatExpressions;
 
 	@Test
 	void inquiryTextTokensAndStudentNamesNeverAppearInTheLogs(CapturedOutput output) throws Exception {
@@ -198,6 +202,45 @@ class InquirySensitiveLoggingTest extends IntegrationTestSupport {
 		// 정리 결과와 실패는 작업 UUID·결과 코드로만 남는다
 		assertThat(logs).contains("result=REFINED").contains("result=NEEDS_ORIGINAL").contains("result=CLASSIFIED")
 				.contains("result=UNCLASSIFIED");
+	}
+
+	/**
+	 * spec 004 T025 / FR-013·014, SC-005, US3 시나리오 3: 위협·폭언 표시가 붙는 문의를 접수·조회·정리·알림까지 지나도 본문과
+	 * 판정에 걸린 표현이 로그에 남지 않고, 교사 알림은 표시 여부와 무관하게 같은 종류(고정 문구)다.
+	 */
+	@Test
+	void threatFlaggedInquiryNeverLogsItsContentOrTheMatchedExpressions(CapturedOutput output) throws Exception {
+		// 표지는 ASCII로만 둔다 — "위협" 같은 낱말은 긴급 목록에 있어 문의를 긴급으로 바꾼다
+		String marker = "LOGCHECKZXQ" + "7402";
+		String flaggedBody = "이런 식이면 선생님 가만두지 않겠습니다. " + marker;
+		Classroom classroom = newClassroom();
+		Student student = newStudent(classroom, STUDENT_NAME);
+		SignedUp teacher = signUpWith(issueTeacherCode(classroom), "로그위협담임");
+		SignedUp parent = signUpWith(issueParentCode(student), "로그위협보호자");
+		registerDevice(teacher.userId(), sessionIdOf(teacher.accessToken()), FCM_TOKEN);
+
+		String flagged = read(submitInquiry(parent.accessToken(), student.getId(), flaggedBody), "$.inquiryId");
+		clock.advance(Duration.ofSeconds(61));
+		String plain = read(submitInquiry(parent.accessToken(), student.getId(), NORMAL_SAMPLE), "$.inquiryId");
+		assertThat((Boolean) read(send(get("/api/v1/teacher/inquiries/" + flagged), teacher.accessToken()),
+				"$.threatFlagged")).isTrue();
+		send(get("/api/v1/teacher/inquiries"), teacher.accessToken());
+		runRefinement();
+		dispatcher.dispatchDue();
+
+		String logs = output.getAll();
+		assertThat(logs).doesNotContain(marker).doesNotContain(flaggedBody).doesNotContain(STUDENT_NAME);
+		assertThat(logs).doesNotContain("가만두지 않").doesNotContain("가만두지않");
+		for (String expression : threatExpressions.expressions()) {
+			assertThat(logs).as("expression of length %d", expression.length()).doesNotContain(expression);
+		}
+		// 알림은 종류(고정 문구)만 다르지 않다 — 표시 여부가 알림에 실리지 않는다
+		List<String> kinds = new ArrayList<>();
+		for (String id : List.of(flagged, plain)) {
+			kinds.add(jdbc.queryForObject("select string_agg(kind, ',' order by kind) from notification_request "
+					+ "where inquiry_id = ?::uuid", String.class, id));
+		}
+		assertThat(kinds.get(0)).isEqualTo(kinds.get(1));
 	}
 
 }

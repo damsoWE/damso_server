@@ -13,9 +13,12 @@ import damso.inquiry.domain.RefinementStatus;
  */
 public interface TeacherInquiryQuery {
 
-	/** refinementStatus는 일반 문의의 정리 상태, 긴급 문의는 null(F3). */
+	/**
+	 * refinementStatus는 일반 문의의 정리 상태, 긴급 문의는 null(F3).
+	 * threatFlagged는 접수 때 정한 위협·폭언 표현 표시, 긴급은 항상 false(spec 004).
+	 */
 	record InquirySummary(UUID inquiryId, UUID studentId, String studentName, boolean urgent, String title,
-			InquiryStage stage, RefinementStatus refinementStatus, Instant submittedAt) {
+			InquiryStage stage, RefinementStatus refinementStatus, boolean threatFlagged, Instant submittedAt) {
 
 		/** 학생 이름이 로그·예외에 섞이지 않도록 가린다. */
 		@Override
@@ -28,10 +31,13 @@ public interface TeacherInquiryQuery {
 	record InquiryPage(List<InquirySummary> items, int page, int size, long totalElements) {
 	}
 
-	/** retryAvailable: 원문 확인 필요(NEEDS_ORIGINAL)이고 아직 교사 재시도를 쓰지 않았으면 true(F3). */
+	/**
+	 * retryAvailable: 원문 확인 필요(NEEDS_ORIGINAL)이고 아직 교사 재시도를 쓰지 않았으면 true(F3).
+	 * threatFlagged는 접수 때 정한 위협·폭언 표현 표시, 긴급은 항상 false(spec 004).
+	 */
 	record InquiryDetail(UUID inquiryId, UUID studentId, String studentName, boolean urgent, String title,
-			InquiryStage stage, RefinementStatus refinementStatus, boolean retryAvailable, Instant submittedAt,
-			List<StageEventView> timeline) {
+			InquiryStage stage, RefinementStatus refinementStatus, boolean retryAvailable, boolean threatFlagged,
+			Instant submittedAt, List<StageEventView> timeline) {
 
 		@Override
 		public String toString() {

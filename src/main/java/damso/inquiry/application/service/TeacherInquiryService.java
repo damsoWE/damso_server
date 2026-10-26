@@ -83,13 +83,13 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 						.map(RefinementJob::canTeacherRetry).orElse(false);
 		return new InquiryDetail(inquiry.getId(), inquiry.getStudentId(), studentName, inquiry.isUrgent(),
 				displayTitle(inquiry), inquiry.getStage(), inquiry.getRefinementStatus(), retryAvailable,
-				inquiry.getSubmittedAt(), timeline);
+				inquiry.isThreatFlagged(), inquiry.getSubmittedAt(), timeline);
 	}
 
 	private static InquirySummary summaryOf(Inquiry inquiry, Map<UUID, String> names) {
 		return new InquirySummary(inquiry.getId(), inquiry.getStudentId(), names.getOrDefault(inquiry.getStudentId(), ""),
 				inquiry.isUrgent(), displayTitle(inquiry), inquiry.getStage(), inquiry.getRefinementStatus(),
-				inquiry.getSubmittedAt());
+				inquiry.isThreatFlagged(), inquiry.getSubmittedAt());
 	}
 
 	/**

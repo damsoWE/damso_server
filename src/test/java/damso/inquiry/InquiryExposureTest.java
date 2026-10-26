@@ -92,6 +92,45 @@ class InquiryExposureTest extends IntegrationTestSupport {
 		}
 	}
 
+	/**
+	 * spec 004 T024 / US3 시나리오 1·2, FR-012, SC-004: 위협·폭언 표시는 학부모에게 나가지 않는다. 표시된 문의와 표시되지 않은 문의의
+	 * 학부모 응답은 키와 안내 코드가 같아 표시 여부를 짐작할 수 없다.
+	 */
+	@Test
+	void parentResponsesLookTheSameWhetherOrNotTheInquiryIsThreatFlagged() throws Exception {
+		Scenario s = teacherWithClassroom();
+		clock.advance(Duration.ofSeconds(61));
+		MockHttpServletResponse flaggedSubmit = submitInquiry(s.parent().accessToken(), s.student().getId(),
+				"이런 식이면 선생님 가만두지 않겠습니다.");
+		clock.advance(Duration.ofSeconds(61));
+		MockHttpServletResponse plainSubmit = submitInquiry(s.parent().accessToken(), s.student().getId(),
+				NORMAL_SAMPLE);
+		assertThat(flaggedSubmit.getStatus()).isEqualTo(201);
+		assertThat(plainSubmit.getStatus()).isEqualTo(201);
+		String flagged = read(flaggedSubmit, "$.inquiryId");
+		String plain = read(plainSubmit, "$.inquiryId");
+		assertThat((Boolean) read(send(get("/api/v1/teacher/inquiries/" + flagged), s.teacher().accessToken()),
+				"$.threatFlagged")).isTrue();
+
+		MockHttpServletResponse flaggedDetail = send(get("/api/v1/parent/inquiries/" + flagged),
+				s.parent().accessToken());
+		MockHttpServletResponse plainDetail = send(get("/api/v1/parent/inquiries/" + plain), s.parent().accessToken());
+		MockHttpServletResponse list = send(get("/api/v1/parent/inquiries"), s.parent().accessToken());
+
+		assertThat(keysOf(flaggedSubmit)).isEqualTo(keysOf(plainSubmit));
+		assertThat(keysOf(flaggedDetail)).isEqualTo(keysOf(plainDetail));
+		List<Map<String, Object>> items = read(list, "$");
+		assertThat(items).hasSize(2);
+		assertThat(items.get(0).keySet()).isEqualTo(items.get(1).keySet());
+		for (MockHttpServletResponse response : List.of(flaggedSubmit, plainSubmit, flaggedDetail, plainDetail, list)) {
+			assertThat(keysOf(response)).noneMatch(key -> key.toLowerCase(Locale.ROOT).contains("threat"));
+		}
+		assertThat((List<?>) read(flaggedSubmit, "$.notices")).isEqualTo(read(plainSubmit, "$.notices"));
+		assertThat((List<?>) read(flaggedSubmit, "$.hotlines")).isEqualTo(read(plainSubmit, "$.hotlines"));
+		assertThat((List<?>) read(flaggedDetail, "$.notices")).isEqualTo(read(plainDetail, "$.notices"));
+		assertThat((List<?>) read(flaggedDetail, "$.hotlines")).isEqualTo(read(plainDetail, "$.hotlines"));
+	}
+
 	@Test
 	void guidanceFieldsOnlyHoldKnownCodes() throws Exception {
 		Scenario s = teacherWithClassroom();
