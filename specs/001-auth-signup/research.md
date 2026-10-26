@@ -142,3 +142,9 @@
 - **Decision**: 새 에러 코드 `TOO_MANY_ATTEMPTS`(429). 남은 시간은 `Retry-After` 헤더(초)로 준다. `ErrorResponse` 형식은 바꾸지 않는다.
 - **Rationale**: spec US4 "남은 대기 시간이 안내된다". 헤더 값은 서버가 계산한 정수라 응답 분할 위험이 없다(체크리스트 입력 13).
 - **Alternatives considered**: `ErrorResponse`에 `retryAfterSeconds` 필드 추가: 공통 형식이 바뀌어 foundation 계약을 고쳐야 한다.
+
+## R16. 가입 전 초대 코드 확인 (2026-10-25, 이슈 #11)
+
+- **Decision**: 공개 경로 `POST /api/v1/auth/invite-codes/verify`. 요청은 `{ inviteCode, email }`, 성공 200 `{ role }`. 가입 1단계와 같은 검증 함수(`SignupService.validateInviteCode`: 잠금 확인 → `InviteRedeemUseCase.validate` → 무효면 이메일 기준 실패 기록)를 쓰므로 실패 응답·횟수·잠금이 가입과 완전히 같다. 코드를 소모하지 않고, 성공해도 실패 횟수를 초기화하지 않는다(초기화는 지금처럼 가입 확정 때).
+- **Rationale**: Figma 가입 흐름이 코드 확인 결과로 화면을 나눈다. 같은 함수를 써서 두 경로의 규칙이 어긋나지 않게 했다. 응답에 역할만 담아 연결 대상(학급·학생)은 드러내지 않는다(원칙 VII).
+- **Alternatives considered**: 실패 횟수를 IP로 세기: FR-011에서 기각(같은 와이파이 사용자 동시 잠금). 확인 단계는 세지 않기: "코드 입력 반복 실패 제한"과 어긋난다. 성공 시 횟수 초기화: 유효한 코드 하나로 다른 코드 대입 횟수를 계속 되돌릴 수 있어 하지 않는다.
