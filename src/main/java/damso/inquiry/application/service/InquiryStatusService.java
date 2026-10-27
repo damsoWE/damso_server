@@ -1,0 +1,54 @@
+package damso.inquiry.application.service;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import damso.inquiry.application.port.in.InquiryStatusQuery;
+import damso.inquiry.application.port.out.InquiryPort;
+import damso.inquiry.application.port.out.InquiryPort.ThreadStageCount;
+import damso.inquiry.domain.InquiryStage;
+import damso.school.application.port.in.ClassroomAdminUseCase;
+
+/**
+ * 슈퍼 관리자 문의 현황 (F5 US3, research R6). 단계를 그대로 세면 DELIVERED가 곧 긴급 건수가 되므로 세 묶음으로만 나눈다.
+ * 학급 목록은 school의 관리자 학급 목록(학년·반 순)을 그대로 따른다. 본문·제목은 읽지 않는다. 감사 기록 대상이 아니다.
+ */
+@Service
+@Transactional(readOnly = true)
+public class InquiryStatusService implements InquiryStatusQuery {
+
+	private final InquiryPort inquiries;
+
+	private final ClassroomAdminUseCase classrooms;
+
+	public InquiryStatusService(InquiryPort inquiries, ClassroomAdminUseCase classrooms) {
+		this.inquiries = inquiries;
+		this.classrooms = classrooms;
+	}
+
+	@Override
+	public List<ClassroomInquiryStatus> statusByClassroom() {
+		Map<UUID, long[]> buckets = new HashMap<>();
+		for (ThreadStageCount count : inquiries.countThreadsByClassroomAndStage()) {
+			buckets.computeIfAbsent(count.classroomId(), id -> new long[3])[bucketOf(count)] += count.count();
+		}
+		return classrooms.listClassrooms().stream().map(classroom -> {
+			long[] counts = buckets.getOrDefault(classroom.classroomId(), new long[3]);
+			return new ClassroomInquiryStatus(classroom.classroomId(), counts[0], counts[1], counts[2]);
+		}).toList();
+	}
+
+	/** 0 = waiting, 1 = confirmed, 2 = answered. 답변을 보냈는지를 먼저 본다. */
+	private static int bucketOf(ThreadStageCount count) {
+		if (count.answerSent() || count.stage() == InquiryStage.ANSWERED) {
+			return 2;
+		}
+		return count.stage() == InquiryStage.TEACHER_CONFIRMED ? 1 : 0;
+	}
+
+}

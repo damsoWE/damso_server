@@ -109,15 +109,15 @@ description: "Task list for 006-audit-log-history"
 
 ### Tests for User Story 3
 
-- [ ] T019 [P] [US3] **[F5 신규]** `src/test/java/damso/inquiry/AdminInquiryStatusApiTest.java` — ① 묶음 규칙: 전송된 답변 1건 이상 또는 루트 단계 ANSWERED → `answered`(먼저 판정), 루트 단계 TEACHER_CONFIRMED이고 답변 없음 → `confirmed`, 나머지(RECEIVED·DELIVERED·REFINING, 답변 없음) → `waiting` ② 긴급 문의(DELIVERED)는 `waiting`에 합쳐짐 ③ 재문의는 따로 세지 않음(스레드 단위) ④ 문의 없는 학급도 `0,0,0`으로 나오고 순서는 학년·반 순 ⑤ 응답 JSON 키가 `items[].{classroomId,waiting,confirmed,answered}`뿐(제목·이름·긴급 여부 없음) ⑥ 교사·학부모 토큰은 403 `FORBIDDEN`, 토큰 없음은 401 ⑦ 조회 뒤 `audit_log` 변화 없음(현황 조회는 감사 대상 아님) ⑧ 에러 응답은 `ErrorResponseAssertions`로 내부 정보 없음 확인
+- [X] T019 [P] [US3] **[F5 신규]** `src/test/java/damso/inquiry/AdminInquiryStatusApiTest.java` — ① 묶음 규칙: 전송된 답변 1건 이상 또는 루트 단계 ANSWERED → `answered`(먼저 판정), 루트 단계 TEACHER_CONFIRMED이고 답변 없음 → `confirmed`, 나머지(RECEIVED·DELIVERED·REFINING, 답변 없음) → `waiting` ② 긴급 문의(DELIVERED)는 `waiting`에 합쳐짐 ③ 재문의는 따로 세지 않음(스레드 단위) ④ 문의 없는 학급도 `0,0,0`으로 나오고 순서는 학년·반 순 ⑤ 응답 JSON 키가 `items[].{classroomId,waiting,confirmed,answered}`뿐(제목·이름·긴급 여부 없음) ⑥ 교사·학부모 토큰은 403 `FORBIDDEN`, 토큰 없음은 401 ⑦ 조회 뒤 `audit_log` 변화 없음(현황 조회는 감사 대상 아님) ⑧ 에러 응답은 `ErrorResponseAssertions`로 내부 정보 없음 확인
 
 ### Implementation for User Story 3
 
-- [ ] T020 [P] [US3] **[F5 신규]** `src/main/java/damso/inquiry/application/port/in/InquiryStatusQuery.java` — `List<ClassroomInquiryStatus> statusByClassroom()`, `record ClassroomInquiryStatus(UUID classroomId, long waiting, long confirmed, long answered)`
-- [ ] T021 [US3] **[F5 신규]** `src/main/java/damso/inquiry/application/port/out/InquiryPort.java` + `adapter/out/persistence/InquiryPersistenceAdapter.java` + `SpringDataInquiryRepository.java` — 집계 메서드 1개: 루트 문의(`thread_root_id IS NULL`)만, 학급·묶음별 건수. 답변 존재 여부는 `answer.thread_root_id`로 판정. JPQL(파라미터 바인딩)로 작성하고 `content`·`title`을 select하지 않는다. 결과는 `(classroomId, bucket, count)` 형태의 내부 record. 다른 도메인 리포지토리는 쓰지 않는다(`answer`는 같은 inquiry 도메인)
-- [ ] T022 [US3] **[F5 신규]** `src/main/java/damso/inquiry/application/service/InquiryStatusService.java` — `@Transactional(readOnly = true)`. school `ClassroomAdminUseCase.listClassrooms()` 순서(학년·반)대로 학급마다 T021 결과를 채우고 없으면 0. 본문을 읽지 않는다
-- [ ] T023 [US3] **[F5 신규]** `src/main/java/damso/inquiry/adapter/in/controller/AdminInquiryController.java` + `adapter/in/controller/dto/response/InquiryStatusSummaryResponseDTO.java`(`List<ClassroomInquiryStatusResponseDTO> items`) + `ClassroomInquiryStatusResponseDTO.java`(`UUID classroomId, long waiting, long confirmed, long answered`) — `GET /api/v1/admin/inquiry-status`. 권한은 기존 `SecurityConfig`의 `/api/v1/admin/**` = `SUPER_ADMIN`에 맡긴다. 엔티티를 직접 내보내지 않는다
-- [ ] T024 [US3] T019 실행 후 통과 확인. `SuperAdminInquiryAccessTest`가 계속 통과하는지(슈퍼 관리자는 여전히 문의 내용 경로에 403) 확인
+- [X] T020 [P] [US3] **[F5 신규]** `src/main/java/damso/inquiry/application/port/in/InquiryStatusQuery.java` — `List<ClassroomInquiryStatus> statusByClassroom()`, `record ClassroomInquiryStatus(UUID classroomId, long waiting, long confirmed, long answered)`
+- [X] T021 [US3] **[F5 신규]** `src/main/java/damso/inquiry/application/port/out/InquiryPort.java` + `adapter/out/persistence/InquiryPersistenceAdapter.java` + `SpringDataInquiryRepository.java` — 집계 메서드 1개: 루트 문의(`thread_root_id IS NULL`)만, 학급·묶음별 건수. 답변 존재 여부는 `answer.thread_root_id`로 판정. JPQL(파라미터 바인딩)로 작성하고 `content`·`title`을 select하지 않는다. 결과는 `(classroomId, bucket, count)` 형태의 내부 record. 다른 도메인 리포지토리는 쓰지 않는다(`answer`는 같은 inquiry 도메인)
+- [X] T022 [US3] **[F5 신규]** `src/main/java/damso/inquiry/application/service/InquiryStatusService.java` — `@Transactional(readOnly = true)`. school `ClassroomAdminUseCase.listClassrooms()` 순서(학년·반)대로 학급마다 T021 결과를 채우고 없으면 0. 본문을 읽지 않는다
+- [X] T023 [US3] **[F5 신규]** `src/main/java/damso/inquiry/adapter/in/controller/AdminInquiryController.java` + `adapter/in/controller/dto/response/InquiryStatusSummaryResponseDTO.java`(`List<ClassroomInquiryStatusResponseDTO> items`) + `ClassroomInquiryStatusResponseDTO.java`(`UUID classroomId, long waiting, long confirmed, long answered`) — `GET /api/v1/admin/inquiry-status`. 권한은 기존 `SecurityConfig`의 `/api/v1/admin/**` = `SUPER_ADMIN`에 맡긴다. 엔티티를 직접 내보내지 않는다
+- [X] T024 [US3] T019 실행 후 통과 확인. `SuperAdminInquiryAccessTest`가 계속 통과하는지(슈퍼 관리자는 여전히 문의 내용 경로에 403) 확인
 
 **Checkpoint**: 슈퍼 관리자가 내용 없이 학급별 처리 현황을 봄
 
@@ -235,3 +235,8 @@ Task: "T020 InquiryStatusQuery (port.in)"
 - **T012 시계**: 서로 다른 요청이 같은 시각이면 R5상 순서를 정하지 않으므로, 한 요청 안만 같은 시각으로 두고 요청 사이에는 1초씩 진행했다.
 - **테스트 도구**: Q1·Q2를 문서에서 그대로 읽어 실행하는 `src/test/java/damso/support/OperatorQueries.java`를 더했다(T012·T013이 함께 쓴다).
 - **`gradlew` 실행 권한**: 이 체크아웃에서 `gradlew`가 644라 `sh ./gradlew`로 실행했다. 파일 권한은 바꾸지 않았다.
+
+### US3 구현 (2026-10-28)
+
+- 집계는 JPQL 2개(답변 없는 스레드 루트·답변 있는 스레드 루트를 각각 (학급, 단계)별로 count)로 하고, 포트는 `ThreadStageCount(classroomId, stage, answerSent, count)`를 돌려준다. 묶음 판정(answered 먼저 → confirmed → waiting)은 tasks의 "adapter가 bucket을 돌려준다" 대신 `InquiryStatusService`에 두었다 — 규칙이 한곳에 모이고 adapter는 세기만 한다. `content`·`title`은 select하지 않는다.
+- `AdminInquiryStatusApiTest`의 필드 부재 검사는 `"answer"` 접두어가 정상 키 `answered`와 겹쳐, 키 형태(`"필드":`)로 검사한다.
