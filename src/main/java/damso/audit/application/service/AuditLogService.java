@@ -1,6 +1,7 @@
 package damso.audit.application.service;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -27,7 +28,13 @@ public class AuditLogService implements AuditLogUseCase {
 
 	@Override
 	public void record(UUID actorId, AuditAction action, AuditTargetType targetType, UUID targetId) {
-		logs.append(AuditLog.of(actorId, action, targetType, targetId, clock.instant()));
+		record(actorId, action, targetType, targetId, clock.instant());
+	}
+
+	@Override
+	public void record(UUID actorId, AuditAction action, AuditTargetType targetType, UUID targetId,
+			Instant occurredAt) {
+		logs.append(AuditLog.of(actorId, action, targetType, targetId, occurredAt));
 	}
 
 }

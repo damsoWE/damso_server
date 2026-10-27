@@ -8,8 +8,7 @@ info:
     - **감사 기록 조회 API는 없다.** 운영자는 contracts/operator-queries.md의 조회문으로 저장소를 직접 조회한다(spec FR-010).
     - 신규: `GET /api/v1/admin/inquiry-status` (슈퍼 관리자 현황).
     - 변경(설명만, 스키마 동일): `GET /api/v1/teacher/inquiries/{inquiryId}/refinement` — 번역본 열람이 감사 기록 대상이 된다(F3 → F5). 감사 기록이 실패해도 번역본은 정상 반환한다[팀 결정 2026-10-27].
-    - 변경(설명 + 500 응답 추가, 요청·성공 응답 스키마 동일): `POST .../refinement/retry`, `POST .../close` — 감사 기록을 남긴다. 기록 실패 시 500 INTERNAL_ERROR이고 그 요청의 처리도 일어나지 않는다.
-    - 변경(설명만): `POST .../answer-reviews` — 감사 기록을 남기되, 기록이 실패해도 점검 요청은 정상 처리한다[팀 결정 2026-10-28].
+    - 변경(설명만, 스키마 동일): `POST .../refinement/retry`, `POST .../answer-reviews`, `POST .../close` — 감사 기록을 남기되, 기록이 실패해도 요청은 정상 처리하고 서버 로그만 남긴다[팀 결정 2026-10-28]. 재시도·종료는 처리가 커밋된 뒤 기록한다(research R9).
     - 거부된 요청(401·403·404·409)은 감사 기록을 남기지 않는다. 다른 학급 문의와 없는 문의는 같은 404다.
     - 새 ErrorCode 없음.
     출처: specs/006-audit-log-history
@@ -96,11 +95,11 @@ paths:
     post:
       tags: [teacher-inquiry]
       operationId: retryInquiryRefinement
-      summary: 자동 정리에 실패한 문의를 다시 정리한다 (F5에서 설명·500 추가, 스키마 동일)
+      summary: 자동 정리에 실패한 문의를 다시 정리한다 (F5에서 설명 변경, 스키마 동일)
       description: |
         (기존 설명 유지) refinementStatus가 NEEDS_ORIGINAL이고 아직 재시도를 쓰지 않은 일반 문의만 받는다.
         **F5부터 받아들여진 재시도는 누가 요청했는지 감사 기록(REFINEMENT_RETRY_REQUESTED)을 남긴다.**
-        기록은 재시도 접수와 같은 트랜잭션이라, 기록 저장이 실패하면 500이고 재시도도 시작되지 않는다.
+        기록은 재시도가 커밋된 뒤 요청 시각으로 남긴다. 기록 저장이 실패해도 재시도는 202로 진행된다(실패는 서버 로그에만 남는다).
         404·409로 거부된 요청과 동시 요청에서 진 쪽은 기록하지 않는다.
       responses:
         '202':
@@ -114,7 +113,6 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
               example: { code: REFINEMENT_RETRY_UNAVAILABLE, message: 다시 정리할 수 없는 문의입니다. }
-        '500': { $ref: '#/components/responses/InternalError' }
 
   /api/v1/teacher/inquiries/{inquiryId}/answer-reviews:
     parameters:
@@ -147,11 +145,11 @@ paths:
     post:
       tags: [teacher-answer]
       operationId: closeInquiry
-      summary: '"답변 완료"로 종료 — 앱은 쓰지 않는다 (F5에서 설명·500 추가, 스키마 동일)'
+      summary: '"답변 완료"로 종료 — 앱은 쓰지 않는다 (F5에서 설명 변경, 스키마 동일)'
       description: |
         (기존 설명 유지) 교사의 명시적 동작으로만 종료된다.
         **앱은 이 경로를 쓰지 않는다**(docs/decisions.md 2026-10-27). 경로는 남아 있으므로, 호출되면 누가 닫았는지 감사 기록(INQUIRY_CLOSED)을 남긴다.
-        기록은 종료와 같은 트랜잭션이라, 기록 저장이 실패하면 500이고 종료되지 않는다.
+        기록은 종료가 커밋된 뒤 종료 시각으로 남긴다. 기록 저장이 실패해도 종료는 200으로 완료된다(실패는 서버 로그에만 남는다).
         404·409로 거부된 요청은 기록하지 않는다.
       responses:
         '200':
@@ -165,7 +163,6 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
               example: { code: INQUIRY_NOT_READY_TO_CLOSE, message: 아직 종료할 수 없는 문의입니다. }
-        '500': { $ref: '#/components/responses/InternalError' }
 
 components:
   securitySchemes:
@@ -228,7 +225,7 @@ components:
           schema: { $ref: '#/components/schemas/ErrorResponse' }
           example: { code: NOT_FOUND, message: 요청한 대상을 찾을 수 없습니다. }
     InternalError:
-      description: 감사 기록 저장 실패 등 — 내용은 나가지 않고 요청한 처리도 일어나지 않는다(고정 문구만, 내부 정보 없음)
+      description: 원문 열람의 감사 기록 저장 실패, 번역본 첫 열람의 확인 전이 실패 등 — 내용은 나가지 않는다(고정 문구만, 내부 정보 없음)
       content:
         application/json:
           schema: { $ref: '#/components/schemas/ErrorResponse' }

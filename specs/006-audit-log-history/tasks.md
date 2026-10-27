@@ -91,9 +91,9 @@ description: "Task list for 006-audit-log-history"
 
 ### Implementation for User Story 1
 
-- [X] T014 [P] [US1] **[F3 변경]** `src/main/java/damso/inquiry/application/service/RetryRefinementService.java` — `AuditLogUseCase` 주입. `transaction.execute` 블록 안에서 `inquiries.saveInquiry(inquiry)` 뒤에 `audit.record(teacherId, REFINEMENT_RETRY_REQUESTED, INQUIRY, inquiryId)`. 같은 트랜잭션이므로 커밋 시 낙관적 락으로 진 요청은 기록도 롤백된다. 클래스 주석에 한 줄 추가
+- [X] T014 [P] [US1] **[F3 변경]** `src/main/java/damso/inquiry/application/service/RetryRefinementService.java` — `AuditLogUseCase` 주입. `transaction.execute` 블록 안에서 `inquiries.saveInquiry(inquiry)` 뒤에 `audit.record(teacherId, REFINEMENT_RETRY_REQUESTED, INQUIRY, inquiryId)`. 같은 트랜잭션이므로 커밋 시 낙관적 락으로 진 요청은 기록도 롤백된다. **→ R9[팀 결정 2026-10-28]로 바뀜: 커밋 뒤 요청 시각으로 기록하고, 실패하면 로그만 남긴다(`ActionAuditFailureTest`)** 클래스 주석에 한 줄 추가
 - [X] T015 [P] [US1] **[F4 변경]** `src/main/java/damso/inquiry/application/service/RequestAnswerReviewService.java` — `@Transactional(readOnly = true)`를 없애 바깥 트랜잭션을 두지 않고(읽기 전용이면 감사 INSERT가 거부되고, 쓰기 트랜잭션이면 감사 실패가 요청 전체를 롤백 전용으로 만든다, research R4) `AuditLogUseCase` 주입. 담임 확인 뒤 **점검 포트 호출 전에** `audit.record(teacherId, ANSWER_REVIEW_REQUESTED, INQUIRY, inquiry.getId())`(스레드 루트). 점검 포트 실패를 삼키는 기존 fail-open 처리는 그대로 둔다. 기록이 실패하면 `log.warn("답변 점검 요청 감사 기록 실패 (inquiry={}, action={}, type={})", …)`만 남기고 점검을 계속한다(팀 결정 2026-10-28). 클래스 주석에 이 동작을 적는다
-- [X] T016 [P] [US1] **[F4 변경]** `src/main/java/damso/inquiry/application/service/CloseInquiryService.java` — `AuditLogUseCase` 주입. `histories.append(… ANSWERED …)` 뒤에 `audit.record(teacherId, INQUIRY_CLOSED, INQUIRY, saved.getId())`. 종료 규칙(FR-020~022)은 바꾸지 않는다. 클래스 주석에 "앱은 이 경로를 쓰지 않는다(docs/decisions.md 2026-10-27). 호출되면 누가 닫았는지 기록한다" 추가
+- [X] T016 [P] [US1] **[F4 변경]** `src/main/java/damso/inquiry/application/service/CloseInquiryService.java` — `AuditLogUseCase` 주입. `histories.append(… ANSWERED …)` 뒤에 `audit.record(teacherId, INQUIRY_CLOSED, INQUIRY, saved.getId())`. 종료 규칙(FR-020~022)은 바꾸지 않는다. **→ R9[팀 결정 2026-10-28]로 바뀜: `TransactionTemplate`으로 바꾸고 커밋 뒤 종료 시각으로 기록, 실패하면 로그만 남긴다** 클래스 주석에 "앱은 이 경로를 쓰지 않는다(docs/decisions.md 2026-10-27). 호출되면 누가 닫았는지 기록한다" 추가
 - [X] T017 [US1] **[F5 신규]** `specs/006-audit-log-history/contracts/operator-queries.md` — T012가 드러낸 컬럼·순서 차이를 반영해 조회문을 확정한다(테스트와 문서가 같은 SQL을 쓰는 상태 유지). 읽기 전용 DB 계정이 필요하다는 점은 배포 설정 범위로 남긴다
 - [X] T018 [US1] T009~T013 실행 후 통과 확인
 
@@ -227,7 +227,7 @@ Task: "T020 InquiryStatusQuery (port.in)"
 ### US2·US1 구현 (2026-10-27)
 
 - **[팀 결정 2026-10-27] 번역본 감사 실패는 막지 않는다**: `ViewRefinementService`는 시도·완료 기록이 실패해도 번역본을 200으로 내보내고 `WARN 번역본 열람 감사 기록 실패 (inquiry=…, action=…, type=…)`만 남긴다. 예외 객체·메시지는 로그에 넣지 않는다. 원문 열람은 그대로(기록 실패 시 500). spec FR-003·005·SC-005·US2-4, research R3, plan, openapi 설명을 함께 고쳤다.
-- **재시도·종료의 감사 실패는 500**(같은 트랜잭션 롤백, 처리도 취소 — FR-006). **점검 요청은 번역본과 같이 요청 성공 + 로그**로 바꿨다[팀 결정 2026-10-28]. 감사 실패가 트랜잭션을 롤백 전용으로 만들지 않도록 `RequestAnswerReviewService`의 바깥 트랜잭션을 없앴다.
+- ~~재시도·종료의 감사 실패는 500~~ → **커밋 후 기록으로 바꿨다(research R9, 아래 "재시도·종료 감사 실패" 메모)**. **점검 요청은 번역본과 같이 요청 성공 + 로그**로 바꿨다[팀 결정 2026-10-28]. 감사 실패가 트랜잭션을 롤백 전용으로 만들지 않도록 `RequestAnswerReviewService`의 바깥 트랜잭션을 없앴다.
 - **R8 배포 조치**: 사용자가 A안을 골랐다. `docs/db/2026-10-27-f5-audit-action-check.sql`(DROP IF EXISTS + ADD, 한 트랜잭션)과 규칙 문서 `docs/db/README.md`를 더했다. `AuditEnumConstraintTest.deploymentSqlWidensTheNarrowCheckAndCanRunTwice`가 F2 시점 제약에 이 파일을 두 번 실행해 검증한다. F5 PR 설명에 "배포 전 실행: docs/db/2026-10-27-f5-audit-action-check.sql"을 적는다.
 - **`SuperAdminInquiryAccessTest`(F2) 71행**: 팀원 확인을 받아 `/api/v1/admin/inquiry-status`만 경로 이름 검사에서 예외로 두었다(FR-014·015). 72행 필드 검사는 그대로 적용된다.
 - **조회문 seq 조정(T012에서 발견)**: 교사 재시도는 요청 기록이 커밋된 뒤 같은 HTTP 요청 안에서 실행돼, 시계가 같으면 `REFINEMENT_RETRY_REQUESTED`(기존 seq 9)가 재시도 시도(5)보다 뒤로 정렬됐다. seq를 3으로 옮기고 나머지를 하나씩 밀었다(operator-queries 표, research R5, data-model).
@@ -274,3 +274,11 @@ Task: "T020 InquiryStatusQuery (port.in)"
 
 - [X] T033 Add a closed-thread scenario to `src/test/java/damso/audit/OperatorQueriesTest.java` asserting Q1 ends with `ANSWER_SENT` → `STAGE_ANSWERED` → `INQUIRY_CLOSED` (actor = teacher) when the close records share one instant per US1/AC5, FR-009 (partial)
 - [X] T034 Add a teacher-withdrawal scenario to `src/test/java/damso/audit/OperatorQueriesTest.java` asserting the withdrawn teacher's view/answer records stay in Q1 and Q2 under the same account UUID per US1/AC8, FR-008 (partial)
+
+### 재시도·종료 감사 실패 (2026-10-28, research R9)
+
+- 팀원 요청으로 재시도·종료도 감사 기록이 실패할 때 500을 내지 않는다. 사용자가 B안(커밋 후 기록)을 골랐다.
+- `AuditLogUseCase`에 `record(…, Instant occurredAt)`를 더했다. 재시도는 요청 시각, 종료는 종료 시각(단계 이력과 같은 값)을 넘긴다 — 커밋 뒤에 써도 운영자 조회문의 순서가 그대로다(`OperatorQueriesTest` 7개 통과).
+- `CloseInquiryService`는 `@Transactional` 대신 `TransactionTemplate`. 동시 종료의 409는 그대로(`saveAndFlush`에서 드러나 기록 전에 실패).
+- 새 테스트 `ActionAuditFailureTest` 3개. 전체 667개 통과.
+

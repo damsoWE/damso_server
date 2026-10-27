@@ -30,7 +30,7 @@ F2가 만든 뼈대(`audit_log`, `inquiry_stage_history`)와 F3·F4가 남기는
 
 ## R2. 종료("답변 완료") 기록 — 앱 미사용 결정 반영
 
-- **Decision**: `CloseInquiryService`가 성공하면 같은 트랜잭션에서 `INQUIRY_CLOSED`(행위자=교사, 대상=스레드 루트)를 남긴다. 종료 API·FR-021·FR-022 동작은 바꾸지 않는다. 앱은 이 API를 호출하지 않으므로(`docs/decisions.md` 2026-10-27, PR #19) 실제로는 거의 남지 않는 기록이다.
+- **Decision**: `CloseInquiryService`가 성공하면 커밋 뒤 `INQUIRY_CLOSED`(행위자=교사, 대상=스레드 루트, 시각=종료 시각)를 남긴다(R9). 기록이 실패해도 종료는 그대로다. 종료 API·FR-021·FR-022 동작은 바꾸지 않는다. 앱은 이 API를 호출하지 않으므로(`docs/decisions.md` 2026-10-27, PR #19) 실제로는 거의 남지 않는 기록이다.
 - **Rationale**: 경로가 살아 있는 한 호출될 수 있고(앱 밖 호출·향후 재사용), 호출되면 누가 닫았는지가 분쟁 기록에 필요하다. `inquiry_stage_history` ANSWERED에는 행위자가 없다.
 - **영향**: 앱의 "답변 완료" 태그는 "답변을 보냈다"는 뜻이다. 그래서 학부모·교사 타임라인에 ANSWERED가 나오는 일은 거의 없고, 앱 흐름의 마지막 단계는 TEACHER_CONFIRMED다. 슈퍼 관리자 현황의 "답변함" 건수는 단계(ANSWERED)가 아니라 **답변 전송 여부**로 센다(R6).
 - **참고**: PR #19는 2026-10-27 기준 OPEN이다. 이 결정은 그 PR의 `docs/decisions.md` 행을 따른다.
@@ -52,7 +52,7 @@ F2가 만든 뼈대(`audit_log`, `inquiry_stage_history`)와 F3·F4가 남기는
 ## R4. 답변 점검 요청 감사 — 읽기 전용 트랜잭션 문제 (F4 변경)
 
 - **Decision**: `RequestAnswerReviewService`의 `@Transactional(readOnly = true)`를 없애 바깥 트랜잭션을 두지 않고, 점검 포트를 부르기 **전에** `ANSWER_REVIEW_REQUESTED`를 남긴다(감사 기록은 자기 트랜잭션). **기록이 실패해도 점검 요청은 정상 처리하고** `WARN` 로그(inquiryId·행위 종류·오류 종류만)를 남긴다 [팀 결정 2026-10-28]. 답변 전송(`SendAnswerService`)은 원래부터 무관하다.
-- **바깥 트랜잭션을 없앤 이유**: 쓰기 트랜잭션 안에서 감사 INSERT가 실패하면 예외를 잡아도 트랜잭션이 롤백 전용이 되어 커밋에서 500이 난다. 재시도·종료는 상태를 바꾸므로 지금처럼 같은 트랜잭션에서 기록하고, 기록이 실패하면 처리도 취소된다(FR-006).
+- **바깥 트랜잭션을 없앤 이유**: 쓰기 트랜잭션 안에서 감사 INSERT가 실패하면 예외를 잡아도 트랜잭션이 롤백 전용이 되어 커밋에서 500이 난다. 재시도·종료도 같은 이유로 처리 트랜잭션 밖(커밋 뒤)에서 기록한다(R9).
 - **Rationale**: 지금처럼 읽기 전용 트랜잭션 안에서 `AuditLogUseCase.record`를 부르면 그 트랜잭션에 참여해 INSERT가 거부된다(PostgreSQL read-only 트랜잭션). 점검은 선택 기능이고 전송 경로와 분리돼 있으므로, 기록 실패 시 점검만 실패하는 것은 원칙 V·F4 FR-012(fail-open)와 충돌하지 않는다. F4 FR-012의 fail-open은 "점검 서비스 장애"에 관한 것이고 그대로 유지된다.
 - **Alternatives considered**: `REQUIRES_NEW`로 감사만 별도 트랜잭션에 쓰기 → `AuditLogUseCase`의 "호출한 트랜잭션에 참여" 계약과 달라지고, 한 곳만 예외가 됨. 기각.
 
@@ -64,7 +64,7 @@ F2가 만든 뼈대(`audit_log`, `inquiry_stage_history`)와 F3·F4가 남기는
 - **Rationale**: 같은 시각은 한 트랜잭션이 같은 `now`를 쓸 때 생긴다.
   - 접수: 문의 저장과 RECEIVED(긴급이면 DELIVERED까지)가 같은 `now`다(`SubmitInquiryService`·`SubmitFollowUpService`).
   - 자동 정리: 그 회차의 시도 기록 전부와 REFINING이 같은 `now`다(`RefinementRunner.confirm`). 그래서 시도는 단계보다 **앞**이어야 하고, 시도끼리는 trigger 순서로 정한다.
-  - 교사 재시도: 요청 기록(`REFINEMENT_RETRY_REQUESTED`)이 커밋된 뒤 같은 HTTP 요청 안에서 재시도가 실행되므로, 시계가 같으면 요청이 시도보다 앞이어야 한다(T012에서 발견해 반영).
+  - 교사 재시도: 재시도는 커밋 직후 같은 HTTP 요청 안에서 실행되고, 요청 기록(`REFINEMENT_RETRY_REQUESTED`)은 그 뒤에 남지만 시각은 요청 시각이다(R9). 시계가 같으면 요청이 시도보다 앞이어야 한다(T012에서 발견해 반영).
   - 첫 번역본·원문 열람: 열람 시도 → 확인 전이(TEACHER_CONFIRMED) → 열람 완료 순서로 일어난다. 시계가 같은 값을 돌려줘도 이 순서가 유지돼야 "확인한 뒤에 봤다"로 읽히지 않는다.
   - 서로 다른 요청이 같은 마이크로초에 일어난 경우는 동시 행위라 어느 쪽을 먼저 둬도 사실과 어긋나지 않는다.
 - **검증**: `OperatorQueriesTest`가 고정 시계로 위 경우를 만들어 순서를 단언한다(tasks).
@@ -96,3 +96,11 @@ F2가 만든 뼈대(`audit_log`, `inquiry_stage_history`)와 F3·F4가 남기는
 - **위험**: Hibernate는 `@Enumerated(STRING)` 컬럼에 허용값 CHECK 제약을 만들 수 있다. `ddl-auto=update`는 이미 있는 제약을 고치지 않으므로, **배포된 DB에서는 새 `AuditAction` 값 INSERT가 제약 위반으로 실패할 수 있다.** 새로 만든 DB(테스트 컨테이너)에서는 재현되지 않는다.
 - **Decision**: tasks 첫 단계에서 "이전 enum으로 만든 `audit_log`에 새 값을 넣는" 테스트로 실제 동작을 확인한다. 제약이 생긴다면 배포 시 `audit_log_action_check` 제약을 새 값 목록으로 다시 만드는 운영 조치를 quickstart에 적고 **사용자 확인을 받는다**(DB 스키마 조치).
 - **참고**: `audit_log.action`은 varchar(40)이라 새 값 길이(최대 `INQUIRY_REFINEMENT_VIEW_ATTEMPTED` 33자)는 문제없다. `AuditTargetType`은 새 값이 없다(모든 대상이 `INQUIRY`).
+
+## R9. 재시도·종료의 감사 기록 실패 — 커밋 후 기록 [팀 결정 2026-10-28]
+
+- **Decision**: 재시도·종료는 처리 트랜잭션이 커밋된 뒤 감사 기록을 남긴다(B안). 기록 시각은 처리 트랜잭션 안에서 정한 값(재시도 요청 시각, 종료 시각)을 `AuditLogUseCase.record(…, occurredAt)`로 넘긴다. 기록이 실패해도 재시도 202·종료 200이고, 실패는 `WARN` 로그(inquiryId·행위 종류·오류 종류만)로 남긴다. `CloseInquiryService`는 `@Transactional` 대신 `TransactionTemplate`을 쓴다.
+- **Rationale**: 네 경로(번역본 열람·점검 요청·재시도·종료)가 "처리는 정상, 기록 실패는 로그" 한 규칙이 된다. 종료가 잡은 문의 행 잠금(답변 전송·재문의의 `SELECT … FOR UPDATE`가 기다리는 잠금)은 커밋 때 풀리므로 기록 때문에 잠금 시간이 늘지 않는다. 낙관적 락 충돌은 `saveAndFlush` 때 드러나 기록 전에 실패하므로, 동시 요청에서 진 쪽은 기록되지 않는다.
+- **Alternatives considered**: A. 처리 트랜잭션 안에서 `REQUIRES_NEW`로 기록 → 기록이 먼저 커밋된 뒤 처리 트랜잭션이 롤백되면 일어나지 않은 재시도·종료가 기록된다(거짓 기록). 처리 중 커넥션 2개를 함께 쓰고 종료의 행 잠금도 그만큼 오래 쥔다. 제외.
+- **한계**: 커밋 직후 기록 전에 서버가 죽으면 그 처리의 감사 기록이 빠질 수 있다(로그도 남지 않는다).
+

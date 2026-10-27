@@ -66,7 +66,7 @@ ORDER BY occurred_at, seq, message_id;
 |---|---|---|
 | 0 | 접수 (`INQUIRY_SUBMITTED`·`FOLLOW_UP_SUBMITTED`) | 접수 트랜잭션이 같은 `now`로 RECEIVED(·DELIVERED)를 남긴다 |
 | 1·2 | `STAGE_RECEIVED` · `STAGE_DELIVERED` | 긴급 접수 |
-| 3 | `REFINEMENT_RETRY_REQUESTED` | 교사 재시도: 요청 기록이 커밋된 직후 같은 요청 안에서 재시도가 실행된다 |
+| 3 | `REFINEMENT_RETRY_REQUESTED` | 교사 재시도: 재시도는 커밋 직후 같은 요청 안에서 실행되고, 요청 기록은 그 뒤에 남지만 시각은 요청 시각이다(research R9) |
 | 4·5·6 | 정리 시도 `AUTO` · `AUTO_RETRY` · `TEACHER` | 자동 정리는 시도 여러 건과 REFINING을 같은 `now`로 남긴다 |
 | 7 | `STAGE_REFINING` | 위와 같음 — 시도가 끝난 뒤의 결과 |
 | 8 | `*_ATTEMPTED` (열람 시도) | 첫 열람: 시도 → 확인 전이 → 완료 |

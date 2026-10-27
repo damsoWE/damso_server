@@ -71,7 +71,7 @@ F2가 만든 뼈대(`audit_log` 원문 열람 기록, `inquiry_stage_history` �
 | `inquiry/adapter/in/controller/AdminInquiryController.java` | 신규. `GET /api/v1/admin/inquiry-status` |
 | `inquiry/adapter/in/controller/dto/response/InquiryStatusSummaryResponseDTO.java`, `ClassroomInquiryStatusResponseDTO.java` | 신규 DTO (별도 파일, 헌법 DTO 규칙) |
 | `specs/006-audit-log-history/contracts/operator-queries.md` | 운영자 조회문 (문서) |
-| 테스트 | `OperatorQueriesTest`(조회문 실행·본문 컬럼 부재), `UrgentRecordUnderOutageTest`(FR-006·SC-006, 외부 장애 중 긴급 기록·기록 실패 시 롤백), `AdminInquiryStatusApiTest`(묶음·0건 학급·긴급 은닉·403), `AuditEnumConstraintTest`(R8) |
+| 테스트 | `OperatorQueriesTest`(조회문 실행·본문 컬럼 부재), `UrgentRecordUnderOutageTest`(FR-006·SC-006, 외부 장애 중 긴급 기록·단계 이력 실패 시 롤백), `ActionAuditFailureTest`(재시도·종료의 감사 실패 시 정상 완료·로그), `AdminInquiryStatusApiTest`(묶음·0건 학급·긴급 은닉·403), `AuditEnumConstraintTest`(R8) |
 | `docs/api/openapi.yaml` | 0.7.0: 관리자 현황 경로·스키마 추가, 아래 B·C 경로 설명 갱신 |
 
 ### B. F3 코드 변경 (가명화·정제 파이프라인 담당 공유)
@@ -79,7 +79,7 @@ F2가 만든 뼈대(`audit_log` 원문 열람 기록, `inquiry_stage_history` �
 | 파일 | 지금 | 바뀐 뒤 |
 |---|---|---|
 | `inquiry/application/service/ViewRefinementService.java` | 번역본 열람은 감사 대상이 아님(클래스 주석·openapi 설명에 명시). 담임 확인 → 준비 확인 → 첫 열람 확인 전이 → 반환 | `AuditLogUseCase` 주입. 담임 확인(404, **기록 없음**) → 준비 확인(409, **기록 없음**) → `INQUIRY_REFINEMENT_VIEW_ATTEMPTED` → 확인 전이(낙관적 락 충돌은 기존처럼 무시) → `INQUIRY_REFINEMENT_VIEWED` → 반환. 확인 전이가 다른 이유로 실패하면 `_VIEW_FAILED`를 남기고 전파. **감사 기록 저장이 실패하면 번역본은 정상 반환하고 `WARN` 로그(inquiryId·행위 종류·오류 종류만)를 남긴다**(R3, 팀 결정 2026-10-27). 원문 열람과 달리 기록 실패가 응답을 막지 않는다 |
-| `inquiry/application/service/RetryRefinementService.java` | 작업 재개·`teacher_retry_used` 설정. 누가 요청했는지 기록 없음 | 재시도가 받아들여진 같은 트랜잭션에서 `REFINEMENT_RETRY_REQUESTED`(교사, 대상 문의). 409로 거부된 요청은 기록하지 않음 |
+| `inquiry/application/service/RetryRefinementService.java` | 작업 재개·`teacher_retry_used` 설정. 누가 요청했는지 기록 없음 | 재시도가 커밋된 뒤 `REFINEMENT_RETRY_REQUESTED`(교사, 대상 문의, 시각=요청 시각). 409로 거부된 요청은 기록하지 않음. 기록이 실패해도 재시도는 202이고 로그만 남김(R9, 팀 결정 2026-10-28) |
 | 바뀌지 않는 F3 코드 | `RefinementRunner`·`RefinementAttempt`·`InquiryRefinement`·가명화 게이트웨이 | 그대로. 정리 시도 기록은 운영자 조회문이 읽기만 한다 |
 | 영향받는 F3 테스트 | `TeacherRefinementApiTest.firstTranslationViewConfirmsOnceAndIsNotAudited` — 지금 `audit_log` 0건을 단언(120행) | **이 단언이 F5와 정면으로 충돌한다.** 이름·단언을 "첫 열람에 ATTEMPTED·VIEWED 2건"으로 바꾼다. 재시도 테스트에 `REFINEMENT_RETRY_REQUESTED` 단언 추가(`TransactionTemplate` 안에서 기록하므로 동시 요청 409 쪽은 롤백되어 기록 없음) |
 | 문서 | `specs/003-…`·openapi `/refinement` 설명의 "번역본 열람은 감사 기록 대상이 아니다" | openapi는 0.7.0에서 갱신. `specs/003`은 고치지 않고 F5 spec이 대체한다고 이 plan에 남긴다 |
@@ -89,7 +89,7 @@ F2가 만든 뼈대(`audit_log` 원문 열람 기록, `inquiry_stage_history` �
 | 파일 | 지금 | 바뀐 뒤 |
 |---|---|---|
 | `inquiry/application/service/RequestAnswerReviewService.java` | `@Transactional(readOnly = true)`. 점검 포트 실패는 삼켜서 fail-open | 바깥 트랜잭션을 없애고, 담임 확인·입력 검증 뒤 **점검 포트 호출 전에** `ANSWER_REVIEW_REQUESTED`(교사, 스레드 루트). 기록이 실패해도 점검 요청은 정상 처리하고 `WARN` 로그(본문 없이)만 남긴다(R4, 팀 결정 2026-10-28). 포트 실패 fail-open은 그대로 |
-| `inquiry/application/service/CloseInquiryService.java` | 종료 시 단계 ANSWERED만 남김(행위자 없음) | 같은 트랜잭션에서 `INQUIRY_CLOSED`(교사, 스레드 루트). 종료 API·FR-021·022 동작은 그대로. **앱은 이 경로를 쓰지 않는다**(decisions.md 2026-10-27) |
+| `inquiry/application/service/CloseInquiryService.java` | 종료 시 단계 ANSWERED만 남김(행위자 없음) | `TransactionTemplate`으로 바꾸고 커밋 뒤 `INQUIRY_CLOSED`(교사, 스레드 루트, 시각=종료 시각). 기록이 실패해도 종료는 200이고 로그만 남김(R9, 팀 결정 2026-10-28). 종료 API·FR-021·022 동작은 그대로. **앱은 이 경로를 쓰지 않는다**(decisions.md 2026-10-27) |
 | 바뀌지 않는 F4 코드 | `SendAnswerService`·`Answer`·`SubmitFollowUpService` | 그대로. 답변 전송·재문의 접수는 `answer`·`inquiry` 행 자체가 기록이므로 감사 호출을 더하지 않음(R1) |
 | 영향받는 F4 테스트 | `AnswerReviewApiTest`, `AnswerReviewFailOpenTest`, `CloseInquiryApiTest` | 기록 단언 추가. fail-open 테스트는 "포트 실패 시에도 기록은 1건"으로 보강 |
 

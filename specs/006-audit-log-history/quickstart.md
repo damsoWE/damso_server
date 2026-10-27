@@ -15,9 +15,9 @@
 | 2 | 번역본 없음 (US2-7) | 정리 중·원문 확인 필요·긴급 문의에 같은 요청 | 409 `REFINEMENT_NOT_READY`, 열람 기록 0건 |
 | 3 | 기록 실패 시 원문 미반환 (FR-005, SC-005) | 감사 포트가 실패하게 바꾼 뒤 `/content` | 500 `INTERNAL_ERROR`, 응답에 본문 없음 |
 | 3a | 기록 실패 시 번역본은 반환 (FR-005, SC-005) | 감사 포트가 실패하게 바꾼 뒤 `/refinement` | 200 번역본, `WARN` 로그에 `inquiry=`·`action=`·`type=`만 있고 본문·번역본·제목 없음 |
-| 4 | 재시도 요청 기록 (FR-001) | 원문 확인 필요 문의에 `POST .../refinement/retry` | 202, `REFINEMENT_RETRY_REQUESTED` 1건. 409로 거부된 요청은 기록 없음 |
+| 4 | 재시도 요청 기록 (FR-001) | 원문 확인 필요 문의에 `POST .../refinement/retry` | 202, `REFINEMENT_RETRY_REQUESTED` 1건. 409로 거부된 요청은 기록 없음. 감사 저장이 실패해도 202·재시도 진행, `WARN` 로그(본문 없음)만 남음 |
 | 5 | 점검 요청 기록 (FR-001) | `POST .../answer-reviews` | 200, `ANSWER_REVIEW_REQUESTED` 1건. 점검 포트가 실패해도 기록은 남고 응답은 `available=false`. 감사 저장이 실패해도 200이고 `WARN` 로그(본문 없음)만 남음 |
-| 6 | 종료 기록 — 앱 미사용 경로 (FR-001) | `POST .../close` 직접 호출 | 200, `INQUIRY_CLOSED` 1건 + 단계 ANSWERED |
+| 6 | 종료 기록 — 앱 미사용 경로 (FR-001) | `POST .../close` 직접 호출 | 200, `INQUIRY_CLOSED` 1건 + 단계 ANSWERED. 감사 저장이 실패해도 200·ANSWERED, `WARN` 로그(본문 없음)만 남음 |
 | 7 | 슈퍼 관리자 현황 (US3, FR-014~016) | 학급 2개에 단계가 다른 문의(긴급 포함)를 만든 뒤 `GET /admin/inquiry-status` | 묶음 건수 일치, 긴급 문의는 waiting에 합쳐짐, 문의 없는 학급은 0, 응답 필드는 4개뿐 |
 | 8 | 현황 권한 (US3-3) | 교사·학부모 토큰으로 같은 요청 | 403 `FORBIDDEN` |
 | 9 | 타임라인 분리 (US4, FR-012) | 1~5 뒤 학부모·교사 상세 조회 | `timeline`에 단계만, 감사 항목 없음 |
