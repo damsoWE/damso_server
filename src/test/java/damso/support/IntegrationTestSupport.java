@@ -68,8 +68,14 @@ public abstract class IntegrationTestSupport {
 		TestSecrets.init();
 	}
 
+	/**
+	 * 테스트 컨텍스트마다 커넥션 풀(Hikari 기본 10개)이 따로 열린다. Spring 테스트 컨텍스트 캐시는 기본 32개까지 남으므로
+	 * 32 × 10 = 320개를 넘게 열 수 있게 한다 — 기본값 100이면 컨텍스트가 늘 때 "too many clients"로 무관한 테스트가 실패한다.
+	 * fsync=off는 Testcontainers 기본 명령을 그대로 유지한 것이다.
+	 */
 	@ServiceConnection
-	static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17-alpine");
+	static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17-alpine")
+			.withCommand("postgres", "-c", "fsync=off", "-c", "max_connections=400");
 
 	@ServiceConnection(name = "redis")
 	static final GenericContainer<?> REDIS = new GenericContainer<>("redis:7-alpine").withExposedPorts(6379);
@@ -115,6 +121,9 @@ public abstract class IntegrationTestSupport {
 	protected FakeExternalAi fakeAi;
 
 	@Autowired
+	protected FailableThreatFlagScreener threatScreener;
+
+	@Autowired
 	protected RefinementRunner refinementRunner;
 
 	@Autowired
@@ -137,6 +146,7 @@ public abstract class IntegrationTestSupport {
 		mail.clear();
 		pushes.clear();
 		fakeAi.clear();
+		threatScreener.reset();
 	}
 
 	/** 테스트마다 모든 테이블을 비워 서로 영향을 주지 않게 한다(학년·반 유니크 등 충돌 방지). */

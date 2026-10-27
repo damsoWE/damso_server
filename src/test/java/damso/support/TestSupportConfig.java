@@ -6,6 +6,8 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.core.task.SyncTaskExecutor;
 import org.springframework.core.task.TaskExecutor;
 
+import damso.inquiry.application.port.out.ThreatExpressionSource;
+
 /** 통합 테스트 전용 빈: 시간을 옮길 수 있는 Clock, 실제로 보내지 않는 메일·푸시·외부 AI 포트. */
 @TestConfiguration
 public class TestSupportConfig {
@@ -43,6 +45,13 @@ public class TestSupportConfig {
 	@Primary
 	FakeExternalAi fakeExternalAi() {
 		return new FakeExternalAi();
+	}
+
+	/** 실제 위협·폭언 판정에 실패 끼워 넣기·호출 횟수 세기를 더한 것 (spec 005). */
+	@Bean
+	@Primary
+	FailableThreatFlagScreener failableThreatFlagScreener(ThreatExpressionSource expressions) {
+		return new FailableThreatFlagScreener(expressions);
 	}
 
 }

@@ -260,4 +260,34 @@ class TeacherInquiryApiTest extends IntegrationTestSupport {
 		assertThat((String) read(response, "$.items[0].studentId")).isEqualTo(sibling.getId().toString());
 	}
 
+	/**
+	 * spec 005 T016 / contracts threat-flag.openapi.yaml: 목록 항목·상세의 키는 계약의 required와 정확히 같다(additionalProperties: false).
+	 * 이 클래스는 즉시 정리를 끄므로 정리 전(PENDING)에도 위협·폭언 표시가 보이는지 함께 본다(US1 시나리오 3).
+	 */
+	@Test
+	void listItemAndDetailCarryExactlyTheContractFieldsIncludingThreatFlagged() throws Exception {
+		Scenario s = teacherWithClassroom();
+		UUID threat = submit(s, "이런 식이면 선생님 가만두지 않겠습니다.");
+		UUID urgent = submit(s, URGENT_SAMPLE);
+
+		MockHttpServletResponse listed = list(s.teacher().accessToken(), "");
+		List<Map<String, Object>> items = read(listed, "$.items");
+		for (Map<String, Object> item : items) {
+			assertThat(item.keySet()).containsExactlyInAnyOrder("inquiryId", "studentId", "studentName", "urgent", "title",
+					"stage", "refinementStatus", "threatFlagged", "threadThreatFlagged", "submittedAt");
+			assertThat(item.get("threatFlagged")).isInstanceOf(Boolean.class);
+			assertThat(item.get("threadThreatFlagged")).isInstanceOf(Boolean.class);
+		}
+		MockHttpServletResponse detail = send(get("/api/v1/teacher/inquiries/" + threat), s.teacher().accessToken());
+		Map<String, Object> body = read(detail, "$");
+		assertThat(body.keySet()).containsExactlyInAnyOrder("inquiryId", "studentId", "studentName", "urgent", "title",
+				"stage", "refinementStatus", "retryAvailable", "threatFlagged", "submittedAt", "timeline", "followUps",
+				"answers");
+
+		assertThat((String) read(detail, "$.refinementStatus")).isEqualTo("PENDING");
+		assertThat((Boolean) read(detail, "$.threatFlagged")).isTrue();
+		assertThat((Boolean) read(send(get("/api/v1/teacher/inquiries/" + urgent), s.teacher().accessToken()),
+				"$.threatFlagged")).isFalse();
+	}
+
 }

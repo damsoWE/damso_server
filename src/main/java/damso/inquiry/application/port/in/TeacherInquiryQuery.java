@@ -13,9 +13,14 @@ import damso.inquiry.domain.RefinementStatus;
  */
 public interface TeacherInquiryQuery {
 
-	/** refinementStatus는 일반 문의의 정리 상태, 긴급 문의는 null(F3). */
+	/**
+	 * refinementStatus는 일반 문의의 정리 상태, 긴급 문의는 null(F3).
+	 * threatFlagged는 접수 때 정한 위협·폭언 표현 표시, 긴급은 항상 false(spec 005).
+	 * threadThreatFlagged는 최초 문의나 재문의 가운데 하나라도 표시됐는지 — 재문의에만 위협 표현이 있어도 목록에서 보인다.
+	 */
 	record InquirySummary(UUID inquiryId, UUID studentId, String studentName, boolean urgent, String title,
-			InquiryStage stage, RefinementStatus refinementStatus, Instant submittedAt) {
+			InquiryStage stage, RefinementStatus refinementStatus, boolean threatFlagged, boolean threadThreatFlagged,
+			Instant submittedAt) {
 
 		/** 학생 이름이 로그·예외에 섞이지 않도록 가린다. */
 		@Override
@@ -30,14 +35,20 @@ public interface TeacherInquiryQuery {
 
 	/**
 	 * 스레드 타임라인에 포함되는 재문의 하나 — 목록·상세와 같은 규칙으로 본문은 없고, 긴급만 /content로 열람한다(F4).
+	 * threatFlagged는 재문의를 접수할 때 정한 위협·폭언 표현 표시, 긴급은 항상 false(spec 005).
 	 */
-	record FollowUpView(UUID inquiryId, boolean urgent, String title, InquiryStage stage, Instant submittedAt) {
+	record FollowUpView(UUID inquiryId, boolean urgent, String title, InquiryStage stage, boolean threatFlagged,
+			Instant submittedAt) {
 	}
 
-	/** retryAvailable: 원문 확인 필요(NEEDS_ORIGINAL)이고 아직 교사 재시도를 쓰지 않았으면 true(F3). */
+	/**
+	 * retryAvailable: 원문 확인 필요(NEEDS_ORIGINAL)이고 아직 교사 재시도를 쓰지 않았으면 true(F3).
+	 * threatFlagged는 접수 때 정한 위협·폭언 표현 표시, 긴급은 항상 false(spec 005).
+	 */
 	record InquiryDetail(UUID inquiryId, UUID studentId, String studentName, boolean urgent, String title,
-			InquiryStage stage, RefinementStatus refinementStatus, boolean retryAvailable, Instant submittedAt,
-			List<StageEventView> timeline, List<FollowUpView> followUps, List<AnswerView> answers) {
+			InquiryStage stage, RefinementStatus refinementStatus, boolean retryAvailable, boolean threatFlagged,
+			Instant submittedAt, List<StageEventView> timeline, List<FollowUpView> followUps,
+			List<AnswerView> answers) {
 
 		@Override
 		public String toString() {

@@ -1,5 +1,6 @@
 package damso.inquiry.adapter.out.persistence;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -43,5 +44,8 @@ interface SpringDataInquiryRepository extends JpaRepository<Inquiry, UUID> {
 
 	@Query("select i from Inquiry i where i.id = :rootId or i.threadRootId = :rootId order by i.submittedAt asc")
 	List<Inquiry> findThreadMessages(@Param("rootId") UUID rootId);
+
+	@Query("select distinct i.threadRootId from Inquiry i where i.threadRootId in :rootIds and i.threatFlagged = true")
+	List<UUID> findThreadRootIdsWithThreatFlaggedFollowUp(@Param("rootIds") Collection<UUID> rootIds);
 
 }

@@ -38,7 +38,7 @@ import damso.school.application.port.in.InquiryTargetQuery.ChildTarget;
 /**
  * 문의 접수 (research R6). 순서:
  * ① 입력 검증 ② 중복 제출 확인(재시도는 같은 결과, 같은 키·다른 내용은 409) ③ 대상 확인(자녀·담임)
- * ④ 긴급 판정(규칙, AI 이전) ⑤ 일반이면 1분 제한 ⑥ 저장.
+ * ④ 긴급 판정(규칙, AI 이전) ⑤ 일반이면 1분 제한 ⑥ 일반이면 위협·폭언 판정(규칙, 실패하면 표시 없음, spec 005) ⑦ 저장.
  * 긴급 문의는 1분 제한을 확인하지 않는다. 제한 저장소(Redis)를 쓸 수 없으면 일반 문의도 제한만 건너뛰고 접수한다 —
  * 도배 방지 장치가 학부모의 문의권을 막으면 안 된다. 본문·제목은 어떤 로그에도 남기지 않는다.
  */
@@ -67,6 +67,8 @@ public class SubmitInquiryService implements SubmitInquiryUseCase {
 
 	private final UrgentRule urgentRule;
 
+	private final ThreatFlagScreener threatScreener;
+
 	private final RefinementJobPort refinementJobs;
 
 	private final ApplicationEventPublisher events;
@@ -74,7 +76,7 @@ public class SubmitInquiryService implements SubmitInquiryUseCase {
 	public SubmitInquiryService(InquiryPort inquiries, InquiryStageHistoryPort histories, InquiryTargetQuery targets,
 			AttemptLimitUseCase attempts, NotifyInquiryUseCase notifications, CodeHasher hasher, Clock clock,
 			PlatformTransactionManager transactionManager, UrgentExpressionSource urgentExpressions,
-			RefinementJobPort refinementJobs, ApplicationEventPublisher events) {
+			RefinementJobPort refinementJobs, ApplicationEventPublisher events, ThreatFlagScreener threatScreener) {
 		this.inquiries = inquiries;
 		this.histories = histories;
 		this.targets = targets;
@@ -86,6 +88,7 @@ public class SubmitInquiryService implements SubmitInquiryUseCase {
 		this.clock = clock;
 		this.transaction = new TransactionTemplate(transactionManager);
 		this.urgentRule = new UrgentRule(urgentExpressions.expressions());
+		this.threatScreener = threatScreener;
 	}
 
 	@Override
@@ -116,10 +119,13 @@ public class SubmitInquiryService implements SubmitInquiryUseCase {
 			}
 
 			boolean urgent = urgentRule.isUrgent(content);
+			boolean threatFlagged = false;
 			if (!urgent) {
 				enforceSubmitLimit(parentId);
+				// 긴급이 먼저다 — 긴급 문의는 판정하지 않는다(spec 005 FR-005a). 제한에 걸린 요청도 판정하지 않는다.
+				threatFlagged = threatScreener.screenSafely(content);
 			}
-			return persist(parentId, target, content, urgent, idempotencyKey, requestHash);
+			return persist(parentId, target, content, urgent, threatFlagged, idempotencyKey, requestHash);
 		});
 	}
 
@@ -141,11 +147,11 @@ public class SubmitInquiryService implements SubmitInquiryUseCase {
 	}
 
 	private InquirySubmittedResult persist(UUID parentId, ChildTarget target, String content, boolean urgent,
-			UUID idempotencyKey, String requestHash) {
+			boolean threatFlagged, UUID idempotencyKey, String requestHash) {
 		// DB(timestamptz)는 마이크로초까지만 저장한다. 첫 응답과 재전송 응답의 시각이 같도록 처음부터 맞춘다.
 		Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
 		Inquiry received = Inquiry.receive(parentId, target.studentId(), target.classroomId(),
-				target.homeroomTeacherId(), content, urgent, idempotencyKey, requestHash, now);
+				target.homeroomTeacherId(), content, urgent, threatFlagged, idempotencyKey, requestHash, now);
 		if (urgent) {
 			// 긴급은 정제를 건너뛰고 접수와 같은 트랜잭션에서 교사에게 전달된 상태가 된다 (FR-009·010)
 			received.moveTo(InquiryStage.DELIVERED);

@@ -1,0 +1,158 @@
+package damso.inquiry.domain;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.stream.IntStream;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ClassPathResource;
+
+import damso.inquiry.adapter.out.resource.ClasspathThreatExpressionSource;
+import damso.inquiry.adapter.out.resource.ClasspathUrgentExpressionSource;
+
+/**
+ * spec 005 T006 / FR-003·004a·005a·006, SC-001: 위협·폭언 판정은 정규화한 본문에 표현이 포함되는지만 본다.
+ * 대표 사례(표시할 문장 / 표시하지 않을 문장)가 목록 변경의 회귀 기준이다.
+ */
+class ThreatRuleTest {
+
+	private static final ClasspathThreatExpressionSource SOURCE = new ClasspathThreatExpressionSource(
+			new ClassPathResource("threat/expressions.txt"));
+
+	private static final UrgentRule URGENT = new UrgentRule(
+			new ClasspathUrgentExpressionSource(new ClassPathResource("urgent/expressions.txt")).expressions());
+
+	private final ThreatRule rule = new ThreatRule(SOURCE.expressions());
+
+	/** 파일의 문장(빈 줄·'#' 줄 제외). 실패 메시지에 본문 대신 줄 번호를 쓰도록 번호와 함께 돌려준다. */
+	private static List<Sentence> sentences(String path) throws IOException {
+		List<String> lines = new String(new ClassPathResource(path).getInputStream().readAllBytes(),
+				StandardCharsets.UTF_8).lines().toList();
+		return IntStream.range(0, lines.size())
+				.mapToObj(i -> new Sentence(path + ":" + (i + 1), lines.get(i).strip()))
+				.filter(sentence -> !sentence.text().isEmpty() && !sentence.text().startsWith("#"))
+				.toList();
+	}
+
+	private record Sentence(String where, String text) {
+	}
+
+	@Test
+	void everyExpressionInTheListIsFlagged() {
+		assertThat(SOURCE.expressions()).isNotEmpty();
+		for (String expression : SOURCE.expressions()) {
+			assertThat(rule.isFlagged("오늘 " + expression + " 일이 있었어요")).as(expression).isTrue();
+		}
+	}
+
+	/** 목록 회귀 테스트: 대표 문장 하나라도 놓치면 실패한다. */
+	@Test
+	void everyMustFlagSentenceIsFlagged() throws IOException {
+		List<Sentence> mustFlag = sentences("threat/must-flag.txt");
+		assertThat(mustFlag).hasSizeGreaterThanOrEqualTo(15);
+		for (Sentence sentence : mustFlag) {
+			assertThat(rule.isFlagged(sentence.text())).as(sentence.where()).isTrue();
+		}
+	}
+
+	/** 오탐 회귀 테스트: 정당한 의사 표현·글자만 겹치는 문장이 하나라도 걸리면 실패한다. */
+	@Test
+	void noMustNotFlagSentenceIsFlagged() throws IOException {
+		List<Sentence> mustNotFlag = sentences("threat/must-not-flag.txt");
+		assertThat(mustNotFlag).hasSizeGreaterThanOrEqualTo(15);
+		for (Sentence sentence : mustNotFlag) {
+			assertThat(rule.isFlagged(sentence.text())).as(sentence.where()).isFalse();
+		}
+	}
+
+	/** research R4: 긴급 목록과 겹치는 표현은 쓰이지 않으므로 목록에 두지 않는다. 대표 문장도 긴급이 아니어야 판정 대상이다. */
+	@Test
+	void nothingInTheThreatListOrItsCasesIsUrgent() throws IOException {
+		for (String expression : SOURCE.expressions()) {
+			assertThat(URGENT.isUrgent(expression)).as(expression).isFalse();
+		}
+		for (String path : List.of("threat/must-flag.txt", "threat/must-not-flag.txt")) {
+			for (Sentence sentence : sentences(path)) {
+				assertThat(URGENT.isUrgent(sentence.text())).as(sentence.where()).isFalse();
+			}
+		}
+	}
+
+	@Test
+	void spacingAndWidthVariantsGiveTheSameResult() {
+		assertThat(rule.isFlagged("선생님 가만두지 않겠습니다")).isTrue();
+		assertThat(rule.isFlagged("선생님 가만 두지 않겠습니다")).isTrue();
+		assertThat(rule.isFlagged("선생님 가만\n두지\t않겠습니다")).isTrue();
+		assertThat(rule.isFlagged("선생님 가만　두지　않겠습니다")).isTrue();
+
+		ThreatRule latin = new ThreatRule(List.of("Shut Up"));
+		assertThat(latin.isFlagged("ＳＨＵＴ　ｕｐ")).isTrue();
+		assertThat(latin.isFlagged("SHUTUP")).isTrue();
+		assertThat(latin.isFlagged("shut-up")).isFalse();
+	}
+
+	/** 오탐 최소화(research R2): 표현은 어절 시작에서만, 띄어쓰기 차이는 표현에 공백을 둔 자리에서만 허용한다. */
+	@Test
+	void matchesOnlyAtWordStartsAndAllowsSpacesOnlyWhereTheExpressionHasThem() {
+		ThreatRule sample = new ThreatRule(List.of("모가지", "애새끼", "가만 두지 않겠"));
+
+		assertThat(sample.isFlagged("선생님 모가지 날아가요")).isTrue();
+		assertThat(sample.isFlagged("(모가지) 날아가요")).isTrue();
+		assertThat(sample.isFlagged("아이 고모가 지금 가요")).isFalse();
+		assertThat(sample.isFlagged("우리 애 새끼손가락")).isFalse();
+		assertThat(sample.isFlagged("그 애새끼가")).isTrue();
+		assertThat(sample.isFlagged("가만두지않겠다")).isTrue();
+		assertThat(sample.isFlagged("가만 두지 않겠다")).isTrue();
+		assertThat(sample.isFlagged("가 만 두 지 않 겠 다")).isFalse();
+	}
+
+	/** PR #13 리뷰 결정: 표현 뒤에 인용·전언 표지가 오면 남이 한 말을 전하는 문장이라 표시하지 않는다. */
+	@Test
+	void reportedSpeechIsNotFlaggedButTheParentsOwnWordsAre() {
+		ThreatRule sample = new ThreatRule(List.of("개새끼", "입 닥치", "지랄", "가만 안 두겠"));
+
+		assertThat(sample.isFlagged("친구가 개새끼라고 했대요")).isFalse();
+		assertThat(sample.isFlagged("친구가 개새끼래요")).isFalse();
+		assertThat(sample.isFlagged("개새끼라는 말을 들었대요")).isFalse();
+		assertThat(sample.isFlagged("개새끼 소리를 들었어요")).isFalse();
+		assertThat(sample.isFlagged("선생님이 입 닥치라고 하셨대요")).isFalse();
+		assertThat(sample.isFlagged("지랄하지 말라고 하셨대요")).isFalse();
+		assertThat(sample.isFlagged("친구가 가만 안 두겠대요")).isFalse();
+
+		assertThat(sample.isFlagged("입 닥치라고요!")).isTrue();
+		assertThat(sample.isFlagged("개새끼야")).isTrue();
+		// 인용 표지는 같은 문장 안에서만 본다
+		assertThat(sample.isFlagged("개새끼. 친구가 그렇게 말했다고 했어요")).isTrue();
+		// 같은 표현이 한 번은 인용, 한 번은 학부모 자신의 말이면 표시한다
+		assertThat(sample.isFlagged("친구가 개새끼라고 했대요. 개새끼들 다 똑같네")).isTrue();
+	}
+
+	/** 표현 속 정규식 문자는 글자 그대로 본다. */
+	@Test
+	void regexCharactersInExpressionsAreLiteral() {
+		ThreatRule sample = new ThreatRule(List.of("a.b", "(c)"));
+
+		assertThat(sample.isFlagged("a.b")).isTrue();
+		assertThat(sample.isFlagged("axb")).isFalse();
+		assertThat(sample.isFlagged("(c)")).isTrue();
+		assertThat(sample.isFlagged("c")).isFalse();
+	}
+
+	@Test
+	void blankOrMissingContentIsNotFlagged() {
+		assertThat(rule.isFlagged(null)).isFalse();
+		assertThat(rule.isFlagged("")).isFalse();
+		assertThat(rule.isFlagged(" \n\t　")).isFalse();
+	}
+
+	@Test
+	void emptyExpressionListIsRejected() {
+		assertThatThrownBy(() -> new ThreatRule(List.of())).isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> new ThreatRule(List.of("  ", "\n"))).isInstanceOf(IllegalArgumentException.class);
+	}
+
+}

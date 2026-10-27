@@ -1,7 +1,9 @@
 package damso.inquiry.application.port.out;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import damso.inquiry.domain.Inquiry;
@@ -46,5 +48,8 @@ public interface InquiryPort {
 	 * (F4, FR-016·017).
 	 */
 	List<Inquiry> findThreadMessages(UUID rootId);
+
+	/** 주어진 스레드 루트 가운데 위협·폭언 표시가 붙은 재문의가 있는 루트의 id(spec 005, 교사 목록의 스레드 단위 표시). */
+	Set<UUID> findThreadsWithThreatFlaggedFollowUp(Collection<UUID> rootIds);
 
 }
