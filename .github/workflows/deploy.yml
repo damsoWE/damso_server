@@ -63,4 +63,7 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           # 서버의 authorized_keys가 이 키로는 deploy.sh만 실행하게 묶어 두었다. 보내는 것은 태그 하나뿐이다
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "ubuntu@$HOST" "$TAG"
+          # 기동 확인 동안 출력이 없어도 연결이 끊기지 않게 30초마다 keepalive를 보낸다
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=4 \
+            "ubuntu@$HOST" "$TAG"
