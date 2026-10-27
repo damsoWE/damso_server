@@ -110,6 +110,27 @@ class ThreatRuleTest {
 		assertThat(sample.isFlagged("가 만 두 지 않 겠 다")).isFalse();
 	}
 
+	/** PR #13 리뷰 결정: 표현 뒤에 인용·전언 표지가 오면 남이 한 말을 전하는 문장이라 표시하지 않는다. */
+	@Test
+	void reportedSpeechIsNotFlaggedButTheParentsOwnWordsAre() {
+		ThreatRule sample = new ThreatRule(List.of("개새끼", "입 닥치", "지랄", "가만 안 두겠"));
+
+		assertThat(sample.isFlagged("친구가 개새끼라고 했대요")).isFalse();
+		assertThat(sample.isFlagged("친구가 개새끼래요")).isFalse();
+		assertThat(sample.isFlagged("개새끼라는 말을 들었대요")).isFalse();
+		assertThat(sample.isFlagged("개새끼 소리를 들었어요")).isFalse();
+		assertThat(sample.isFlagged("선생님이 입 닥치라고 하셨대요")).isFalse();
+		assertThat(sample.isFlagged("지랄하지 말라고 하셨대요")).isFalse();
+		assertThat(sample.isFlagged("친구가 가만 안 두겠대요")).isFalse();
+
+		assertThat(sample.isFlagged("입 닥치라고요!")).isTrue();
+		assertThat(sample.isFlagged("개새끼야")).isTrue();
+		// 인용 표지는 같은 문장 안에서만 본다
+		assertThat(sample.isFlagged("개새끼. 친구가 그렇게 말했다고 했어요")).isTrue();
+		// 같은 표현이 한 번은 인용, 한 번은 학부모 자신의 말이면 표시한다
+		assertThat(sample.isFlagged("친구가 개새끼라고 했대요. 개새끼들 다 똑같네")).isTrue();
+	}
+
 	/** 표현 속 정규식 문자는 글자 그대로 본다. */
 	@Test
 	void regexCharactersInExpressionsAreLiteral() {

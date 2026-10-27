@@ -3,6 +3,7 @@ package damso.inquiry.application.service;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -69,7 +70,9 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 		}
 		List<Inquiry> found = inquiries.findByClassroom(classroomId.get(), page, size);
 		Map<UUID, String> names = targets.studentNames(found.stream().map(Inquiry::getStudentId).distinct().toList());
-		List<InquirySummary> items = found.stream().map(inquiry -> summaryOf(inquiry, names)).toList();
+		Set<UUID> flaggedThreads = inquiries
+				.findThreadsWithThreatFlaggedFollowUp(found.stream().map(Inquiry::getId).toList());
+		List<InquirySummary> items = found.stream().map(inquiry -> summaryOf(inquiry, names, flaggedThreads)).toList();
 		return new InquiryPage(items, page, size, inquiries.countByClassroom(classroomId.get()));
 	}
 
@@ -110,10 +113,12 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 				.toList();
 	}
 
-	private static InquirySummary summaryOf(Inquiry inquiry, Map<UUID, String> names) {
+	/** flaggedThreads: 위협·폭언 표시가 붙은 재문의가 있는 스레드 루트. 루트 자신의 표시와 OR해 스레드 단위 표시를 만든다. */
+	private static InquirySummary summaryOf(Inquiry inquiry, Map<UUID, String> names, Set<UUID> flaggedThreads) {
 		return new InquirySummary(inquiry.getId(), inquiry.getStudentId(), names.getOrDefault(inquiry.getStudentId(), ""),
 				inquiry.isUrgent(), displayTitle(inquiry), inquiry.getStage(), inquiry.getRefinementStatus(),
-				inquiry.isThreatFlagged(), inquiry.getSubmittedAt());
+				inquiry.isThreatFlagged(), inquiry.isThreatFlagged() || flaggedThreads.contains(inquiry.getId()),
+				inquiry.getSubmittedAt());
 	}
 
 	/**

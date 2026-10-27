@@ -1,8 +1,10 @@
 package damso.inquiry.adapter.out.persistence;
 
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.data.domain.PageRequest;
@@ -82,6 +84,14 @@ class InquiryPersistenceAdapter implements InquiryPort, InquiryStageHistoryPort 
 	@Override
 	public List<Inquiry> findThreadMessages(UUID rootId) {
 		return inquiries.findThreadMessages(rootId);
+	}
+
+	@Override
+	public Set<UUID> findThreadsWithThreatFlaggedFollowUp(Collection<UUID> rootIds) {
+		if (rootIds.isEmpty()) {
+			return Set.of();
+		}
+		return Set.copyOf(inquiries.findThreadRootIdsWithThreatFlaggedFollowUp(rootIds));
 	}
 
 	// InquiryStageHistoryPort

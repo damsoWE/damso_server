@@ -20,7 +20,7 @@ public class FailableThreatFlagScreener extends ThreatFlagScreener {
 	}
 
 	@Override
-	public boolean screen(String content) {
+	protected boolean screen(String content) {
 		calls.incrementAndGet();
 		if (failing) {
 			// 예외 메시지에 본문을 일부러 넣는다 — 로그에 남지 않아야 한다

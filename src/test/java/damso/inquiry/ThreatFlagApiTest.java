@@ -49,6 +49,13 @@ class ThreatFlagApiTest extends IntegrationTestSupport {
 		return flags.get(0);
 	}
 
+	private boolean threadFlagInList(Scenario s, UUID id) throws Exception {
+		MockHttpServletResponse list = send(get("/api/v1/teacher/inquiries"), s.teacher().accessToken());
+		List<Boolean> flags = read(list, "$.items[?(@.inquiryId=='" + id + "')].threadThreatFlagged");
+		assertThat(flags).hasSize(1);
+		return flags.get(0);
+	}
+
 	private boolean flagInDetail(Scenario s, UUID id) throws Exception {
 		MockHttpServletResponse detail = send(get("/api/v1/teacher/inquiries/" + id), s.teacher().accessToken());
 		assertThat(detail.getStatus()).isEqualTo(200);
@@ -66,8 +73,10 @@ class ThreatFlagApiTest extends IntegrationTestSupport {
 		UUID ordinary = submit(s, NORMAL_SAMPLE);
 
 		assertThat(flagInList(s, threat)).isTrue();
+		assertThat(threadFlagInList(s, threat)).isTrue();
 		assertThat(flagInDetail(s, threat)).isTrue();
 		assertThat(flagInList(s, ordinary)).isFalse();
+		assertThat(threadFlagInList(s, ordinary)).isFalse();
 		assertThat(flagInDetail(s, ordinary)).isFalse();
 	}
 
@@ -238,6 +247,24 @@ class ThreatFlagApiTest extends IntegrationTestSupport {
 				"$.followUps[?(@.inquiryId=='" + urgentId + "')].threatFlagged")).containsExactly(false);
 		// 재문의 응답(학부모)에는 표시가 없다
 		assertThat(threat.getContentAsString()).doesNotContainIgnoringCase("threat");
+	}
+
+	/** PR #13 리뷰: 재문의에만 위협 표현이 있어도 교사 목록에서 스레드 단위 표시(threadThreatFlagged)로 보인다. */
+	@Test
+	void threadFlagInTheListIncludesFollowUps() throws Exception {
+		Scenario s = teacherWithClassroom();
+		UUID flaggedThread = submit(s, NORMAL_SAMPLE);
+		UUID plainThread = submit(s, NORMAL_SAMPLE + " 다른 건");
+		clock.advance(Duration.ofSeconds(61));
+		assertThat(submitFollowUp(s.parent().accessToken(), flaggedThread, THREAT).getStatus()).isEqualTo(201);
+		clock.advance(Duration.ofSeconds(61));
+		assertThat(submitFollowUp(s.parent().accessToken(), plainThread, NORMAL_SAMPLE + " 다시").getStatus())
+				.isEqualTo(201);
+
+		assertThat(flagInList(s, flaggedThread)).isFalse();
+		assertThat(threadFlagInList(s, flaggedThread)).isTrue();
+		assertThat(flagInList(s, plainThread)).isFalse();
+		assertThat(threadFlagInList(s, plainThread)).isFalse();
 	}
 
 }

@@ -274,8 +274,9 @@ class TeacherInquiryApiTest extends IntegrationTestSupport {
 		List<Map<String, Object>> items = read(listed, "$.items");
 		for (Map<String, Object> item : items) {
 			assertThat(item.keySet()).containsExactlyInAnyOrder("inquiryId", "studentId", "studentName", "urgent", "title",
-					"stage", "refinementStatus", "threatFlagged", "submittedAt");
+					"stage", "refinementStatus", "threatFlagged", "threadThreatFlagged", "submittedAt");
 			assertThat(item.get("threatFlagged")).isInstanceOf(Boolean.class);
+			assertThat(item.get("threadThreatFlagged")).isInstanceOf(Boolean.class);
 		}
 		MockHttpServletResponse detail = send(get("/api/v1/teacher/inquiries/" + threat), s.teacher().accessToken());
 		Map<String, Object> body = read(detail, "$");

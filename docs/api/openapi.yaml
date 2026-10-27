@@ -1414,8 +1414,13 @@ components:
           enum: [PENDING, REFINED, NEEDS_ORIGINAL]
           description: 'RefinementStatus 값. 긴급 문의는 null'
         threatFlagged: { $ref: '#/components/schemas/ThreatFlagged' }
+        threadThreatFlagged:
+          type: boolean
+          description: |
+            스레드 단위 위협·폭언 표시. 최초 문의(threatFlagged)나 재문의(TeacherFollowUpView.threatFlagged) 가운데
+            하나라도 표시됐으면 true. 재문의에만 위협 표현이 있어도 교사가 목록에서 알아볼 수 있게 한다. 교사에게만 보인다.
         submittedAt: { type: string, format: date-time }
-      required: [inquiryId, studentId, studentName, urgent, title, stage, refinementStatus, threatFlagged, submittedAt]
+      required: [inquiryId, studentId, studentName, urgent, title, stage, refinementStatus, threatFlagged, threadThreatFlagged, submittedAt]
       additionalProperties: false
 
     TeacherInquiryPage:
