@@ -46,7 +46,7 @@
 
 `occurred_at` → 논리 순서(`seq`) → 대상 식별자.
 
-- 논리 순서는 research R5와 `contracts/operator-queries.md`의 seq 표를 따른다(접수 → RECEIVED → DELIVERED → 정리 시도 AUTO·AUTO_RETRY·TEACHER → REFINING → 열람 시도 → TEACHER_CONFIRMED → 열람 완료·그 밖의 행위 → 답변 전송 → ANSWERED → 종료 기록). 이 문서에 따로 적지 않는다.
+- 논리 순서는 research R5와 `contracts/operator-queries.md`의 seq 표를 따른다(접수 → RECEIVED → DELIVERED → 교사 재시도 요청 → 정리 시도 AUTO·AUTO_RETRY·TEACHER → REFINING → 열람 시도 → TEACHER_CONFIRMED → 열람 완료·그 밖의 행위 → 답변 전송 → ANSWERED → 종료 기록). 이 문서에 따로 적지 않는다.
 - 학부모·교사 타임라인은 이미 같은 규칙(같은 시각이면 단계 ordinal)으로 정렬한다(`InquiryPersistenceAdapter.findByInquiry`). 변경 없음.
 
 ## 슈퍼 관리자 현황 (저장하지 않는 조회 결과, research R6)

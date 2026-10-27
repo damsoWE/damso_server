@@ -37,8 +37,11 @@ F2가 만든 뼈대(`audit_log`, `inquiry_stage_history`)와 F3·F4가 남기는
 
 ## R3. 번역본 열람 감사 — 원문 열람과 같은 순서 (F3 변경)
 
-- **Decision**: `ViewRefinementService.view`를 `ViewInquiryContentService`와 같은 순서로 바꾼다. ① 담임 확인(404) ② 번역본 준비 확인(409 `REFINEMENT_NOT_READY`, **기록 없음**) ③ `INQUIRY_REFINEMENT_VIEW_ATTEMPTED` ④ 첫 열람 확인 전이 ⑤ `INQUIRY_REFINEMENT_VIEWED` ⑥ 반환. ④에서 낙관적 락이 아닌 오류가 나면 `INQUIRY_REFINEMENT_VIEW_FAILED`를 남기고 전파한다. ③이 실패하면 번역본이 나가지 않는다(FR-005).
-- **Rationale**: spec US2-6 — 번역본이 없으면 내보낸 게 없으므로 "열람" 기록을 남기지 않는다. 시도·성공·실패 3단은 F2 R11과 같은 방식이라, 운영자 조회문이 원문·번역본을 같은 규칙으로 읽을 수 있다.
+- **Decision**: `ViewRefinementService.view`를 `ViewInquiryContentService`와 같은 순서로 바꾼다. ① 담임 확인(404) ② 번역본 준비 확인(409 `REFINEMENT_NOT_READY`, **기록 없음**) ③ `INQUIRY_REFINEMENT_VIEW_ATTEMPTED` ④ 첫 열람 확인 전이 ⑤ `INQUIRY_REFINEMENT_VIEWED` ⑥ 반환. ④에서 낙관적 락이 아닌 오류가 나면 `INQUIRY_REFINEMENT_VIEW_FAILED`를 남기고 전파한다(500, 번역본 미반환 — 감사 실패가 아니라 단계 전이 실패라서 F3 동작 그대로).
+- **감사 기록 실패 시 [팀 결정 2026-10-27]**: ③·⑤의 기록 저장이 실패해도 번역본은 정상 반환한다. 실패는 `WARN` 로그로 남기며 로그에는 `inquiryId`(UUID), 행위 종류(`AuditAction` 이름), 오류 종류(예외 클래스 단순 이름)만 넣는다. 예외 객체·메시지·스택은 넣지 않는다(드라이버 메시지에 바인딩 값이 섞일 수 있음, 원칙 VI). ③이 실패해도 ④·⑤는 그대로 진행한다.
+  - 근거: 원칙 III의 MUST는 **원문** 열람 기록이다. 번역본은 가명화·정리를 거친 결과라 기록 실패로 교사의 확인 업무를 막지 않는다. 원문 열람(`ViewInquiryContentService`)은 지금처럼 기록이 실패하면 원문을 내보내지 않는다.
+  - 한계: 기록 저장소 장애 동안의 번역본 열람은 `audit_log`에 빠질 수 있다. 서버 로그로만 남으므로 운영자 조회문 Q1에는 나오지 않는다. 운영자는 장애 시간대의 서버 로그를 함께 본다.
+- **Rationale**: spec US2-7 — 번역본이 없으면 내보낸 게 없으므로 "열람" 기록을 남기지 않는다. 시도·성공·실패 3단은 F2 R11과 같은 방식이라, 운영자 조회문이 원문·번역본을 같은 규칙으로 읽을 수 있다.
 - **거부된 요청(404)은 기록하지 않는다**: ①에서 거부되면 내용에 닿지 않았으므로 "시도"가 아니다(spec FR-002의 "열람 시도"는 담임 확인을 통과한 시점). 원문 열람도 F2부터 같은 규칙이다(`TeacherInquiryApiTest.formerHomeroomTeacherLosesAccessAfterRelease`가 404 뒤 `audit_log` 0건을 단언한다).
   - 없는 문의까지 기록하면 대상 식별자에 요청자가 보낸 임의 UUID가 쌓이고, 교사 토큰 하나로 기록을 무한히 늘릴 수 있다.
   - 있는 문의(다른 학급)만 기록하면 기록 경로가 문의 존재 여부에 따라 갈린다. 기록 저장이 실패할 때 응답이 달라지면(500 대 404) 존재 여부가 응답으로 샌다.
@@ -48,18 +51,20 @@ F2가 만든 뼈대(`audit_log`, `inquiry_stage_history`)와 F3·F4가 남기는
 
 ## R4. 답변 점검 요청 감사 — 읽기 전용 트랜잭션 문제 (F4 변경)
 
-- **Decision**: `RequestAnswerReviewService`의 `@Transactional(readOnly = true)`를 쓰기 트랜잭션으로 바꾸고, 점검 포트를 부르기 **전에** `ANSWER_REVIEW_REQUESTED`를 남긴다. 기록이 실패하면 점검 요청은 500으로 실패하지만 답변 전송(`SendAnswerService`)에는 영향이 없다.
+- **Decision**: `RequestAnswerReviewService`의 `@Transactional(readOnly = true)`를 없애 바깥 트랜잭션을 두지 않고, 점검 포트를 부르기 **전에** `ANSWER_REVIEW_REQUESTED`를 남긴다(감사 기록은 자기 트랜잭션). **기록이 실패해도 점검 요청은 정상 처리하고** `WARN` 로그(inquiryId·행위 종류·오류 종류만)를 남긴다 [팀 결정 2026-10-28]. 답변 전송(`SendAnswerService`)은 원래부터 무관하다.
+- **바깥 트랜잭션을 없앤 이유**: 쓰기 트랜잭션 안에서 감사 INSERT가 실패하면 예외를 잡아도 트랜잭션이 롤백 전용이 되어 커밋에서 500이 난다. 재시도·종료는 상태를 바꾸므로 지금처럼 같은 트랜잭션에서 기록하고, 기록이 실패하면 처리도 취소된다(FR-006).
 - **Rationale**: 지금처럼 읽기 전용 트랜잭션 안에서 `AuditLogUseCase.record`를 부르면 그 트랜잭션에 참여해 INSERT가 거부된다(PostgreSQL read-only 트랜잭션). 점검은 선택 기능이고 전송 경로와 분리돼 있으므로, 기록 실패 시 점검만 실패하는 것은 원칙 V·F4 FR-012(fail-open)와 충돌하지 않는다. F4 FR-012의 fail-open은 "점검 서비스 장애"에 관한 것이고 그대로 유지된다.
 - **Alternatives considered**: `REQUIRES_NEW`로 감사만 별도 트랜잭션에 쓰기 → `AuditLogUseCase`의 "호출한 트랜잭션에 참여" 계약과 달라지고, 한 곳만 예외가 됨. 기각.
 
 ## R5. 같은 시각 기록의 순서 (FR-009) — 스키마 변경 없이
 
 - **Decision**: 정렬 키를 `(occurred_at, seq, 대상 식별자)`로 정한다. `seq`는 같은 시각에 남은 기록끼리의 **논리 순서**이고, 운영자 조회문 Q1에 표로 적는다(`contracts/operator-queries.md`).
-  - 접수 → RECEIVED → DELIVERED → 정리 시도(AUTO → AUTO_RETRY → TEACHER) → REFINING → 열람 시도(`*_ATTEMPTED`) → TEACHER_CONFIRMED → 열람 완료·실패와 그 밖의 사람 행위 → 답변 전송 → ANSWERED → 종료 기록(`INQUIRY_CLOSED`)
+  - 접수 → RECEIVED → DELIVERED → 교사 재시도 요청 → 정리 시도(AUTO → AUTO_RETRY → TEACHER) → REFINING → 열람 시도(`*_ATTEMPTED`) → TEACHER_CONFIRMED → 열람 완료·실패와 그 밖의 사람 행위 → 답변 전송 → ANSWERED → 종료 기록(`INQUIRY_CLOSED`)
   - 학부모·교사 타임라인은 단계 이력만 쓰므로 지금처럼 `(occurred_at, InquiryStage 선언 순서)`를 그대로 쓴다(`InquiryPersistenceAdapter.findByInquiry`).
 - **Rationale**: 같은 시각은 한 트랜잭션이 같은 `now`를 쓸 때 생긴다.
   - 접수: 문의 저장과 RECEIVED(긴급이면 DELIVERED까지)가 같은 `now`다(`SubmitInquiryService`·`SubmitFollowUpService`).
   - 자동 정리: 그 회차의 시도 기록 전부와 REFINING이 같은 `now`다(`RefinementRunner.confirm`). 그래서 시도는 단계보다 **앞**이어야 하고, 시도끼리는 trigger 순서로 정한다.
+  - 교사 재시도: 요청 기록(`REFINEMENT_RETRY_REQUESTED`)이 커밋된 뒤 같은 HTTP 요청 안에서 재시도가 실행되므로, 시계가 같으면 요청이 시도보다 앞이어야 한다(T012에서 발견해 반영).
   - 첫 번역본·원문 열람: 열람 시도 → 확인 전이(TEACHER_CONFIRMED) → 열람 완료 순서로 일어난다. 시계가 같은 값을 돌려줘도 이 순서가 유지돼야 "확인한 뒤에 봤다"로 읽히지 않는다.
   - 서로 다른 요청이 같은 마이크로초에 일어난 경우는 동시 행위라 어느 쪽을 먼저 둬도 사실과 어긋나지 않는다.
 - **검증**: `OperatorQueriesTest`가 고정 시계로 위 경우를 만들어 순서를 단언한다(tasks).

@@ -27,14 +27,14 @@ SELECT * FROM (
   UNION ALL
   -- 처리 단계 (시스템)
   SELECT h.occurred_at,
-         CASE h.stage WHEN 'RECEIVED' THEN 1 WHEN 'DELIVERED' THEN 2 WHEN 'REFINING' THEN 6
-                      WHEN 'TEACHER_CONFIRMED' THEN 8 WHEN 'ANSWERED' THEN 11 END,
+         CASE h.stage WHEN 'RECEIVED' THEN 1 WHEN 'DELIVERED' THEN 2 WHEN 'REFINING' THEN 7
+                      WHEN 'TEACHER_CONFIRMED' THEN 9 WHEN 'ANSWERED' THEN 12 END,
          'SYSTEM', NULL::uuid, 'STAGE_' || h.stage, h.inquiry_id, NULL
   FROM inquiry_stage_history h JOIN msg m ON m.id = h.inquiry_id
   UNION ALL
   -- 정리·위기 분류 시도 (시스템). 같은 시각이면 AUTO → AUTO_RETRY → TEACHER
   SELECT a.occurred_at,
-         CASE a.trigger WHEN 'AUTO' THEN 3 WHEN 'AUTO_RETRY' THEN 4 ELSE 5 END,
+         CASE a.trigger WHEN 'AUTO' THEN 4 WHEN 'AUTO_RETRY' THEN 5 ELSE 6 END,
          'SYSTEM', NULL::uuid,
          j.kind || '_ATTEMPT', j.inquiry_id, a.trigger || ':' || a.outcome
   FROM refinement_attempt a
@@ -43,15 +43,16 @@ SELECT * FROM (
   UNION ALL
   -- 사람의 행위 (교사)
   SELECT l.occurred_at,
-         CASE WHEN l.action LIKE '%\_ATTEMPTED' ESCAPE '\' THEN 7
-              WHEN l.action = 'INQUIRY_CLOSED' THEN 12
-              ELSE 9 END,
+         CASE WHEN l.action = 'REFINEMENT_RETRY_REQUESTED' THEN 3
+              WHEN l.action LIKE '%\_ATTEMPTED' ESCAPE '\' THEN 8
+              WHEN l.action = 'INQUIRY_CLOSED' THEN 13
+              ELSE 10 END,
          'ACCOUNT', l.actor_id, l.action, l.target_id, NULL
   FROM audit_log l JOIN msg m ON m.id = l.target_id
   WHERE l.target_type = 'INQUIRY'
   UNION ALL
   -- 답변 전송 (교사)
-  SELECT s.sent_at, 10, 'ACCOUNT', s.teacher_id,
+  SELECT s.sent_at, 11, 'ACCOUNT', s.teacher_id,
          'ANSWER_SENT', s.id, CASE WHEN s.reviewed THEN 'reviewed' ELSE 'not_reviewed' END
   FROM answer s
   WHERE s.thread_root_id = :'thread_root_id'::uuid
@@ -65,13 +66,14 @@ ORDER BY occurred_at, seq, message_id;
 |---|---|---|
 | 0 | 접수 (`INQUIRY_SUBMITTED`·`FOLLOW_UP_SUBMITTED`) | 접수 트랜잭션이 같은 `now`로 RECEIVED(·DELIVERED)를 남긴다 |
 | 1·2 | `STAGE_RECEIVED` · `STAGE_DELIVERED` | 긴급 접수 |
-| 3·4·5 | 정리 시도 `AUTO` · `AUTO_RETRY` · `TEACHER` | 자동 정리는 시도 여러 건과 REFINING을 같은 `now`로 남긴다 |
-| 6 | `STAGE_REFINING` | 위와 같음 — 시도가 끝난 뒤의 결과 |
-| 7 | `*_ATTEMPTED` (열람 시도) | 첫 열람: 시도 → 확인 전이 → 완료 |
-| 8 | `STAGE_TEACHER_CONFIRMED` | 위와 같음 |
-| 9 | `*_VIEWED` · `*_VIEW_FAILED` · `REFINEMENT_RETRY_REQUESTED` · `ANSWER_REVIEW_REQUESTED` | |
-| 10 | `ANSWER_SENT` | |
-| 11·12 | `STAGE_ANSWERED` → `INQUIRY_CLOSED` | 종료 API: 단계 이력 뒤에 감사 기록 |
+| 3 | `REFINEMENT_RETRY_REQUESTED` | 교사 재시도: 요청 기록이 커밋된 직후 같은 요청 안에서 재시도가 실행된다 |
+| 4·5·6 | 정리 시도 `AUTO` · `AUTO_RETRY` · `TEACHER` | 자동 정리는 시도 여러 건과 REFINING을 같은 `now`로 남긴다 |
+| 7 | `STAGE_REFINING` | 위와 같음 — 시도가 끝난 뒤의 결과 |
+| 8 | `*_ATTEMPTED` (열람 시도) | 첫 열람: 시도 → 확인 전이 → 완료 |
+| 9 | `STAGE_TEACHER_CONFIRMED` | 위와 같음 |
+| 10 | `*_VIEWED` · `*_VIEW_FAILED` · `ANSWER_REVIEW_REQUESTED` | |
+| 11 | `ANSWER_SENT` | |
+| 12·13 | `STAGE_ANSWERED` → `INQUIRY_CLOSED` | 종료 API: 단계 이력 뒤에 감사 기록 |
 
 결과 컬럼: `occurred_at` · `seq`(같은 시각의 논리 순서, research R5) · `actor_kind`(PARENT/ACCOUNT/SYSTEM) · `actor_id`(계정 UUID, 시스템은 NULL) · `event` · `message_id`(문의·재문의·답변 UUID) · `detail`(결과 코드만).
 
@@ -92,8 +94,12 @@ SELECT * FROM (
   SELECT s.sent_at, 'ANSWER_SENT', s.id
   FROM answer s WHERE s.teacher_id = :'account_id'::uuid
 ) t
-ORDER BY occurred_at, message_id;
+ORDER BY occurred_at,
+         CASE WHEN event LIKE '%\_ATTEMPTED' ESCAPE '\' THEN 0 ELSE 1 END,
+         message_id;
 ```
+
+같은 시각이면 열람 시도(`*_ATTEMPTED`)가 그 결과(`*_VIEWED`·`*_VIEW_FAILED`)보다 앞이다(research R5).
 
 탈퇴해 비식별화된 계정도 UUID가 그대로이므로 같은 조회문으로 나온다(spec FR-008).
 

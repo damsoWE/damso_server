@@ -13,6 +13,7 @@ F2가 만든 뼈대(`audit_log` 원문 열람 기록, `inquiry_stage_history` �
 - **F4 코드 변경**: `RequestAnswerReviewService`(점검 요청 기록, 읽기 전용 트랜잭션 해제), `CloseInquiryService`(종료 기록 — 앱 미사용 경로).
 - **종료 미사용 반영**: 종료 API 동작은 그대로 두고 기록만 더한다. 앱의 "답변 완료"는 "답변을 보냈다"는 뜻이므로 관리자 현황의 `answered`도 답변 전송 여부로 센다(R2·R6, `docs/decisions.md` 2026-10-27, PR #19 OPEN).
 - **PR 순서**: 위 결정 행은 PR #19에만 있다. **PR #19 merge → 이 브랜치에 main 반영 → F5 PR** 순서로 올린다(tasks "PR 순서").
+- **번역본 열람의 감사 실패 [팀 결정 2026-10-27]**: 번역본은 감사 기록이 실패해도 정상 반환하고 실패는 서버 로그(본문 없이)에 남긴다. 원문 열람은 원칙 III에 따라 지금처럼 기록이 실패하면 원문을 내보내지 않는다(R3).
 - **거부된 열람 요청**: 다른 학급·없는 문의(404)는 원문·번역본 모두 기록하지 않는다. F2 원문 열람과 같은 규칙이며 존재 여부가 기록·응답으로 갈리지 않게 한다(R3).
 
 ## Technical Context
@@ -77,7 +78,7 @@ F2가 만든 뼈대(`audit_log` 원문 열람 기록, `inquiry_stage_history` �
 
 | 파일 | 지금 | 바뀐 뒤 |
 |---|---|---|
-| `inquiry/application/service/ViewRefinementService.java` | 번역본 열람은 감사 대상이 아님(클래스 주석·openapi 설명에 명시). 담임 확인 → 준비 확인 → 첫 열람 확인 전이 → 반환 | `AuditLogUseCase` 주입. 담임 확인(404, **기록 없음**) → 준비 확인(409, **기록 없음**) → `INQUIRY_REFINEMENT_VIEW_ATTEMPTED` → 확인 전이(낙관적 락 충돌은 기존처럼 무시) → `INQUIRY_REFINEMENT_VIEWED` → 반환. 확인 전이가 다른 이유로 실패하면 `_VIEW_FAILED`를 남기고 전파. `ViewInquiryContentService`와 같은 구조(R3) |
+| `inquiry/application/service/ViewRefinementService.java` | 번역본 열람은 감사 대상이 아님(클래스 주석·openapi 설명에 명시). 담임 확인 → 준비 확인 → 첫 열람 확인 전이 → 반환 | `AuditLogUseCase` 주입. 담임 확인(404, **기록 없음**) → 준비 확인(409, **기록 없음**) → `INQUIRY_REFINEMENT_VIEW_ATTEMPTED` → 확인 전이(낙관적 락 충돌은 기존처럼 무시) → `INQUIRY_REFINEMENT_VIEWED` → 반환. 확인 전이가 다른 이유로 실패하면 `_VIEW_FAILED`를 남기고 전파. **감사 기록 저장이 실패하면 번역본은 정상 반환하고 `WARN` 로그(inquiryId·행위 종류·오류 종류만)를 남긴다**(R3, 팀 결정 2026-10-27). 원문 열람과 달리 기록 실패가 응답을 막지 않는다 |
 | `inquiry/application/service/RetryRefinementService.java` | 작업 재개·`teacher_retry_used` 설정. 누가 요청했는지 기록 없음 | 재시도가 받아들여진 같은 트랜잭션에서 `REFINEMENT_RETRY_REQUESTED`(교사, 대상 문의). 409로 거부된 요청은 기록하지 않음 |
 | 바뀌지 않는 F3 코드 | `RefinementRunner`·`RefinementAttempt`·`InquiryRefinement`·가명화 게이트웨이 | 그대로. 정리 시도 기록은 운영자 조회문이 읽기만 한다 |
 | 영향받는 F3 테스트 | `TeacherRefinementApiTest.firstTranslationViewConfirmsOnceAndIsNotAudited` — 지금 `audit_log` 0건을 단언(120행) | **이 단언이 F5와 정면으로 충돌한다.** 이름·단언을 "첫 열람에 ATTEMPTED·VIEWED 2건"으로 바꾼다. 재시도 테스트에 `REFINEMENT_RETRY_REQUESTED` 단언 추가(`TransactionTemplate` 안에서 기록하므로 동시 요청 409 쪽은 롤백되어 기록 없음) |
@@ -87,7 +88,7 @@ F2가 만든 뼈대(`audit_log` 원문 열람 기록, `inquiry_stage_history` �
 
 | 파일 | 지금 | 바뀐 뒤 |
 |---|---|---|
-| `inquiry/application/service/RequestAnswerReviewService.java` | `@Transactional(readOnly = true)`. 점검 포트 실패는 삼켜서 fail-open | 쓰기 트랜잭션으로 바꾸고, 담임 확인 뒤 **점검 포트 호출 전에** `ANSWER_REVIEW_REQUESTED`(교사, 스레드 루트). 기록이 실패하면 500(점검만 실패, 전송은 영향 없음). 포트 실패 fail-open은 그대로(R4) |
+| `inquiry/application/service/RequestAnswerReviewService.java` | `@Transactional(readOnly = true)`. 점검 포트 실패는 삼켜서 fail-open | 바깥 트랜잭션을 없애고, 담임 확인·입력 검증 뒤 **점검 포트 호출 전에** `ANSWER_REVIEW_REQUESTED`(교사, 스레드 루트). 기록이 실패해도 점검 요청은 정상 처리하고 `WARN` 로그(본문 없이)만 남긴다(R4, 팀 결정 2026-10-28). 포트 실패 fail-open은 그대로 |
 | `inquiry/application/service/CloseInquiryService.java` | 종료 시 단계 ANSWERED만 남김(행위자 없음) | 같은 트랜잭션에서 `INQUIRY_CLOSED`(교사, 스레드 루트). 종료 API·FR-021·022 동작은 그대로. **앱은 이 경로를 쓰지 않는다**(decisions.md 2026-10-27) |
 | 바뀌지 않는 F4 코드 | `SendAnswerService`·`Answer`·`SubmitFollowUpService` | 그대로. 답변 전송·재문의 접수는 `answer`·`inquiry` 행 자체가 기록이므로 감사 호출을 더하지 않음(R1) |
 | 영향받는 F4 테스트 | `AnswerReviewApiTest`, `AnswerReviewFailOpenTest`, `CloseInquiryApiTest` | 기록 단언 추가. fail-open 테스트는 "포트 실패 시에도 기록은 1건"으로 보강 |
