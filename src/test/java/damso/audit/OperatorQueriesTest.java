@@ -172,6 +172,56 @@ class OperatorQueriesTest extends IntegrationTestSupport {
 	}
 
 	@Test
+	void aClosedThreadEndsWithTheAnsweredStageThenTheCloseRecord() throws Exception {
+		// T033 / US1-5, FR-009: 종료 API는 같은 시각에 단계 이력(ANSWERED) 뒤 감사 기록(INQUIRY_CLOSED)을 남긴다
+		Scenario s = teacherWithClassroom();
+		MockHttpServletResponse created = submitInquiry(s.parent().accessToken(), s.student().getId(), URGENT_SAMPLE);
+		UUID root = UUID.fromString(read(created, "$.inquiryId"));
+		tick();
+		view(s, root, "content");
+		tick();
+		answer(s, root);
+		tick();
+		assertThat(send(post("/api/v1/teacher/inquiries/" + root + "/close"), s.teacher().accessToken()).getStatus())
+				.isEqualTo(200);
+
+		List<Map<String, Object>> rows = OperatorQueries.thread(jdbc, root);
+
+		List<String> events = rows.stream().map(row -> (String) row.get("event")).toList();
+		assertThat(events.subList(events.size() - 3, events.size())).containsExactly("ANSWER_SENT", "STAGE_ANSWERED",
+				"INQUIRY_CLOSED");
+		Map<String, Object> close = rows.get(rows.size() - 1);
+		assertThat(close).containsEntry("actor_kind", "ACCOUNT").containsEntry("actor_id", s.teacher().userId())
+				.containsEntry("message_id", root);
+		assertThat(rows.get(rows.size() - 2)).containsEntry("actor_kind", "SYSTEM");
+	}
+
+	@Test
+	void aWithdrawnTeacherKeepsTheirRecordsUnderTheSameIdentifier() throws Exception {
+		// T034 / US1-8, FR-008: 교사가 탈퇴해도 그 교사의 열람·답변 기록은 같은 계정 UUID로 남는다
+		Scenario s = teacherWithClassroom();
+		MockHttpServletResponse created = submitInquiry(s.parent().accessToken(), s.student().getId(), URGENT_SAMPLE);
+		UUID root = UUID.fromString(read(created, "$.inquiryId"));
+		tick();
+		view(s, root, "content");
+		tick();
+		answer(s, root);
+		List<Map<String, Object>> threadBefore = OperatorQueries.thread(jdbc, root);
+		List<Map<String, Object>> accountBefore = OperatorQueries.account(jdbc, s.teacher().userId());
+
+		MockHttpServletResponse withdrawn = send(
+				json(post("/api/v1/me/withdrawal"), "{\"password\":\"" + TEST_PASSWORD + "\"}"),
+				s.teacher().accessToken());
+		assertThat(withdrawn.getStatus()).isIn(200, 204);
+
+		assertThat(OperatorQueries.thread(jdbc, root)).isEqualTo(threadBefore);
+		List<Map<String, Object>> accountAfter = OperatorQueries.account(jdbc, s.teacher().userId());
+		assertThat(accountAfter).isEqualTo(accountBefore);
+		assertThat(accountAfter.stream().map(row -> (String) row.get("event"))).containsExactly(
+				"INQUIRY_CONTENT_VIEW_ATTEMPTED", "INQUIRY_CONTENT_VIEWED", "ANSWER_SENT");
+	}
+
+	@Test
 	void aWithdrawnParentStillHasTheSubmissionUnderTheSameIdentifier() throws Exception {
 		Scenario s = teacherWithClassroom();
 		UUID root = submitGeneral(s);

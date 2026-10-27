@@ -129,7 +129,7 @@ description: "Task list for 006-audit-log-history"
 
 **Independent Test**: 열람·재시도·점검 요청 기록이 있는 문의의 학부모·교사 상세 `timeline`에 단계만 있다
 
-- [ ] T025 [P] [US4] **[F5 신규]** `src/test/java/damso/inquiry/TimelineSeparationTest.java` — 원문 확인 필요 → 교사 재시도 → 정리 성공 → 번역본·원문 열람 → 점검 요청을 거친 문의에서 학부모·교사 상세의 `timeline[].stage`가 `InquiryStage` 값뿐이고 두 화면이 같은 목록이며, `audit_log`의 행위 이름(`*_VIEW*`·`*_REQUESTED`)이 응답 JSON 어디에도 없음. 학부모·교사·슈퍼 관리자로 감사 기록을 돌려주는 경로가 없음(`/api/**` 매핑 목록에 audit 경로 0개)
+- [X] T025 [P] [US4] **[F5 신규]** `src/test/java/damso/inquiry/TimelineSeparationTest.java` — 원문 확인 필요 → 교사 재시도 → 정리 성공 → 번역본·원문 열람 → 점검 요청을 거친 문의에서 학부모·교사 상세의 `timeline[].stage`가 `InquiryStage` 값뿐이고 두 화면이 같은 목록이며, `audit_log`의 행위 이름(`*_VIEW*`·`*_REQUESTED`)이 응답 JSON 어디에도 없음. 학부모·교사·슈퍼 관리자로 감사 기록을 돌려주는 경로가 없음(`/api/**` 매핑 목록에 audit 경로 0개)
 
 **Checkpoint**: 모든 사용자 스토리 완료
 
@@ -137,13 +137,13 @@ description: "Task list for 006-audit-log-history"
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T026 [P] `src/test/java/damso/inquiry/InquirySensitiveLoggingTest.java` 보강 — 번역본 열람(성공·기록 실패)·재시도·점검 요청·종료·관리자 현황 동안 로그를 캡처해 문의·답변 본문·정제 결과 문자열이 0건인지(원칙 VI)
-- [ ] T027 [P] `src/test/java/damso/audit/AuditLogAppendOnlyTest.java` 확인 — `AuditLogRepository`·`AuditLogPort`에 수정·삭제 메서드가 여전히 없는지(새 값 추가 뒤에도 통과, SC-002)
-- [ ] T028 [P] `docs/security-checklist.md` 갱신 — 보안기능(감사 기록: 원문·번역본 열람과 처리 행위, append-only)·캡슐화(기록·현황에 본문 없음)·보안기능 권한(관리자 현황 메타데이터만)의 상태와 근거(클래스·테스트 이름)를 기재
-- [ ] T029 [P] `docs/features.md` 상태 표 F5 행의 spec 경로를 `specs/006-audit-log-history`로, 상태를 `구현 완료`로 갱신
-- [ ] T030 `quickstart.md`의 시나리오 1~14와 "운영자 조회 실습"을 실행하고 결과를 이 파일 하단 "구현 메모"에 적는다
-- [ ] T031 `./gradlew test` 전체 실행 — 실패가 있으면 숨기지 말고 테스트 이름과 함께 보고한다
-- [ ] T032 이 파일 하단에 "구현 메모" 절을 만들어 계획과 달라진 점, T004의 enum 제약 확인 결과를 F1~F4 tasks.md와 같은 형식으로 기록한다
+- [X] T026 [P] `src/test/java/damso/inquiry/InquirySensitiveLoggingTest.java` 보강 — 번역본 열람(성공·기록 실패)·재시도·점검 요청·종료·관리자 현황 동안 로그를 캡처해 문의·답변 본문·정제 결과 문자열이 0건인지(원칙 VI)
+- [X] T027 [P] `src/test/java/damso/audit/AuditLogAppendOnlyTest.java` 확인 — `AuditLogRepository`·`AuditLogPort`에 수정·삭제 메서드가 여전히 없는지(새 값 추가 뒤에도 통과, SC-002)
+- [X] T028 [P] `docs/security-checklist.md` 갱신 — 보안기능(감사 기록: 원문·번역본 열람과 처리 행위, append-only)·캡슐화(기록·현황에 본문 없음)·보안기능 권한(관리자 현황 메타데이터만)의 상태와 근거(클래스·테스트 이름)를 기재
+- [X] T029 [P] `docs/features.md` 상태 표 F5 행의 spec 경로를 `specs/006-audit-log-history`로, 상태를 `구현 완료`로 갱신
+- [X] T030 `quickstart.md`의 시나리오 1~14와 "운영자 조회 실습"을 실행하고 결과를 이 파일 하단 "구현 메모"에 적는다
+- [X] T031 `./gradlew test` 전체 실행 — 실패가 있으면 숨기지 말고 테스트 이름과 함께 보고한다
+- [X] T032 이 파일 하단에 "구현 메모" 절을 만들어 계획과 달라진 점, T004의 enum 제약 확인 결과를 F1~F4 tasks.md와 같은 형식으로 기록한다
 
 ---
 
@@ -240,3 +240,37 @@ Task: "T020 InquiryStatusQuery (port.in)"
 
 - 집계는 JPQL 2개(답변 없는 스레드 루트·답변 있는 스레드 루트를 각각 (학급, 단계)별로 count)로 하고, 포트는 `ThreadStageCount(classroomId, stage, answerSent, count)`를 돌려준다. 묶음 판정(answered 먼저 → confirmed → waiting)은 tasks의 "adapter가 bucket을 돌려준다" 대신 `InquiryStatusService`에 두었다 — 규칙이 한곳에 모이고 adapter는 세기만 한다. `content`·`title`은 select하지 않는다.
 - `AdminInquiryStatusApiTest`의 필드 부재 검사는 `"answer"` 접두어가 정상 키 `answered`와 겹쳐, 키 형태(`"필드":`)로 검사한다.
+
+### US4·Polish (2026-10-28)
+
+- **T025** `TimelineSeparationTest`: 경로 이름 검사에서 `log`는 뺐다 — `/api/v1/auth/login`·`logout`이 걸린다. `audit`·`history`만 본다.
+- **T026** `InquirySensitiveLoggingTest.auditPathsNeverLogContentRefinementResultsOrNames`를 더했다(기존 3개 테스트는 그대로).
+- **T027** `AuditLogAppendOnlyTest` 3개는 새 enum 값 뒤에도 그대로 통과(코드 변경 없음).
+- **T028** `docs/security-checklist.md`에는 감사 기록 전용 행이 없어(49개 기준 항목) 보안기능 2(부적절한 인가)와 캡슐화 2(디버그 코드·로그) 행의 근거에 F5를 덧붙였다.
+- **T030 quickstart 시나리오 → 확인한 테스트** (모두 `./gradlew test`에서 통과, Testcontainers):
+
+  | # | 확인한 테스트 |
+  |---|---|
+  | 1 | `TeacherRefinementApiTest.firstTranslationViewConfirmsOnceAndIsAudited` |
+  | 2 | `TeacherRefinementApiTest.notReadyWhenThereIsNoTranslation` |
+  | 3 | `ViewInquiryContentAtomicityTest.contentIsNotReturnedAndNothingChangesWhenTheAuditRecordFails`, `RefinementViewAuditFailureTest.originalContentIsStillWithheldWhenTheAuditRecordFails` |
+  | 3a | `RefinementViewAuditFailureTest.translationIsReturnedAndOnlyIdentifiersAreLoggedWhenTheAuditRecordFails` |
+  | 4 | `RefinementFailureTest`(재시도 기록 단언 5곳) |
+  | 5 | `AnswerReviewApiTest.reviewAlwaysReturnsUnavailableBeforeF3`, `AnswerReviewFailOpenTest` |
+  | 6 | `CloseInquiryApiTest.teacherClosesAConfirmedThread` |
+  | 7·8 | `AdminInquiryStatusApiTest` |
+  | 9 | `TimelineSeparationTest` |
+  | 10 | `OperatorQueriesTest` — Q1·Q2를 문서에서 그대로 읽어 실행, 테스트 DB에서 수십 ms(SC-004 "5분 안에"는 운영 DB 접속 시간 포함이라 배포 뒤 운영자가 확인) |
+  | 11 | `AuditLogAppendOnlyTest` |
+  | 12 | `AuditEnumConstraintTest` — 재현됨, `docs/db/2026-10-27-f5-audit-action-check.sql`로 조치 |
+  | 13 | `TeacherRefinementApiTest.refusedRequestsLookTheSameAndLeaveNoAuditRecord`, `TeacherInquiryApiTest.formerHomeroomTeacherLosesAccessAfterRelease` |
+  | 14 | `UrgentRecordUnderOutageTest` |
+
+  "운영자 조회 실습"(psql로 운영·스테이징 DB에 직접 실행)은 이 환경에 운영 DB 접근이 없어 하지 않았다. 같은 SQL을 `OperatorQueriesTest`가 실행한다.
+- **T031** `./gradlew test` 전체 662개 통과(실패 0, 건너뜀 0).
+- **남은 배포 작업**: PR #19 merge → main 반영 → F5 PR. PR 설명에 "배포 전 실행: docs/db/2026-10-27-f5-audit-action-check.sql". merge 뒤 main에서 `/api-release api-v0.7`.
+
+## Phase 8: Convergence
+
+- [X] T033 Add a closed-thread scenario to `src/test/java/damso/audit/OperatorQueriesTest.java` asserting Q1 ends with `ANSWER_SENT` → `STAGE_ANSWERED` → `INQUIRY_CLOSED` (actor = teacher) when the close records share one instant per US1/AC5, FR-009 (partial)
+- [X] T034 Add a teacher-withdrawal scenario to `src/test/java/damso/audit/OperatorQueriesTest.java` asserting the withdrawn teacher's view/answer records stay in Q1 and Q2 under the same account UUID per US1/AC8, FR-008 (partial)

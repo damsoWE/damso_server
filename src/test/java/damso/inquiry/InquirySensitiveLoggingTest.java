@@ -205,6 +205,73 @@ class InquirySensitiveLoggingTest extends IntegrationTestSupport {
 	}
 
 	/**
+	 * F5 T026 / 원칙 VI, FR-004·005: 번역본 열람(성공·감사 실패), 재시도, 점검 요청(성공·감사 실패), 종료, 슈퍼 관리자 현황
+	 * 경로 전체에서 문의 본문, 정리 결과, 답변 초안, 이름, 전화번호가 로그에 남지 않는다. 감사 실패 로그는 식별자·종류만 남긴다.
+	 */
+	@Test
+	void auditPathsNeverLogContentRefinementResultsOrNames(CapturedOutput output) throws Exception {
+		String parentName = "로그감사보호자" + "ZXQ";
+		String teacherName = "로그감사담임" + "ZXQ";
+		String phone = "010-5555-" + "7410";
+		String body = "로그감사본문ZXQ" + "7411 " + STUDENT_NAME + " " + phone;
+		String refinedTitle = "로그감사제목ZXQ" + "7412";
+		String refinedFacts = "로그감사사실ZXQ" + "7413";
+		String refinedRequests = "로그감사요청ZXQ" + "7414";
+		String draft = "로그감사초안ZXQ" + "7415";
+		List<String> secrets = List.of(body, STUDENT_NAME, parentName, teacherName, phone, refinedTitle, refinedFacts,
+				refinedRequests, draft);
+
+		Classroom classroom = newClassroom();
+		Student student = newStudent(classroom, STUDENT_NAME);
+		SignedUp teacher = signUpWith(issueTeacherCode(classroom), teacherName);
+		SignedUp parent = signUpWith(issueParentCode(student), parentName);
+		String token = teacher.accessToken();
+
+		// 번역본 열람(감사 실패 → 번역본은 나간다, 이어서 정상 열람)
+		fakeAi.replyNext(damso.support.FakeExternalAi.refinementJson(refinedTitle, refinedFacts, refinedRequests, "LOW",
+				List.of()));
+		String refined = read(submitInquiry(parent.accessToken(), student.getId(), body), "$.inquiryId");
+		FailingAuditConfig.failing = true;
+		try {
+			assertThat(send(get("/api/v1/teacher/inquiries/" + refined + "/refinement"), token).getStatus())
+					.isEqualTo(200);
+			// 점검 요청도 감사 실패와 상관없이 정상 처리된다
+			assertThat(send(json(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+					.post("/api/v1/teacher/inquiries/" + refined + "/answer-reviews"), "{\"content\":\"" + draft + "\"}"),
+					token).getStatus()).isEqualTo(200);
+		}
+		finally {
+			FailingAuditConfig.failing = false;
+		}
+		send(get("/api/v1/teacher/inquiries/" + refined + "/refinement"), token);
+		send(json(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+				.post("/api/v1/teacher/inquiries/" + refined + "/answer-reviews"), "{\"content\":\"" + draft + "\"}"),
+				token);
+
+		// 원문 확인 필요 → 교사 재시도
+		clock.advance(Duration.ofSeconds(61));
+		fakeAi.noResponseNext();
+		fakeAi.noResponseNext();
+		String failed = read(submitInquiry(parent.accessToken(), student.getId(), body + " 2"), "$.inquiryId");
+		send(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+				.post("/api/v1/teacher/inquiries/" + failed + "/refinement/retry"), token);
+
+		// 종료(앱 미사용 경로)와 슈퍼 관리자 현황
+		send(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+				.post("/api/v1/teacher/inquiries/" + refined + "/close"), token);
+		send(get("/api/v1/admin/inquiry-status"), tokenFor(createAccount(damso.account.domain.Role.SUPER_ADMIN)));
+
+		String logs = output.getAll();
+		for (String secret : secrets) {
+			assertThat(logs).as("secret of length %d", secret.length()).doesNotContain(secret);
+		}
+		assertThat(logs).contains("번역본 열람 감사 기록 실패 (inquiry=" + refined)
+				.contains("답변 점검 요청 감사 기록 실패 (inquiry=" + refined);
+		assertThat(jdbc.queryForList("select distinct action from audit_log", String.class)).contains(
+				"INQUIRY_REFINEMENT_VIEWED", "ANSWER_REVIEW_REQUESTED", "REFINEMENT_RETRY_REQUESTED", "INQUIRY_CLOSED");
+	}
+
+	/**
 	 * spec 005 T025 / FR-013·014, SC-005, US3 시나리오 3: 위협·폭언 표시가 붙는 문의를 접수·조회·정리·알림까지 지나도 본문과
 	 * 판정에 걸린 표현이 로그에 남지 않고, 교사 알림은 표시 여부와 무관하게 같은 종류(고정 문구)다.
 	 */
