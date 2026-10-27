@@ -1,0 +1,66 @@
+name: deploy
+
+# main 병합(또는 Actions 화면의 수동 실행) → ARM 이미지 빌드 → Docker Hub push → 오라클 서버에서 그 태그로 재시작.
+# 서버는 ARM(aarch64)이라 ARM 러너에서 에뮬레이션 없이 빌드한다(공개 레포는 무료).
+#
+# 필요한 Secrets (Settings → Secrets and variables → Actions)
+#   DOCKERHUB_TOKEN     Docker Hub 액세스 토큰(Read & Write), 계정 leehyunwoo02
+#   DEPLOY_HOST         서버 공인 IP
+#   DEPLOY_SSH_KEY      배포 전용 SSH 개인키. 서버 authorized_keys에서 command=로 deploy.sh만 실행되게 묶는다
+#   DEPLOY_KNOWN_HOSTS  서버 호스트 키(ssh-keyscan 결과). 다른 서버에 키를 넘기지 않도록 확인한다
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  image:
+    runs-on: ubuntu-24.04-arm
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Image tag (prod-날짜-커밋)
+        id: tag
+        run: echo "tag=prod-$(TZ=Asia/Seoul date +%Y%m%d)-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: leehyunwoo02
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: |
+            leehyunwoo02/damso:latest
+            leehyunwoo02/damso:${{ steps.tag.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restart on the server with the new tag
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          TAG: ${{ needs.image.outputs.tag }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          # 서버의 authorized_keys가 이 키로는 deploy.sh만 실행하게 묶어 두었다. 보내는 것은 태그 하나뿐이다
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes "ubuntu@$HOST" "$TAG"
