@@ -88,7 +88,7 @@
 
 ## R11. 원문 열람과 감사 기록 (F5 뼈대)
 
-- **Decision**: `GET /api/v1/teacher/inquiries/{id}/content`(긴급 문의만, F2 범위)에서 원문을 돌려주기 전에 `audit.port.in.AuditLogUseCase.record(actor, INQUIRY_CONTENT_VIEWED, INQUIRY, inquiryId)`를 같은 트랜잭션에서 남긴다. `audit_log`는 `link_history`처럼 append-only(엔티티 `@Immutable`, 저장·조회만 있는 리포지토리, 리플렉션 테스트). 처음 열람이면 단계를 `TEACHER_CONFIRMED`로 바꾸고 대기 중인 재알림을 취소한다. 일반 문의의 원문 열람은 F3 범위라 F2에서는 `INQUIRY_CONTENT_UNAVAILABLE`(409)로 응답한다.
+- **Decision**: `GET /api/v1/teacher/inquiries/{id}/content`(긴급 문의만, F2 범위)에서 원문을 돌려주기 전에 `audit.port.in.AuditLogUseCase.record(actor, INQUIRY_CONTENT_VIEWED, INQUIRY, inquiryId)`를 같은 트랜잭션에서 남긴다. `audit_log`는 `link_history`처럼 append-only(엔티티 `@Immutable`, 저장·조회만 있는 리포지토리, 리플렉션 테스트). 처음 열람이면 단계를 `TEACHER_CONFIRMED`로 바꾸고 대기 중인 재알림을 취소한다. 일반 문의의 원문 열람은 F3 범위라 F2에서는 `INQUIRY_CONTENT_UNAVAILABLE`(409)로 응답한다. **F5에서 변경(2026-10-28)**: 원문 열람 규칙(기록이 실패하면 원문을 내보내지 않는다)은 그대로다. F5에서 번역본 열람·재시도 요청·점검 요청·종료도 감사 기록 대상이 됐고, 이 넷은 기록이 실패해도 처리하고 서버 로그만 남긴다 (`specs/006-audit-log-history` FR-005·006, research R9).
 - **Rationale**: 원칙 III(열람자·대상·시각 기록, append-only). 감사 기록이 남지 않으면 원문도 나가지 않는다(같은 트랜잭션).
 
 ## R12. 접근 권한과 응답 형식

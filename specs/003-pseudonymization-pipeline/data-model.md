@@ -114,7 +114,7 @@ FAILED ──교사 재시도(REFINE, teacher_retry_used = false일 때만)─�
 ## inquiry_stage_history / audit_log (F2, 변경 없음)
 
 - 일반 문의에도 `REFINING`·`TEACHER_CONFIRMED` 줄이 쌓인다.
-- 일반 문의의 원문 열람은 F2와 같은 `INQUIRY_CONTENT_VIEW_ATTEMPTED` → `INQUIRY_CONTENT_VIEWED` / `INQUIRY_CONTENT_VIEW_FAILED`로 기록한다. 번역본 열람은 감사 기록 대상이 아니다.
+- 일반 문의의 원문 열람은 F2와 같은 `INQUIRY_CONTENT_VIEW_ATTEMPTED` → `INQUIRY_CONTENT_VIEWED` / `INQUIRY_CONTENT_VIEW_FAILED`로 기록한다. 번역본 열람은 감사 기록 대상이 아니다. **F5에서 변경(2026-10-28)**: 번역본 열람도 시도·완료·실패를 감사 기록에 남긴다(`INQUIRY_REFINEMENT_VIEW_*`). 기록이 실패해도 번역본은 반환하고 서버 로그(문의 ID·행위 종류·오류 종류)만 남긴다. 원문 열람 규칙은 그대로다 (`specs/006-audit-log-history` FR-003·005, research R3).
 
 ---
 

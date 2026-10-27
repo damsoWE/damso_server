@@ -70,7 +70,7 @@ F2가 실행하는 전이는 긴급의 `RECEIVED → DELIVERED`, `DELIVERED → 
 |---|---|---|
 | `id` | UUID | v4 |
 | `actor_id` | UUID | 행위자(교사) |
-| `action` | varchar(40) | F2: `INQUIRY_CONTENT_VIEWED` |
+| `action` | varchar(40) | F2: `INQUIRY_CONTENT_VIEWED` **F5에서 변경(2026-10-28)**: `action` 값이 9개로 늘었다 — 원문 열람 3개(`INQUIRY_CONTENT_VIEW_ATTEMPTED`·`INQUIRY_CONTENT_VIEWED`·`INQUIRY_CONTENT_VIEW_FAILED`), 번역본 열람 3개(`INQUIRY_REFINEMENT_VIEW_*`), `REFINEMENT_RETRY_REQUESTED`·`ANSWER_REVIEW_REQUESTED`·`INQUIRY_CLOSED`. 이미 배포된 DB는 배포 전에 `docs/db/2026-10-27-f5-audit-action-check.sql`을 실행한다 (`specs/006-audit-log-history` research R8). |
 | `target_type` | varchar(20) | F2: `INQUIRY` |
 | `target_id` | UUID | |
 | `occurred_at` | timestamptz | |

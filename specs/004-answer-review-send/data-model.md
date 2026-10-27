@@ -84,7 +84,7 @@ F2가 만든 테이블에 컬럼 1개만 추가한다. 기존 컬럼·제약·�
 
 - `inquiry_stage_history` — 재문의도 같은 테이블에 자기 `inquiry_id`로 이력을 남긴다. 스키마 변경 없음.
 - `notification_request` / `device_registration` — F2 아웃박스·FCM 발송기·기기 등록을 그대로 쓴다. `NotificationKind.ANSWER` 추가만 필요.
-- `audit_log` — 이 기능은 새 감사 대상을 추가하지 않는다(답변·재문의는 원칙 III의 "수정·삭제 불가"로 충분하고, 열람 감사는 F2·F5 범위).
+- `audit_log` — 이 기능은 새 감사 대상을 추가하지 않는다(답변·재문의는 원칙 III의 "수정·삭제 불가"로 충분하고, 열람 감사는 F2·F5 범위). **F5에서 변경(2026-10-28)**: F5에서 점검 요청과 종료가 감사 기록 대상이 됐다. 둘 다 기록이 실패해도 처리는 정상 완료되고 로그만 남는다. 종료 기록은 커밋 뒤 종료 시각으로 남긴다 (`specs/006-audit-log-history` research R4·R9).
 
 ## 에러 코드 추가
 
