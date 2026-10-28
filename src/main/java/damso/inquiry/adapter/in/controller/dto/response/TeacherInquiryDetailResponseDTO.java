@@ -18,6 +18,13 @@ public record TeacherInquiryDetailResponseDTO(UUID inquiryId, UUID studentId, St
 		boolean threatFlagged, Instant submittedAt, List<StageEventResponseDTO> timeline,
 		List<TeacherFollowUpViewResponseDTO> followUps, List<AnswerViewResponseDTO> answers) {
 
+	/** 받은 목록을 복사해 둔다(불변) — 만든 쪽이 나중에 목록을 바꿔도 이 값은 바뀌지 않는다. */
+	public TeacherInquiryDetailResponseDTO {
+		timeline = timeline == null ? null : List.copyOf(timeline);
+		followUps = followUps == null ? null : List.copyOf(followUps);
+		answers = answers == null ? null : List.copyOf(answers);
+	}
+
 	public static TeacherInquiryDetailResponseDTO from(InquiryDetail detail) {
 		return new TeacherInquiryDetailResponseDTO(detail.inquiryId(), detail.studentId(), detail.studentName(),
 				detail.urgent(), detail.title(), detail.stage(), detail.refinementStatus(), detail.retryAvailable(),

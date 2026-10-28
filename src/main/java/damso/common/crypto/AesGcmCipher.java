@@ -18,7 +18,7 @@ import javax.crypto.spec.SecretKeySpec;
  * - GCM 인증 태그로 변조를 감지한다
  * - 빈 문자열은 암호화하지 않는다
  */
-public class AesGcmCipher {
+public final class AesGcmCipher {
 
 	static final byte VERSION = 0x01;
 	static final int KEY_BYTES = 32;

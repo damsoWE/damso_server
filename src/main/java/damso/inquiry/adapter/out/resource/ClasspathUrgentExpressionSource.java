@@ -17,13 +17,13 @@ import damso.inquiry.domain.UrgentRule;
  * 파일을 못 읽거나 표현이 하나도 없으면 기동을 거부한다 — 목록이 없는 채로 뜨면 긴급을 조용히 놓친다 (원칙 VIII).
  */
 @Component
-public class ClasspathUrgentExpressionSource implements UrgentExpressionSource {
+public final class ClasspathUrgentExpressionSource implements UrgentExpressionSource {
 
 	private final List<String> expressions;
 
 	public ClasspathUrgentExpressionSource(
 			@Value("${damso.inquiry.urgent-expressions:classpath:urgent/expressions.txt}") Resource resource) {
-		this.expressions = load(resource);
+		this.expressions = List.copyOf(load(resource));
 	}
 
 	@Override

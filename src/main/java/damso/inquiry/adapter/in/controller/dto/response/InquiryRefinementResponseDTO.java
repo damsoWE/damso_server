@@ -10,6 +10,11 @@ import damso.inquiry.application.port.in.ViewRefinementUseCase.RefinementView;
 public record InquiryRefinementResponseDTO(UUID inquiryId, String title, String facts, String requests,
 		String emotionLevel, List<String> emotionLabels, Instant refinedAt) {
 
+	/** 받은 목록을 복사해 둔다(불변) — 만든 쪽이 나중에 목록을 바꿔도 이 값은 바뀌지 않는다. */
+	public InquiryRefinementResponseDTO {
+		emotionLabels = emotionLabels == null ? null : List.copyOf(emotionLabels);
+	}
+
 	public static InquiryRefinementResponseDTO from(RefinementView view) {
 		return new InquiryRefinementResponseDTO(view.inquiryId(), view.title(), view.facts(), view.requests(),
 				view.emotionLevel(), view.emotionLabels(), view.refinedAt());

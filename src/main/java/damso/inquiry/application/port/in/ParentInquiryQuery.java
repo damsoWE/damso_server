@@ -37,6 +37,12 @@ public interface ParentInquiryQuery {
 	record FollowUpView(UUID inquiryId, String content, boolean urgent, InquiryStage stage, Instant submittedAt,
 			List<NoticeCode> notices, List<HotlineCode> hotlines) {
 
+		/** 받은 목록을 복사해 둔다(불변) — 만든 쪽이 나중에 목록을 바꿔도 이 값은 바뀌지 않는다. */
+		public FollowUpView {
+			notices = notices == null ? null : List.copyOf(notices);
+			hotlines = hotlines == null ? null : List.copyOf(hotlines);
+		}
+
 		/** 본문이 로그·예외에 섞이지 않도록 가린다. */
 		@Override
 		public String toString() {
@@ -48,6 +54,15 @@ public interface ParentInquiryQuery {
 	record InquiryDetail(UUID inquiryId, UUID studentId, String studentName, String content, boolean urgent,
 			InquiryStage stage, Instant submittedAt, List<StageEventView> timeline, List<NoticeCode> notices,
 			List<HotlineCode> hotlines, List<FollowUpView> followUps, List<AnswerView> answers) {
+
+		/** 받은 목록을 복사해 둔다(불변) — 만든 쪽이 나중에 목록을 바꿔도 이 값은 바뀌지 않는다. */
+		public InquiryDetail {
+			timeline = timeline == null ? null : List.copyOf(timeline);
+			notices = notices == null ? null : List.copyOf(notices);
+			hotlines = hotlines == null ? null : List.copyOf(hotlines);
+			followUps = followUps == null ? null : List.copyOf(followUps);
+			answers = answers == null ? null : List.copyOf(answers);
+		}
 
 		/** 본문·학생 이름이 로그·예외에 섞이지 않도록 가린다. */
 		@Override
