@@ -314,6 +314,21 @@ class PasswordResetApiTest extends IntegrationTestSupport {
 		assertThat(requestFrom(uniqueEmail(), "198.51.100.201").getStatus()).isEqualTo(202);
 	}
 
+	/** BCrypt 입력 한계(72바이트)를 넘는 비밀번호는 500이 아니라 정책 위반 400이다. 코드는 그대로 쓸 수 있다. */
+	@Test
+	void newPasswordOverSeventyTwoBytesIsRejectedAsInvalidInput() throws Exception {
+		UserAccount parent = createAccount(Role.PARENT);
+		String email = parent.getEmail();
+		request(email);
+		String code = mail.lastResetCode(email);
+
+		MockHttpServletResponse tooLong = confirm(email, code, "가".repeat(30) + "a1");
+
+		assertThat(tooLong.getStatus()).isEqualTo(400);
+		assertSafeErrorResponse(tooLong.getContentAsString(), "INVALID_INPUT");
+		assertThat(confirm(email, code, NEW_PASSWORD).getStatus()).isEqualTo(204);
+	}
+
 	@Test
 	void weakNewPasswordIsRejectedAndTheCodeStaysUsable() throws Exception {
 		UserAccount parent = createAccount(Role.PARENT);
