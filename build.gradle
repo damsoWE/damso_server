@@ -1,6 +1,6 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '4.1.1'
+	id 'org.springframework.boot' version '4.1.2'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'com.github.spotbugs' version '6.5.13'
 }
@@ -16,6 +16,14 @@ java {
 
 repositories {
 	mavenCentral()
+}
+
+dependencyManagement {
+	dependencies {
+		// firebase-admin이 끌고 오는 Guava는 Spring Boot가 관리하지 않는다. 서비스 거부 취약점(CVE-2026-102554)이
+		// 고쳐진 버전으로 올린다(CI Trivy 검출, 이슈 #26)
+		dependency 'com.google.guava:guava:33.7.2-jre'
+	}
 }
 
 configurations.configureEach {
