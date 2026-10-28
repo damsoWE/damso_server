@@ -2,8 +2,11 @@ package damso.notification.adapter.out.fcm;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+
+import jakarta.annotation.PreDestroy;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
@@ -35,9 +38,16 @@ class FcmPushSender implements PushSenderPort {
 
 	private static final String APP_NAME = "damso";
 
+	private static final int CONNECT_TIMEOUT_MILLIS = 5_000;
+
+	private static final int READ_TIMEOUT_MILLIS = 10_000;
+
 	private final String credentialsBase64;
 
 	private volatile FirebaseMessaging messaging;
+
+	/** 이 빈이 만든 FirebaseApp(만든 적 없으면 null). 종료 때 이것만 지운다. this로 동기화한다. */
+	private FirebaseApp ownedApp;
 
 	FcmPushSender(@Value("${damso.fcm.credentials}") String credentialsBase64) {
 		this.credentialsBase64 = credentialsBase64;
@@ -96,8 +106,28 @@ class FcmPushSender implements PushSenderPort {
 			}
 		}
 		byte[] json = Base64.getDecoder().decode(credentialsBase64.trim());
-		GoogleCredentials credentials = GoogleCredentials.fromStream(new ByteArrayInputStream(json));
-		return FirebaseApp.initializeApp(FirebaseOptions.builder().setCredentials(credentials).build(), APP_NAME);
+		GoogleCredentials credentials;
+		try (InputStream in = new ByteArrayInputStream(json)) {
+			credentials = GoogleCredentials.fromStream(in);
+		}
+		// 기본값(SDK 내부값)에 기대지 않고 연결·읽기 대기 상한을 둔다 — 발송은 공용 실행기 스레드에서 돈다
+		FirebaseOptions options = FirebaseOptions.builder()
+				.setCredentials(credentials)
+				.setConnectTimeout(CONNECT_TIMEOUT_MILLIS)
+				.setReadTimeout(READ_TIMEOUT_MILLIS)
+				.build();
+		ownedApp = FirebaseApp.initializeApp(options, APP_NAME);
+		return ownedApp;
+	}
+
+	/** 앱이 내려갈 때 이 빈이 만든 FirebaseApp을 지워 SDK의 스레드·연결을 놓는다. 다른 곳이 만든 앱은 건드리지 않는다. */
+	@PreDestroy
+	synchronized void close() {
+		messaging = null;
+		if (ownedApp != null) {
+			ownedApp.delete();
+			ownedApp = null;
+		}
 	}
 
 	/** 자격 증명이 로그에 섞이지 않도록 아무것도 보이지 않는다. */

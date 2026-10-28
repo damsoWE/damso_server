@@ -12,6 +12,10 @@ spring:
     hibernate:
       # F1 팀 결정: 마이그레이션 도구 없이 엔티티 매핑으로 테이블 생성 (specs/001-auth-signup/research.md R1)
       ddl-auto: update
+  servlet:
+    multipart:
+      # 파일 업로드는 MVP에서 뺐다. 켜 두면 공개 경로에서도 multipart 본문을 디스크에 받아 파싱한다
+      enabled: false
   jackson:
     deserialization:
       # 계약(additionalProperties: false)대로 알 수 없는 필드는 거부한다. 연락처 같은 필드를 몰래 받지 않는다
@@ -21,6 +25,9 @@ spring:
       host: ${DAMSO_REDIS_HOST}
       port: ${DAMSO_REDIS_PORT}
       password: ${DAMSO_REDIS_PASSWORD:}
+      # 명시하지 않으면 명령 대기가 60초다. Redis 장애 때 DB 커넥션을 쥔 요청이 오래 묶이지 않게 짧게 끊는다(fail-closed)
+      timeout: 2s
+      connect-timeout: 2s
       # Redis는 실패 횟수·발송 제한 TTL 키에만 쓴다. Spring Data Redis 리포지토리는 쓰지 않는다
       repositories:
         enabled: false
@@ -35,6 +42,17 @@ spring:
           auth: ${DAMSO_MAIL_STARTTLS:true}
           starttls:
             enable: ${DAMSO_MAIL_STARTTLS:true}
+            # 서버가 STARTTLS를 내주지 않으면(중간에서 지워져도) 평문으로 넘어가지 않고 보내기를 실패시킨다
+            required: ${DAMSO_MAIL_STARTTLS:true}
+          # 기본값은 무한 대기다. 메일 서버가 응답하지 않아도 발송 스레드(@Async 공용)가 묶이지 않게 끊는다(밀리초)
+          connectiontimeout: 5000
+          timeout: 10000
+          writetimeout: 10000
+  task:
+    scheduling:
+      pool:
+        # 기본 1개면 외부 AI가 느린 동안 정리 작업이 스레드를 쥐어 긴급 알림 재시도가 밀린다. 스케줄 작업(정리·알림·정리 삭제)마다 하나씩
+        size: 3
 
 damso:
   crypto:
