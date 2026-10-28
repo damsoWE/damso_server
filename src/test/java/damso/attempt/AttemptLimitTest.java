@@ -25,7 +25,7 @@ import damso.common.error.TooManyAttemptsException;
 import damso.support.IntegrationTestSupport;
 import damso.support.TestSecrets;
 
-/** SC-004, FR-011·024: Redis 기반 대기·잠금. 시간은 MutableClock으로 옮긴다. */
+/** Redis 기반 대기·잠금. 시간은 MutableClock으로 옮긴다. */
 class AttemptLimitTest extends IntegrationTestSupport {
 
 	@Autowired

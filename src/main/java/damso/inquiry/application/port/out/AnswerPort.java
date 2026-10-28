@@ -15,10 +15,10 @@ public interface AnswerPort {
 	/** 스레드(루트 inquiry.id)의 모든 답변, 전송 시각 오름차순. */
 	List<Answer> findByThreadRootId(UUID rootId);
 
-	/** 루트 id별 마지막 답변 전송 시각. 답변이 없는 루트는 Map에 없다(F4 US6). */
+	/** 루트 id별 마지막 답변 전송 시각. 답변이 없는 루트는 Map에 없다. */
 	Map<UUID, Instant> findLastAnsweredAt(Collection<UUID> rootIds);
 
-	/** 학부모 본인 스레드의 루트 id별 마지막 답변 전송 시각. 답변이 없는 루트는 Map에 없다(F4 US6). */
+	/** 학부모 본인 스레드의 루트 id별 마지막 답변 전송 시각. 답변이 없는 루트는 Map에 없다. */
 	Map<UUID, Instant> findLastAnsweredAtByParent(UUID parentId);
 
 }

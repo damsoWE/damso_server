@@ -53,5 +53,3 @@ application-local.yml
 application-prod.yml
 gradle.properties
 
-### 기획 원본 (비공개) ###
-docs/*.pdf

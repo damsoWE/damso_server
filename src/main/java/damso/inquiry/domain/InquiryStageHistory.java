@@ -18,9 +18,9 @@ import org.hibernate.annotations.Immutable;
 import org.springframework.data.domain.Persistable;
 
 /**
- * 문의 단계가 바뀐 기록. append-only다 — 수정·삭제 경로가 없다 (원칙 III, research R4).
+ * 문의 단계가 바뀐 기록. append-only다 — 수정·삭제 경로가 없다.
  * BaseEntity를 상속하지 않으며(수정 시각·버전이 의미 없음) 개인정보·본문 컬럼이 없다.
- * 학부모 타임라인은 이 표를 시간순으로 그대로 보여 준다 (FR-023).
+ * 학부모 타임라인은 이 표를 시간순으로 그대로 보여 준다.
  */
 @Entity
 @Immutable

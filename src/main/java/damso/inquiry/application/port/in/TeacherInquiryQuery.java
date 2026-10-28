@@ -14,10 +14,10 @@ import damso.inquiry.domain.RefinementStatus;
 public interface TeacherInquiryQuery {
 
 	/**
-	 * refinementStatus는 일반 문의의 정리 상태, 긴급 문의는 null(F3).
-	 * threatFlagged는 접수 때 정한 위협·폭언 표현 표시, 긴급은 항상 false(spec 005).
+	 * refinementStatus는 일반 문의의 정리 상태, 긴급 문의는 null.
+	 * threatFlagged는 접수 때 정한 위협·폭언 표현 표시, 긴급은 항상 false.
 	 * threadThreatFlagged는 최초 문의나 재문의 가운데 하나라도 표시됐는지 — 재문의에만 위협 표현이 있어도 목록에서 보인다.
-	 * lastAnsweredAt은 스레드 전체의 마지막 답변 전송 시각, 답변이 없으면 null(F4 US6). 답변 여부는 hasAnswer()로 이 값에서 얻는다.
+	 * lastAnsweredAt은 스레드 전체의 마지막 답변 전송 시각, 답변이 없으면 null. 답변 여부는 hasAnswer()로 이 값에서 얻는다.
 	 */
 	record InquirySummary(UUID inquiryId, UUID studentId, String studentName, boolean urgent, String title,
 			InquiryStage stage, RefinementStatus refinementStatus, boolean threatFlagged, boolean threadThreatFlagged,
@@ -45,16 +45,16 @@ public interface TeacherInquiryQuery {
 	}
 
 	/**
-	 * 스레드 타임라인에 포함되는 재문의 하나 — 목록·상세와 같은 규칙으로 본문은 없고, 긴급만 /content로 열람한다(F4).
-	 * threatFlagged는 재문의를 접수할 때 정한 위협·폭언 표현 표시, 긴급은 항상 false(spec 005).
+	 * 스레드 타임라인에 포함되는 재문의 하나 — 목록·상세와 같은 규칙으로 본문은 없고, 긴급만 /content로 열람한다.
+	 * threatFlagged는 재문의를 접수할 때 정한 위협·폭언 표현 표시, 긴급은 항상 false.
 	 */
 	record FollowUpView(UUID inquiryId, boolean urgent, String title, InquiryStage stage, boolean threatFlagged,
 			Instant submittedAt) {
 	}
 
 	/**
-	 * retryAvailable: 원문 확인 필요(NEEDS_ORIGINAL)이고 아직 교사 재시도를 쓰지 않았으면 true(F3).
-	 * threatFlagged는 접수 때 정한 위협·폭언 표현 표시, 긴급은 항상 false(spec 005).
+	 * retryAvailable: 원문 확인 필요(NEEDS_ORIGINAL)이고 아직 교사 재시도를 쓰지 않았으면 true.
+	 * threatFlagged는 접수 때 정한 위협·폭언 표현 표시, 긴급은 항상 false.
 	 */
 	record InquiryDetail(UUID inquiryId, UUID studentId, String studentName, boolean urgent, String title,
 			InquiryStage stage, RefinementStatus refinementStatus, boolean retryAvailable, boolean threatFlagged,

@@ -8,7 +8,7 @@ import java.util.regex.Matcher;
 
 /**
  * 토큰 ↔ 원래 값의 대응표(복원표). 정리 한 번 동안만 메모리에 있고, 복원이 끝나면 버린다 — DB·캐시·파일·로그 어디에도 남기지 않는다
- * (원칙 II). 그래서 직렬화를 구현하지 않고, toString은 토큰 종류별 건수만 보여 준다.
+ *. 그래서 직렬화를 구현하지 않고, toString은 토큰 종류별 건수만 보여 준다.
  */
 public final class PseudonymMap {
 
@@ -42,7 +42,7 @@ public final class PseudonymMap {
 
 	/**
 	 * 정리 결과를 사람이 읽을 글로 되돌린다. 이름·학교·학급은 원래 표기로 되돌리고, 연락처·식별번호(전화·이메일·주소·주민번호)는
-	 * 되돌리지 않고 고정 문구("(연락처 생략)" 등)로 남긴다 — 정리 결과에 연락처가 새로 저장되지 않게(원칙 I).
+	 * 되돌리지 않고 고정 문구("(연락처 생략)" 등)로 남긴다 — 정리 결과에 연락처가 새로 저장되지 않게.
 	 */
 	public String restoreWithoutContacts(String text) {
 		return restore(text, true);

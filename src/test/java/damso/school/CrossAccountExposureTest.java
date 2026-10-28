@@ -16,7 +16,7 @@ import damso.school.domain.Student;
 import damso.support.IntegrationTestSupport;
 
 /**
- * SC-005·006, FR-036, 원칙 I: 교사·학부모·관리자의 어떤 응답에도 다른 사용자의 이메일이나 연락처 필드가 없고,
+ * 교사·학부모·관리자의 어떤 응답에도 다른 사용자의 이메일이나 연락처 필드가 없고,
  * 다른 학급의 정보를 얻을 경로가 없다. 본인 이메일은 마이페이지(/me)에만 나온다.
  */
 class CrossAccountExposureTest extends IntegrationTestSupport {

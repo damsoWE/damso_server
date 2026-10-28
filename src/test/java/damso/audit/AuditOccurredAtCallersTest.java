@@ -15,7 +15,7 @@ import org.springframework.test.context.TestPropertySource;
 import damso.support.IntegrationTestSupport;
 
 /**
- * PR #21 리뷰: 기록 시각에 허용 범위(5분)를 둔 뒤에도 시각을 직접 넘기는 두 호출부(재시도·종료, research R9)는 그대로 기록된다.
+ * 기록 시각에 허용 범위(5분)를 둔 뒤에도 시각을 직접 넘기는 두 호출부(재시도·종료)는 그대로 기록된다.
  * 앱 시계를 앞으로 옮긴 상태에서도 처리 시각이 그대로 남는지 본다.
  */
 @TestPropertySource(properties = "damso.inquiry.close-enabled=true")

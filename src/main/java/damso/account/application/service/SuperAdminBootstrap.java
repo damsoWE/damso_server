@@ -15,9 +15,9 @@ import damso.account.domain.PasswordPolicy;
 import damso.account.domain.UserAccount;
 
 /**
- * 슈퍼 관리자는 서버가 직접 만든다 — 앱에는 생성 경로가 없다 (FR-001, research R12).
+ * 슈퍼 관리자는 서버가 직접 만든다 — 앱에는 생성 경로가 없다.
  * 환경변수 DAMSO_SUPER_ADMIN_EMAIL·DAMSO_SUPER_ADMIN_PASSWORD가 둘 다 있을 때만, 그 이메일 계정이 없으면 한 번 만든다.
- * 이미 있으면 아무것도 바꾸지 않는다. 변수가 없으면 관리자는 생기지 않는다(기본 계정 없음, 원칙 VIII).
+ * 이미 있으면 아무것도 바꾸지 않는다. 변수가 없으면 관리자는 생기지 않는다(기본 계정 없음).
  * 비밀번호가 정책에 맞지 않으면 기동을 거부한다. 메시지에 값은 넣지 않는다.
  */
 @Component

@@ -13,7 +13,7 @@ import damso.account.domain.Role;
 import damso.account.domain.UserAccount;
 import damso.support.IntegrationTestSupport;
 
-/** US4 시나리오 1~5, FR-022~024, SC-003·004: 로그인과 단계별 대기. */
+/** 로그인과 단계별 대기. */
 class LoginApiTest extends IntegrationTestSupport {
 
 	private MockHttpServletResponse login(String email, String password) throws Exception {

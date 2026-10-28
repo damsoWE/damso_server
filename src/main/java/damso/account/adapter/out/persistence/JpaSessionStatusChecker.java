@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import damso.account.application.port.out.SessionPort;
 import damso.common.security.SessionStatusChecker;
 
-/** 접근 토큰 검증 때 세션이 살아 있는지(폐기·만료·탈퇴 여부)를 DB에서 확인한다 (research R4). */
+/** 접근 토큰 검증 때 세션이 살아 있는지(폐기·만료·탈퇴 여부)를 DB에서 확인한다. */
 @Component
 class JpaSessionStatusChecker implements SessionStatusChecker {
 

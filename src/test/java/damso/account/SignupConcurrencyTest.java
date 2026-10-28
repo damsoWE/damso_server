@@ -16,7 +16,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import damso.school.domain.Classroom;
 import damso.support.IntegrationTestSupport;
 
-/** SC-008: 같은 초대 코드로 동시에 가입을 확정하면 정확히 1건만 성공한다. */
+/** 같은 초대 코드로 동시에 가입을 확정하면 정확히 1건만 성공한다. */
 class SignupConcurrencyTest extends IntegrationTestSupport {
 
 	@RepeatedTest(5)

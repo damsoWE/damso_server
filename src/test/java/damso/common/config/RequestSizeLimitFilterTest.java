@@ -14,7 +14,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import tools.jackson.databind.json.JsonMapper;
 
-/** FR-025 / research R9: Content-Length가 없는(chunked) 요청도 읽은 바이트 기준으로 끊는다. */
+/** Content-Length가 없는(chunked) 요청도 읽은 바이트 기준으로 끊는다. */
 class RequestSizeLimitFilterTest {
 
 	private final RequestSizeLimitFilter filter = new RequestSizeLimitFilter(JsonMapper.builder().build());

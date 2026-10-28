@@ -22,7 +22,7 @@ import damso.school.domain.Classroom;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F3 T045 / US4 시나리오 1~6, FR-019·025, SC-007·008: 일반 문의도 정리 상태와 상관없이 원문을 열람하고, 열람마다 기록이 남는다.
+ * 일반 문의도 정리 상태와 상관없이 원문을 열람하고, 열람마다 기록이 남는다.
  * 기록이 실패하면 원문은 나가지 않는다. 원문 확인 필요 문의만 원문 첫 열람이 "교사 확인"이다.
  */
 class GeneralContentViewTest extends IntegrationTestSupport {

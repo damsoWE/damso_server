@@ -14,7 +14,7 @@ import damso.account.domain.Role;
 import damso.account.domain.UserAccount;
 import damso.support.IntegrationTestSupport;
 
-/** US5 시나리오 1~5, FR-029~031, SC-003: 비밀번호 재설정 코드 요청·확인·변경. */
+/** 비밀번호 재설정 코드 요청·확인·변경. */
 class PasswordResetApiTest extends IntegrationTestSupport {
 
 	private static final String NEW_PASSWORD = "NewPass" + "77x";

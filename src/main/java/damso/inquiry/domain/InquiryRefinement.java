@@ -20,8 +20,8 @@ import org.springframework.data.domain.Persistable;
 import damso.common.crypto.SensitiveText;
 
 /**
- * 검증을 통과한 정리 결과(번역본, F3). 성공했을 때 문의당 한 번만 생기고 append-only다 (원칙 III).
- * - 사실관계·요청사항은 처리 중 메모리에서 복원한 값을 원문처럼 암호화해 저장한다(대응표는 저장하지 않는다, research R6).
+ * 검증을 통과한 정리 결과(번역본). 성공했을 때 문의당 한 번만 생기고 append-only다.
+ * - 사실관계·요청사항은 처리 중 메모리에서 복원한 값을 원문처럼 암호화해 저장한다(대응표는 저장하지 않는다).
  * - 정서강도·라벨은 허용값 코드다(게이트웨이가 검증). 제목은 목록 표시를 위해 inquiry.title에 둔다.
  * - 본문은 toString·로그에 나오지 않는다(SensitiveText가 가린다).
  */

@@ -29,10 +29,10 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 
 /**
  * 헤더 Bearer 토큰 검증. 발급은 F1 범위.
- * - 서명 알고리즘을 HS256 하나로 고정 → alg=none·알고리즘 혼동 차단 (research R1)
+ * - 서명 알고리즘을 HS256 하나로 고정 → alg=none·알고리즘 혼동 차단
  * - exp·iat 필수
  * - sub(사용자 UUID) 필수 — 없거나 UUID가 아니면 401
- * - sid(세션 UUID) 필수, 그 세션이 살아 있어야 함 (F1, research R4)
+ * - sid(세션 UUID) 필수, 그 세션이 살아 있어야 함
  * - role 클레임은 허용 목록에 있을 때만 ROLE_{role} 권한으로 변환
  */
 @Configuration

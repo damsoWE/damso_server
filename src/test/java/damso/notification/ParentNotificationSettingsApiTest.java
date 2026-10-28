@@ -19,7 +19,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import damso.account.domain.Role;
 import damso.support.IntegrationTestSupport;
 
-/** F4 US3 시나리오 5 / FR-024, SC-007: 학부모 답변 도착 알림 on/off, 기본값은 켜짐. */
+/** 학부모 답변 도착 알림 on/off, 기본값은 켜짐. */
 class ParentNotificationSettingsApiTest extends IntegrationTestSupport {
 
 	private static final String PATH = "/api/v1/parent/notification-settings";
@@ -99,7 +99,7 @@ class ParentNotificationSettingsApiTest extends IntegrationTestSupport {
 	}
 
 	/**
-	 * PR #10 리뷰: find-or-create 방식이라 같은 학부모의 첫 저장 요청 두 건이 동시에 오면 각자 insert를
+	 * find-or-create 방식이라 같은 학부모의 첫 저장 요청 두 건이 동시에 오면 각자 insert를
 	 * 시도해 parent_id 유니크 제약에서 하나가 409로 실패했다. upsert(INSERT ... ON CONFLICT DO UPDATE)로
 	 * 바꿔 둘 다 성공하고 행이 하나만 남아야 한다.
 	 */

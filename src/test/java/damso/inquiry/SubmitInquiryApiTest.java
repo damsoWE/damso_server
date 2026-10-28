@@ -22,9 +22,9 @@ import damso.school.domain.Student;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F2 US1 시나리오 1~6 / FR-001~006·034, SC-001·004·008: 문의 제출(자녀 선택·본문 규칙·대상·권한).
+ * 문의 제출(자녀 선택·본문 규칙·대상·권한).
  * F3 이후 일반 문의는 커밋 직후 정리되므로, 이 클래스는 정리 확정 전 상태(접수 단계)를 보도록 즉시 실행을 끈다.
- * 정리 후 상태는 specs/003 테스트(TeacherRefinementApiTest 등)가 확인한다.
+ * 정리 후 상태는 TeacherRefinementApiTest 등이 확인한다.
  */
 @TestPropertySource(properties = "damso.refinement.dispatch-on-commit=false")
 class SubmitInquiryApiTest extends IntegrationTestSupport {

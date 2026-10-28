@@ -9,7 +9,7 @@ import damso.attempt.domain.AttemptPolicy;
 import damso.attempt.domain.AttemptRule;
 import damso.attempt.domain.AttemptState;
 
-/** 반복 실패 상태 저장소. 구현은 Redis (research R7). 저장소 장애는 BusinessException(INTERNAL_ERROR)로 알린다(fail-closed). */
+/** 반복 실패 상태 저장소. 구현은 Redis. 저장소 장애는 BusinessException(INTERNAL_ERROR)로 알린다(fail-closed). */
 public interface AttemptLimitPort {
 
 	AttemptState get(AttemptKind kind, String subjectHash);

@@ -17,16 +17,16 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * 필수 시크릿을 프로퍼티 바인딩 이전에 검사하고, 문제가 있으면 기동을 거부한다 (constitution 원칙 VIII).
- * 바인딩 단계에서 검증하면 Boot 실패 리포트가 거부된 값을 출력할 수 있으므로 여기서 직접 검사한다 (research R7).
- * 실패 메시지에는 변수 이름과 사유만 넣고 값은 절대 넣지 않는다 (FR-016).
+ * 필수 시크릿을 프로퍼티 바인딩 이전에 검사하고, 문제가 있으면 기동을 거부한다.
+ * 바인딩 단계에서 검증하면 Boot 실패 리포트가 거부된 값을 출력할 수 있으므로 여기서 직접 검사한다.
+ * 실패 메시지에는 변수 이름과 사유만 넣고 값은 절대 넣지 않는다.
  */
 public class SecretsValidator implements EnvironmentPostProcessor, Ordered {
 
 	static final List<String> REQUIRED = List.of(
 			"DAMSO_DB_URL", "DAMSO_DB_USERNAME", "DAMSO_DB_PASSWORD", "DAMSO_OPENAI_API_KEY",
 			"DAMSO_MAIL_HOST", "DAMSO_MAIL_FROM", "DAMSO_REDIS_HOST",
-			// F3: 외부 AI 모델 이름. 코드에 두지 않고 배포 환경에서 정한다 (specs/003 research R5)
+			// 외부 AI 모델 이름. 코드에 두지 않고 배포 환경에서 정한다
 			"DAMSO_OPENAI_MODEL");
 
 	static final List<String> REQUIRED_KEYS = List.of(

@@ -12,7 +12,7 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 /**
- * 컬럼 암호화: AES-256-GCM (research R5).
+ * 컬럼 암호화: AES-256-GCM.
  * 저장 형식: Base64( version(1B)=0x01 ‖ IV(12B) ‖ ciphertext ‖ tag(16B) )
  * - IV는 값마다 SecureRandom으로 새로 만든다 → 같은 평문도 다른 암호문
  * - GCM 인증 태그로 변조를 감지한다

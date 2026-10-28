@@ -8,7 +8,7 @@ import damso.inquiry.domain.InquiryStage;
 
 /**
  * 학부모 목록의 문의 한 건. 본문은 없고 상세에서만 본다.
- * hasAnswer·lastAnsweredAt은 스레드 전체의 답변 기준이며, 앱은 stage가 아니라 이 값으로 답변한 문의를 판단한다(F4 US6).
+ * hasAnswer·lastAnsweredAt은 스레드 전체의 답변 기준이며, 앱은 stage가 아니라 이 값으로 답변한 문의를 판단한다.
  */
 public record ParentInquirySummaryResponseDTO(UUID inquiryId, UUID studentId, String studentName, boolean urgent,
 		InquiryStage stage, Instant submittedAt, boolean hasAnswer, Instant lastAnsweredAt) {

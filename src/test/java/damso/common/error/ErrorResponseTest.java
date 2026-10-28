@@ -15,7 +15,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import damso.support.IntegrationTestSupport;
 
-/** US1 / SC-001: 오류를 유발해도 공통 형식이고 내부 정보가 보이지 않는다. */
+/** 오류를 유발해도 공통 형식이고 내부 정보가 보이지 않는다. */
 class ErrorResponseTest extends IntegrationTestSupport {
 
 	private String token;

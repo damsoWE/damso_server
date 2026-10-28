@@ -14,7 +14,7 @@ import damso.school.domain.Classroom;
 import damso.school.domain.Student;
 import damso.support.IntegrationTestSupport;
 
-/** F3 T012: 가명화 사전 재료(학급 명단). 학생·보호자 연결·담임 없음·없는 학급, toString에 이름 없음. */
+/** 가명화 사전 재료(학급 명단). 학생·보호자 연결·담임 없음·없는 학급, toString에 이름 없음. */
 class RosterQueryTest extends IntegrationTestSupport {
 
 	@Autowired

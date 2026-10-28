@@ -8,7 +8,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
-/** F2 T041 / FR-021·022: 처리 단계는 허용된 순서로만, 한 번에 한 칸씩만 나아간다. */
+/** 처리 단계는 허용된 순서로만, 한 번에 한 칸씩만 나아간다. */
 class InquiryStageTest {
 
 	private static Inquiry inquiry(boolean urgent) {

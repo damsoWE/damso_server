@@ -20,9 +20,9 @@ import damso.school.domain.Classroom;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F3 T029 / US2 시나리오 1~9, FR-011·012·021·025~027, SC-008·012: 정리에 성공한 일반 문의를 교사가 번역본으로 본다.
+ * 정리에 성공한 일반 문의를 교사가 번역본으로 본다.
  * 원래 이름으로 보이고 토큰은 없다. 첫 열람이 "교사 확인"이다.
- * F5(specs/006 research R3)부터 번역본 열람도 시도·완료를 감사 기록에 남긴다. 번역본이 없거나(409) 거부된(404) 요청은 기록하지 않는다.
+ * F5부터 번역본 열람도 시도·완료를 감사 기록에 남긴다. 번역본이 없거나(409) 거부된(404) 요청은 기록하지 않는다.
  */
 class TeacherRefinementApiTest extends IntegrationTestSupport {
 
@@ -68,7 +68,7 @@ class TeacherRefinementApiTest extends IntegrationTestSupport {
 
 	@Test
 	void theTranslationNeverCarriesThePhoneNumberEvenIfTheAiKeepsItsToken() throws Exception {
-		// 원칙 I: 외부 AI가 [PHONE_1]을 결과에 남겨도 번역본에는 고정 문구만 저장·표시된다
+		// 외부 AI가 [PHONE_1]을 결과에 남겨도 번역본에는 고정 문구만 저장·표시된다
 		Scenario s = teacherWithClassroom();
 		fakeAi.replyNext("{\"title\":\"[STUDENT_1] 다툼 문의\",\"facts\":\"[STUDENT_1] 보호자가 [PHONE_1]로 연락해 달라고 했다.\","
 				+ "\"requests\":\"\",\"emotionLevel\":\"LOW\",\"emotionLabels\":[],\"threatToTeacher\":false,"
@@ -169,7 +169,7 @@ class TeacherRefinementApiTest extends IntegrationTestSupport {
 			assertThat(response.getStatus()).isEqualTo(409);
 			assertSafeErrorResponse(response.getContentAsString(), "REFINEMENT_NOT_READY");
 		}
-		// 내보낸 번역본이 없으므로 열람 기록도 없다(F5 spec US2-7)
+		// 내보낸 번역본이 없으므로 열람 기록도 없다
 		assertThat(auditActions()).isEmpty();
 	}
 
@@ -195,7 +195,7 @@ class TeacherRefinementApiTest extends IntegrationTestSupport {
 
 	@Test
 	void refusedRequestsLookTheSameAndLeaveNoAuditRecord() throws Exception {
-		// F5 spec FR-002, research R3: 다른 학급·없는 문의·담임 해제 뒤 요청은 같은 404이고 기록하지 않는다
+		// 다른 학급·없는 문의·담임 해제 뒤 요청은 같은 404이고 기록하지 않는다
 		Scenario s = teacherWithClassroom(1, 1);
 		UUID id = submitGeneral(s);
 		Classroom other = newClassroom(2, 1);

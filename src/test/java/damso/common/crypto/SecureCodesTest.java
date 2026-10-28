@@ -7,7 +7,7 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
-/** FR-006: 영문 대문자+숫자 10자리, 헷갈리는 문자 제외. */
+/** 영문 대문자+숫자 10자리, 헷갈리는 문자 제외. */
 class SecureCodesTest {
 
 	@Test

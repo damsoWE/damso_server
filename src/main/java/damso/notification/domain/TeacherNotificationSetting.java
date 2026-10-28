@@ -10,8 +10,8 @@ import jakarta.persistence.UniqueConstraint;
 import damso.common.entity.BaseEntity;
 
 /**
- * 교사의 알림 설정. 일반 알림을 끌 수 있다(문의는 목록에 그대로 쌓인다). 긴급 알림 항목은 없다 — 끌 수 없다 (FR-031).
- * 설정 행이 없으면 일반 알림 켜짐 + 항상 응답 가능으로 본다 (FR-029).
+ * 교사의 알림 설정. 일반 알림을 끌 수 있다(문의는 목록에 그대로 쌓인다). 긴급 알림 항목은 없다 — 끌 수 없다.
+ * 설정 행이 없으면 일반 알림 켜짐 + 항상 응답 가능으로 본다.
  */
 @Entity
 @Table(name = "teacher_notification_setting",

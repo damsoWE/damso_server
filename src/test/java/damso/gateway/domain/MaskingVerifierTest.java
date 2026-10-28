@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-/** F3 T017 / FR-005, research R4: 가린 결과에 원래 값이나 2차 패턴이 남으면 실패(외부 AI를 호출하지 않는다). */
+/** 가린 결과에 원래 값이나 2차 패턴이 남으면 실패(외부 AI를 호출하지 않는다). */
 class MaskingVerifierTest {
 
 	private static final Roster ROSTER = PseudonymizerTest.ROSTER;

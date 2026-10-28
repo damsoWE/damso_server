@@ -17,7 +17,7 @@ import org.springframework.core.io.ClassPathResource;
 import damso.gateway.domain.Pseudonymizer.Masked;
 
 /**
- * F3 T016 / FR-002~004, SC-001, research R2·R3: 1차 사전·2차 패턴 가명화. 대표 사례 파일(cases.txt)은 가려져야 할 값과
+ * 1차 사전·2차 패턴 가명화. 대표 사례 파일(cases.txt)은 가려져야 할 값과
  * 가려지지 않는 값(알려진 한계)을 함께 고정한다.
  */
 class PseudonymizerTest {
@@ -56,7 +56,7 @@ class PseudonymizerTest {
 	@ParameterizedTest
 	@MethodSource("ordinarySentences")
 	void ordinaryWordsThatLookLikeAddressPartsAreNotMasked(String input) {
-		// 주소 패턴을 넓힌 뒤(PR #8 리뷰): 주소로 잘못 가리면 번역본에 "(연락처 생략)"이 들어가 뜻이 바뀐다
+		// 주소 패턴을 넓힌 뒤: 주소로 잘못 가리면 번역본에 "(연락처 생략)"이 들어가 뜻이 바뀐다
 		assertThat(Pseudonymizer.mask(input, Roster.of(List.of(), List.of(), List.of(), 0, 0)).text().value())
 				.isEqualTo(input);
 	}

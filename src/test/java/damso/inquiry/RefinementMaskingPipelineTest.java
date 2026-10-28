@@ -16,7 +16,7 @@ import damso.support.FakeExternalAi.Call;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F3 T018 / US1 시나리오 1~5·7, FR-001·005·006·013, SC-001: 일반 문의는 접수와 같은 트랜잭션에 정리 작업이 남고, 커밋 뒤 가린 글만
+ * 일반 문의는 접수와 같은 트랜잭션에 정리 작업이 남고, 커밋 뒤 가린 글만
  * 외부 AI로 나간다. 긴급 문의는 정리하지 않는다. (정리 확정 전 상태·동시 실행·임대 만료는 RefinementDispatchTest)
  */
 class RefinementMaskingPipelineTest extends IntegrationTestSupport {

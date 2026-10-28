@@ -4,8 +4,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * 슈퍼 관리자 문의 현황 (F5 US3, FR-014~016). 학급마다 스레드(루트 문의) 수를 세 묶음으로만 돌려준다.
- * 긴급 여부·원문 확인 필요 여부·학생 단위 정보는 드러나지 않는다(specs/006 research R6).
+ * 슈퍼 관리자 문의 현황. 학급마다 스레드(루트 문의) 수를 세 묶음으로만 돌려준다.
+ * 긴급 여부·원문 확인 필요 여부·학생 단위 정보는 드러나지 않는다.
  */
 public interface InquiryStatusQuery {
 

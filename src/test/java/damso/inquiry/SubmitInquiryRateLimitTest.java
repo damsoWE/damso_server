@@ -39,7 +39,7 @@ import damso.school.domain.Student;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F2 US1 시나리오 7~8·10~11 / FR-002a·002b, SC-014: 중복 제출(같은 결과)·1분 제한·같은 키 다른 내용(409)·
+ * 중복 제출(같은 결과)·1분 제한·같은 키 다른 내용(409)·
  * 제한 저장소 장애 시 일반 문의도 접수(fail-open).
  * F3 이후 일반 문의는 커밋 직후 정리되므로, 이 클래스는 정리 확정 전 상태(접수 단계·이력 1줄)를 보도록 즉시 실행을 끈다.
  */
@@ -130,7 +130,7 @@ class SubmitInquiryRateLimitTest extends IntegrationTestSupport {
 			}
 			start.countDown();
 
-			// 동시 재시도도 제한에 걸리지 않고 모두 같은 접수 결과를 받는다 (FR-002a)
+			// 동시 재시도도 제한에 걸리지 않고 모두 같은 접수 결과를 받는다
 			Set<String> ids = new HashSet<>();
 			Set<String> submittedAts = new HashSet<>();
 			for (Future<MockHttpServletResponse> future : futures) {

@@ -18,7 +18,7 @@ import org.springframework.core.env.StandardEnvironment;
 import damso.DamsoApplication;
 import damso.support.TestSecrets;
 
-/** US2 / SC-002: 실제 기동 경로에서 시크릿이 빠지면 기동이 실패하고, 출력에 값이 없다. */
+/** 실제 기동 경로에서 시크릿이 빠지면 기동이 실패하고, 출력에 값이 없다. */
 @ExtendWith(OutputCaptureExtension.class)
 class StartupRefusalTest {
 

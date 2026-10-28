@@ -4,7 +4,7 @@ import java.util.regex.Pattern;
 
 /**
  * 가명화 토큰의 종류. 토큰 모양은 {@code [KIND_n]}이다(예: [STUDENT_1]).
- * 1차 사전: STUDENT·GUARDIAN·TEACHER·CLASS·SCHOOL / 2차 패턴: PHONE·ADDRESS·EMAIL·ID_NUMBER (research R2·R3).
+ * 1차 사전: STUDENT·GUARDIAN·TEACHER·CLASS·SCHOOL / 2차 패턴: PHONE·ADDRESS·EMAIL·ID_NUMBER.
  */
 public enum TokenKind {
 
@@ -27,7 +27,7 @@ public enum TokenKind {
 
 	/**
 	 * 연락처·식별번호(전화·이메일·주소·주민번호)인지. 이 종류는 정리 결과로 복원하지 않고 고정 문구로 남긴다 —
-	 * 정리 결과가 연락처를 새로 만들어 저장하지 않게(원칙 I).
+	 * 정리 결과가 연락처를 새로 만들어 저장하지 않게.
 	 */
 	public boolean isContactOrIdentifier() {
 		return this == PHONE || this == EMAIL || this == ADDRESS || this == ID_NUMBER;

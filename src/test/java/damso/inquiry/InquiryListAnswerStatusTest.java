@@ -21,7 +21,7 @@ import damso.school.domain.Classroom;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F4 US6 시나리오 1~6 / FR-026~030, SC-012·013: 학부모·교사 문의 목록에서 답변한 문의를 구별한다.
+ * 학부모·교사 문의 목록에서 답변한 문의를 구별한다.
  * 답변 여부는 스레드 전체(최초 문의 + 재문의) 기준이며 처리 단계(stage)와 무관하다. 목록에는 답변 본문이 없다.
  * 재문의가 커밋 직후 정리되지 않도록 즉시 실행을 끈다(ParentInquiryQueryApiTest와 같은 컨텍스트).
  */

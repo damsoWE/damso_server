@@ -4,7 +4,7 @@ import java.util.UUID;
 
 /**
  * 기기로 보내는 알림 내용. 제목·본문은 종류에서 정해지는 고정 문구이고, 문의 UUID(있을 때)와 묶음 건수만 담는다.
- * 학생·학부모 이름과 문의 본문은 어떤 경우에도 넣지 않는다 (FR-014, constitution 원칙 V·VI).
+ * 학생·학부모 이름과 문의 본문은 어떤 경우에도 넣지 않는다.
  */
 public record PushMessage(NotificationKind kind, UUID inquiryId, Integer digestCount) {
 

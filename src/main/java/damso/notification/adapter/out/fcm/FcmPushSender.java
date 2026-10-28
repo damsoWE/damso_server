@@ -27,7 +27,7 @@ import damso.notification.application.port.out.PushSenderPort;
 import damso.notification.domain.PushMessage;
 
 /**
- * Firebase Admin SDK로 푸시를 보낸다 (research R8). 자격 증명(DAMSO_FCM_CREDENTIALS)은 기동 시 형식만 검증하고,
+ * Firebase Admin SDK로 푸시를 보낸다. 자격 증명(DAMSO_FCM_CREDENTIALS)은 기동 시 형식만 검증하고,
  * FirebaseApp은 처음 보낼 때 만든다 — 기동이 외부(Google) 연결에 묶이지 않게 한다.
  * 오류는 종류만 WARN으로 남기고 토큰·문구·문의 UUID는 남기지 않는다. 장애는 예외가 아니라 결과로 알린다.
  */

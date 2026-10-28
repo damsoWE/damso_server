@@ -20,7 +20,7 @@ import damso.school.domain.Student;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F2 / SC-005·009, FR-026, 원칙 I·VII: 학부모·교사 응답 어디에도 다른 사용자의 이메일·이름·연락처가 없고,
+ * 학부모·교사 응답 어디에도 다른 사용자의 이메일·이름·연락처가 없고,
  * 남의 문의는 존재 여부조차 알 수 없다(404뿐).
  */
 class InquiryExposureTest extends IntegrationTestSupport {
@@ -93,7 +93,7 @@ class InquiryExposureTest extends IntegrationTestSupport {
 	}
 
 	/**
-	 * spec 005 T024 / US3 시나리오 1·2, FR-012, SC-004: 위협·폭언 표시는 학부모에게 나가지 않는다. 표시된 문의와 표시되지 않은 문의의
+	 * 위협·폭언 표시는 학부모에게 나가지 않는다. 표시된 문의와 표시되지 않은 문의의
 	 * 학부모 응답은 키와 안내 코드가 같아 표시 여부를 짐작할 수 없다.
 	 */
 	@Test

@@ -6,7 +6,7 @@ import java.util.Base64;
 
 /**
  * 테스트용 시크릿을 실행 시점에 무작위로 만들어 시스템 프로퍼티로 넣는다.
- * 시크릿 값을 파일에 커밋하지 않기 위함이다 (Gitleaks, constitution 원칙 VIII).
+ * 시크릿 값을 파일에 커밋하지 않기 위함이다 (Gitleaks).
  * DB 접속값은 더미이며 실제 접속은 Testcontainers @ServiceConnection이 덮어쓴다.
  */
 public final class TestSecrets {

@@ -18,7 +18,7 @@ import damso.gateway.domain.Pseudonymizer.Masked;
 import damso.gateway.domain.Roster;
 
 /**
- * 가명화 게이트웨이의 공통 흐름 (원칙 II, research R1·R4): 학교 용어 합치기 → 사전을 한 번 만들기 → 가명화 → 가린 뒤 자기 점검
+ * 가명화 게이트웨이의 공통 흐름: 학교 용어 합치기 → 사전을 한 번 만들기 → 가명화 → 가린 뒤 자기 점검
  * (못 가렸으면 외부 호출 없음) → 외부 AI. 정리·위기 분류 두 입구가 이 흐름을 함께 쓰고, 결과 검증만 각자 한다.
  * 대응표(PseudonymMap)는 결과로만 넘기고 필드·캐시·로그에 남기지 않는다. 로그에는 실패 종류만 남긴다.
  */

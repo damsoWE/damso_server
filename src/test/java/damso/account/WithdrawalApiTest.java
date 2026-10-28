@@ -19,7 +19,7 @@ import damso.school.domain.Classroom;
 import damso.school.domain.Student;
 import damso.support.IntegrationTestSupport;
 
-/** US7 시나리오 2~7, FR-038·038a, research R11: 탈퇴는 비식별화·연결 해제·이력 보존이고 같은 이메일로 다시 가입할 수 있다. */
+/** 탈퇴는 비식별화·연결 해제·이력 보존이고 같은 이메일로 다시 가입할 수 있다. */
 class WithdrawalApiTest extends IntegrationTestSupport {
 
 	private static final String WRONG = "Wrong" + "Pass1";

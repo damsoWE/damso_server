@@ -23,7 +23,7 @@ import damso.school.domain.Classroom;
 import damso.school.domain.Student;
 import damso.support.IntegrationTestSupport;
 
-/** US1 시나리오 2~5, FR-007~009, SC-006: 초대 코드 발행·재발행·현황. */
+/** 초대 코드 발행·재발행·현황. */
 class InviteIssueApiTest extends IntegrationTestSupport {
 
 	private static final String CODE_PATTERN = "^[A-HJKMNP-Z2-9]{10}$";

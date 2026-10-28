@@ -10,7 +10,7 @@ import jakarta.persistence.UniqueConstraint;
 import damso.common.entity.BaseEntity;
 
 /**
- * 학부모의 답변 도착 알림 설정. 설정 행이 없으면 기본값 켜짐(on)으로 본다 (FR-024, 클래리파이 Q3).
+ * 학부모의 답변 도착 알림 설정. 설정 행이 없으면 기본값 켜짐(on)으로 본다.
  */
 @Entity
 @Table(name = "parent_notification_setting",

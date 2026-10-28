@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import damso.gateway.application.service.RefineInquiryGatewayServiceParseProbe;
 
 /**
- * F3 T028 / FR-007·008·011, SC-003·011, research R6: 외부 AI 결과의 서버 재검증과 복원. 하나라도 어기면 결과 전체를 버린다.
+ * 외부 AI 결과의 서버 재검증과 복원. 하나라도 어기면 결과 전체를 버린다.
  */
 class RefinementResultTest {
 
@@ -130,7 +130,7 @@ class RefinementResultTest {
 
 	@Test
 	void contactAndIdentifierTokensAreNeverRestoredIntoTheResult() {
-		// 원칙 I: 정리 결과가 연락처를 새로 저장하지 않는다 — 실호출 점검(2026-10-25)에서 전화번호가 사실관계로 복원되던 문제
+		// 정리 결과가 연락처를 새로 저장하지 않는다 — 실호출 점검(2026-10-25)에서 전화번호가 사실관계로 복원되던 문제
 		Pseudonymizer.Masked masked = Pseudonymizer.mask(
 				"김민준 엄마예요. 010-1234-5678, a@b.co, 행복로 12, 900101-1234567",
 				Roster.of(List.of("김민준"), List.of(), List.of(), 0, 0));

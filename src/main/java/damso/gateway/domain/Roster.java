@@ -3,10 +3,10 @@ package damso.gateway.domain;
 import java.util.List;
 
 /**
- * 1차 가명화 사전의 재료(research R2). 정리 한 번 동안만 메모리에 있고 저장하지 않는다.
+ * 1차 가명화 사전의 재료. 정리 한 번 동안만 메모리에 있고 저장하지 않는다.
  * 학생·보호자·교사 이름과 학년·반은 호출하는 쪽(inquiry)이 채워 넘기고, 학교 용어는 게이트웨이가 자기 리소스에서 직접 채운다
  * ({@link #withSchoolTerms}) — 다른 도메인이 게이트웨이의 출력 포트를 참조하지 않게 하기 위해서다.
- * toString은 이름 대신 종류별 건수만 보여 준다(원칙 VI).
+ * toString은 이름 대신 종류별 건수만 보여 준다.
  *
  * @param grade 학년, 모르면 0
  * @param classNumber 반, 모르면 0

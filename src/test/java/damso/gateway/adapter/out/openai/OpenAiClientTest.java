@@ -30,7 +30,7 @@ import damso.gateway.application.port.out.ExternalAiPort.AiTask;
 import damso.gateway.domain.MaskedText;
 
 /**
- * F3 T020 / research R5, security-checklist 1-12·L1: 실제 외부 호출 없이(MockRestServiceServer) 요청 형식과 실패 처리를 확인한다.
+ * 실제 외부 호출 없이(MockRestServiceServer) 요청 형식과 실패 처리를 확인한다.
  * 고정 주소, 역할 분리, strict 스키마, store=false, 시간 초과·오류는 응답 없음, 로그에 본문 없음.
  */
 @ExtendWith(OutputCaptureExtension.class)

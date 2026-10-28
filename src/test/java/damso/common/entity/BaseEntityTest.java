@@ -22,7 +22,7 @@ import damso.support.IntegrationTestSupport;
 import damso.support.SecretNote;
 import damso.support.SecretNoteRepository;
 
-/** US6 / SC-006: UUID v4 식별자, 감사 시각·버전 자동, 동시 수정 충돌 → 409. */
+/** UUID v4 식별자, 감사 시각·버전 자동, 동시 수정 충돌 → 409. */
 class BaseEntityTest extends IntegrationTestSupport {
 
 	@Autowired

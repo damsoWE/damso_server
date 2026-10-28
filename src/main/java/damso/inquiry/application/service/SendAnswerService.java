@@ -21,9 +21,9 @@ import damso.notification.application.port.in.NotifyAnswerUseCase;
 import damso.school.application.port.in.InquiryTargetQuery;
 
 /**
- * 답변 작성·전송 (FR-001~007). 점검 여부·문의 단계와 무관하게 동작한다 — 일반 문의가 아직
- * TEACHER_CONFIRMED에 닿지 않아도(F3 전) 답변은 보낼 수 있다(research R3). 다만 스레드가 이미
- * "답변 완료"로 종료됐으면 거부한다(FR-021, THREAD_CLOSED).
+ * 답변 작성·전송. 점검 여부·문의 단계와 무관하게 동작한다 — 일반 문의가 아직
+ * TEACHER_CONFIRMED에 닿지 않아도(F3 전) 답변은 보낼 수 있다. 다만 스레드가 이미
+ * "답변 완료"로 종료됐으면 거부한다(THREAD_CLOSED).
  */
 @Service
 @Transactional
@@ -51,10 +51,10 @@ public class SendAnswerService implements SendAnswerUseCase {
 	@Override
 	public AnswerSentResult send(UUID teacherId, UUID inquiryId, String content, boolean reviewed) {
 		// 쓰기 잠금으로 조회한다 — 종료(CloseInquiryService)가 같은 행을 쓰는 동안 이 트랜잭션이 기다리게 해,
-		// "검사(stage 확인) 뒤 사용(답변 저장)" 사이에 종료가 끼어드는 TOCTOU를 막는다(PR #10 리뷰).
+		// "검사(stage 확인) 뒤 사용(답변 저장)" 사이에 종료가 끼어드는 TOCTOU를 막는다.
 		Inquiry inquiry = inquiries.findInquiryByIdForUpdate(inquiryId)
 				.filter(found -> targets.isCurrentHomeroomTeacher(teacherId, found.getClassroomId()))
-				// {inquiryId}는 항상 스레드 루트다 — 재문의 자신의 id로는 답변할 수 없다(research R1).
+				// {inquiryId}는 항상 스레드 루트다 — 재문의 자신의 id로는 답변할 수 없다.
 				.filter(found -> found.getThreadRootId() == null)
 				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 		if (inquiry.getStage() == InquiryStage.ANSWERED) {

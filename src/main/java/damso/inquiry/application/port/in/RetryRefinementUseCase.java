@@ -4,7 +4,7 @@ import java.util.UUID;
 
 import damso.inquiry.domain.RefinementStatus;
 
-/** 자동 정리에 실패한 문의를 교사가 한 번 더 정리시킨다 (F3 US3, FR-017). */
+/** 자동 정리에 실패한 문의를 교사가 한 번 더 정리시킨다. */
 public interface RetryRefinementUseCase {
 
 	record RetryAccepted(UUID inquiryId, RefinementStatus refinementStatus) {

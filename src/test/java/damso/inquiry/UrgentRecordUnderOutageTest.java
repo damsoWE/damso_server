@@ -17,10 +17,9 @@ import damso.inquiry.adapter.out.persistence.InquiryStageHistoryRepository;
 import damso.inquiry.application.port.out.InquiryStageHistoryPort;
 import damso.inquiry.domain.InquiryStageHistory;
 import damso.support.IntegrationTestSupport;
-import damso.support.OperatorQueries;
 
 /**
- * F5 T013 / FR-006, SC-006: 긴급 경로의 처리 기록은 외부 AI·알림 장애와 상관없이 남고, 기록이 실패하면 접수도 남지 않는다.
+ * 긴급 경로의 처리 기록은 외부 AI·알림 장애와 상관없이 남고, 기록이 실패하면 접수도 남지 않는다.
  * 운영 코드는 바꾸지 않는다 — F2의 접수 트랜잭션(문의 저장 + 단계 이력)과 커밋 뒤 외부 호출 구조를 증명하는 테스트다.
  */
 class UrgentRecordUnderOutageTest extends IntegrationTestSupport {
@@ -82,10 +81,6 @@ class UrgentRecordUnderOutageTest extends IntegrationTestSupport {
 		assertThat(stages(followUpId)).containsExactlyInAnyOrder("RECEIVED", "DELIVERED");
 		assertThat(jdbc.queryForList("select status from notification_request where kind = 'URGENT'", String.class))
 				.hasSize(2).containsOnly("PENDING");
-		// 운영자 조회문으로도 두 메시지의 접수·긴급 전달이 그대로 나온다
-		List<String> events = OperatorQueries.threadEvents(jdbc, rootId);
-		assertThat(events).containsSubsequence("INQUIRY_SUBMITTED", "STAGE_RECEIVED", "STAGE_DELIVERED",
-				"FOLLOW_UP_SUBMITTED", "STAGE_RECEIVED", "STAGE_DELIVERED");
 	}
 
 	@Test

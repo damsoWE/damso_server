@@ -24,7 +24,7 @@ import damso.inquiry.application.port.in.SendAnswerUseCase;
 
 /**
  * 교사 답변 API (경로 단위 역할 검사는 SecurityConfig의 /api/v1/teacher/**). {@code inquiryId}는 항상
- * 스레드 루트를 가리킨다. 답변을 수정·삭제하는 경로는 없다 (원칙 III).
+ * 스레드 루트를 가리킨다. 답변을 수정·삭제하는 경로는 없다.
  */
 @RestController
 @RequestMapping("/api/v1/teacher/inquiries")

@@ -18,10 +18,10 @@ import org.hibernate.annotations.Immutable;
 import org.springframework.data.domain.Persistable;
 
 /**
- * 보호자·담임 연결 이력과 탈퇴 사실. append-only다 — 수정·삭제 경로가 없다 (원칙 III, FR-038a, research R10).
+ * 보호자·담임 연결 이력과 탈퇴 사실. append-only다 — 수정·삭제 경로가 없다.
  * - BaseEntity를 상속하지 않는다(수정 시각·버전이 의미 없음). id는 같은 방식(UUID v4)으로 만든다.
  * - @Immutable이라 Hibernate가 UPDATE를 내보내지 않고, setter가 없다.
- * - 개인정보(이메일·이름) 컬럼이 없다 — 계정 UUID와 대상 UUID, 종류, 시각만 남는다(원칙 VI).
+ * - 개인정보(이메일·이름) 컬럼이 없다 — 계정 UUID와 대상 UUID, 종류, 시각만 남는다.
  * - account_id는 FK를 걸지 않는다. 계정이 비식별화된 뒤에도 이력은 그대로 남는다.
  */
 @Entity

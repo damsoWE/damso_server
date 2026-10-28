@@ -14,7 +14,7 @@ import damso.common.crypto.SensitiveText;
 import damso.common.entity.BaseEntity;
 
 /**
- * 가입 인증 대기. 이메일 인증이 끝나야 계정으로 확정되고 초대 코드가 소모된다 (FR-016).
+ * 가입 인증 대기. 이메일 인증이 끝나야 계정으로 확정되고 초대 코드가 소모된다.
  * 비밀번호는 BCrypt 해시, 이름은 암호화해 저장한다. 6자리 인증 코드는 HMAC만 저장한다(10분 유효).
  * 이메일당 미완료 건은 1개다 — 다시 시작하면 이전 건을 지운다.
  */

@@ -12,10 +12,10 @@ import damso.common.crypto.SensitiveText;
 import damso.common.entity.BaseEntity;
 
 /**
- * 교사가 보낸 답변. 원문은 암호화해 저장하고 수정·삭제하지 않는다 (원칙 III, FR-001·003).
+ * 교사가 보낸 답변. 원문은 암호화해 저장하고 수정·삭제하지 않는다.
  * threadRootId는 이 답변이 속한 스레드(문의)의 루트 id다 — 경로 파라미터는 항상 루트 id이므로 재조회 없이 그대로 쓴다.
  * reviewed는 "점검을 요청했는지"만 기록한다. F3 전까지 점검은 항상 실패를 반환하는 스텁이라
- * reviewed=true라도 실질적인 점검 효과는 없다(FR-012).
+ * reviewed=true라도 실질적인 점검 효과는 없다.
  */
 @Entity
 @Table(name = "answer",

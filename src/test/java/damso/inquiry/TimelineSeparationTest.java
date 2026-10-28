@@ -20,7 +20,7 @@ import damso.inquiry.domain.InquiryStage;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F5 T025 / US4, FR-010·012: 감사 기록이 넓어져도 학부모·교사 상세의 타임라인에는 처리 단계만 나오고, 두 화면이 같은 목록이다.
+ * 감사 기록이 넓어져도 학부모·교사 상세의 타임라인에는 처리 단계만 나오고, 두 화면이 같은 목록이다.
  * 앱 어디에도 감사 기록을 돌려주는 경로가 없다.
  */
 class TimelineSeparationTest extends IntegrationTestSupport {

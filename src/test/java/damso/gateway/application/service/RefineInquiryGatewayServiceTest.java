@@ -13,7 +13,7 @@ import damso.gateway.domain.Roster;
 import damso.support.FakeExternalAi;
 
 /**
- * F3 T019·T024 / 원칙 II, FR-005, research R1·R4: 게이트웨이는 가명화를 먼저 하고, 못 가렸으면 외부 AI를 부르지 않는다.
+ * 게이트웨이는 가명화를 먼저 하고, 못 가렸으면 외부 AI를 부르지 않는다.
  * 학교 용어는 호출하는 쪽이 넘기지 않아도 게이트웨이가 채운다. 외부 오류는 코드로만 돌려준다.
  */
 class RefineInquiryGatewayServiceTest {

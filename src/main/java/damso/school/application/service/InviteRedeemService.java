@@ -86,7 +86,7 @@ public class InviteRedeemService implements InviteRedeemUseCase {
 			}
 		}
 		catch (OptimisticLockingFailureException | DataIntegrityViolationException concurrentUse) {
-			// 같은 코드를 동시에 쓴 다른 요청이 먼저 확정했다 — 한 건만 성공한다 (SC-008)
+			// 같은 코드를 동시에 쓴 다른 요청이 먼저 확정했다 — 한 건만 성공한다
 			throw invalid();
 		}
 	}

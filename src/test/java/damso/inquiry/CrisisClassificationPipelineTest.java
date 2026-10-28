@@ -17,7 +17,7 @@ import damso.support.FakeExternalAi;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F3 T050 / US6 시나리오 1~8, FR-036~040, SC-015·016: 긴급 문의는 접수 뒤 위기 종류를 한 번 분류해 학부모 안내 번호를 고른다.
+ * 긴급 문의는 접수 뒤 위기 종류를 한 번 분류해 학부모 안내 번호를 고른다.
  * 가린 글만 나가고, 허용값이 아니거나 실패하면 기본 안내(112·109)가 그대로다. 긴급 전달·알림은 분류와 무관하다.
  */
 class CrisisClassificationPipelineTest extends IntegrationTestSupport {

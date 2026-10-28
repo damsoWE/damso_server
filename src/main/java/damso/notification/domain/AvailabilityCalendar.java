@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * 응답 가능 시간 판정(순수 규칙). 시각 비교만 Asia/Seoul로 한다 (FR-027·029).
+ * 응답 가능 시간 판정(순수 규칙). 시각 비교만 Asia/Seoul로 한다.
  * 구간이 하나도 없으면(설정 없음·빈 목록) 항상 응답 가능이다.
  */
 public final class AvailabilityCalendar {

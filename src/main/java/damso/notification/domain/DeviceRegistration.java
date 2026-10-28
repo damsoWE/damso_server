@@ -13,7 +13,7 @@ import jakarta.persistence.UniqueConstraint;
 import damso.common.entity.BaseEntity;
 
 /**
- * 푸시를 받을 기기. 등록한 접근 토큰의 세션(sid)에 묶여, 그 세션이 살아 있을 때만 발송 대상이 된다 (research R9).
+ * 푸시를 받을 기기. 등록한 접근 토큰의 세션(sid)에 묶여, 그 세션이 살아 있을 때만 발송 대상이 된다.
  * 로그아웃·탈퇴로 세션이 끝나면 별도 정리 없이 알림이 끊긴다.
  * FCM 토큰은 유니크하다. toString은 BaseEntity가 클래스명과 id만 출력하므로 토큰이 로그에 나오지 않는다.
  */

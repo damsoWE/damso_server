@@ -18,7 +18,7 @@ import damso.audit.adapter.out.persistence.AuditLogRepository;
 import damso.audit.application.port.out.AuditLogPort;
 import damso.audit.domain.AuditLog;
 
-/** 원칙 III·VI, research R11: 감사 기록에는 수정·삭제 경로가 없고 개인정보 컬럼이 없다 — 구조로 검사한다. */
+/** 감사 기록에는 수정·삭제 경로가 없고 개인정보 컬럼이 없다 — 구조로 검사한다. */
 class AuditLogAppendOnlyTest {
 
 	private static List<String> methodNames(Class<?> type) {

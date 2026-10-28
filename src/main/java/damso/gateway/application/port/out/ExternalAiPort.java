@@ -3,7 +3,7 @@ package damso.gateway.application.port.out;
 import damso.gateway.domain.MaskedText;
 
 /**
- * 외부 AI 호출의 유일한 출력 포트 (원칙 II, research R1). 이 포트는 gateway.application.service 안에서만 주입한다 —
+ * 외부 AI 호출의 유일한 출력 포트. 이 포트는 gateway.application.service 안에서만 주입한다 —
  * 그래서 외부로 나가는 글은 반드시 가명화를 먼저 거친다(GatewayStructureTest가 검사한다).
  * 입력은 가린 본문뿐이고, 시스템 지시와 본문은 역할을 나눠 보낸다.
  */

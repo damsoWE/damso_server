@@ -21,7 +21,7 @@ import damso.common.error.BusinessException;
 import damso.common.error.ErrorCode;
 
 /**
- * 실패 횟수·대기·발송·제출 제한을 Redis TTL 키로 둔다 (research R7).
+ * 실패 횟수·대기·발송·제출 제한을 Redis TTL 키로 둔다.
  * 증가와 대기 시각 계산은 Lua 스크립트 한 번으로 원자 처리한다.
  * 대기 판정은 앱 Clock 기준 시각(값)을 비교하고, Redis TTL은 오래된 키 정리에만 쓴다.
  * Redis에 닿을 수 없으면 요청을 거부한다(fail-closed) — 제한 없이 통과시키면 무차별 대입 방어가 꺼진다.

@@ -28,7 +28,7 @@ import damso.inquiry.domain.InquiryStageHistory;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F2 US3 / 원칙 III, FR-022·025: 감사 기록 없이는 원문이 나가지 않고, 동시에 처음 열람해도 단계 이력은 한 줄이다.
+ * 감사 기록 없이는 원문이 나가지 않고, 동시에 처음 열람해도 단계 이력은 한 줄이다.
  */
 class ViewInquiryContentAtomicityTest extends IntegrationTestSupport {
 

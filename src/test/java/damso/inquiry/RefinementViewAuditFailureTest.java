@@ -27,8 +27,8 @@ import damso.support.FakeExternalAi;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F5 T006 / FR-005, SC-005 [팀 결정 2026-10-27]: 번역본은 감사 기록이 실패해도 정상으로 나가고, 실패는 서버 로그에
- * 문의 식별자·행위 종류·오류 종류만 남는다. 원문은 원칙 III대로 기록이 실패하면 나가지 않는다.
+ * [팀 결정 2026-10-27] 번역본은 감사 기록이 실패해도 정상으로 나가고, 실패는 서버 로그에
+ * 문의 식별자·행위 종류·오류 종류만 남는다. 원문은 기록이 실패하면 나가지 않는다.
  * 확인 전이가 충돌이 아닌 이유로 실패하면(감사 실패가 아님) 시도·실패가 기록되고 번역본은 나가지 않는다.
  */
 @ExtendWith(OutputCaptureExtension.class)

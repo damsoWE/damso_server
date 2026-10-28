@@ -8,8 +8,8 @@ import damso.inquiry.adapter.in.controller.dto.response.InquiryStatusSummaryResp
 import damso.inquiry.application.port.in.InquiryStatusQuery;
 
 /**
- * 슈퍼 관리자 문의 현황 (F5 US3). 역할 검사는 SecurityConfig의 /api/v1/admin/** = SUPER_ADMIN.
- * 학급별 건수만 돌려주고 문의 내용에 접근하는 경로는 여전히 없다(원칙 VII).
+ * 슈퍼 관리자 문의 현황. 역할 검사는 SecurityConfig의 /api/v1/admin/** = SUPER_ADMIN.
+ * 학급별 건수만 돌려주고 문의 내용에 접근하는 경로는 여전히 없다.
  */
 @RestController
 @RequestMapping("/api/v1/admin")

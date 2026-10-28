@@ -12,7 +12,7 @@ import org.springframework.core.io.ClassPathResource;
 
 import damso.inquiry.adapter.out.resource.ClasspathUrgentExpressionSource;
 
-/** F2 T011 / FR-009·009a·010, SC-003: 긴급 판정은 정규화한 본문에 표현이 포함되는지만 본다. */
+/** 긴급 판정은 정규화한 본문에 표현이 포함되는지만 본다. */
 class UrgentRuleTest {
 
 	private static final ClasspathUrgentExpressionSource SOURCE = new ClasspathUrgentExpressionSource(

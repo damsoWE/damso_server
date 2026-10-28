@@ -93,7 +93,7 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 		List<StageEventView> timeline = histories.findByInquiry(inquiryId).stream()
 				.map(history -> new StageEventView(history.getStage(), history.getOccurredAt()))
 				.toList();
-		// 재문의 자신의 id로는 이 스레드 상세를 취급하지 않는다(research R1) — 스레드 루트일 때만 묶어서 보여준다.
+		// 재문의 자신의 id로는 이 스레드 상세를 취급하지 않는다 — 스레드 루트일 때만 묶어서 보여준다.
 		boolean isThreadRoot = inquiry.getThreadRootId() == null;
 		List<FollowUpView> followUps = isThreadRoot ? followUpsOf(inquiry.getId()) : List.of();
 		List<AnswerView> answerViews = isThreadRoot ? answersOf(inquiry.getId()) : List.of();
@@ -122,7 +122,7 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 
 	/**
 	 * flaggedThreads: 위협·폭언 표시가 붙은 재문의가 있는 스레드 루트. 루트 자신의 표시와 OR해 스레드 단위 표시를 만든다.
-	 * lastAnswered: 스레드 루트별 마지막 답변 전송 시각, 답변이 없는 루트는 없다(F4 US6).
+	 * lastAnswered: 스레드 루트별 마지막 답변 전송 시각, 답변이 없는 루트는 없다.
 	 */
 	private static InquirySummary summaryOf(Inquiry inquiry, Map<UUID, String> names, Set<UUID> flaggedThreads,
 			Map<UUID, Instant> lastAnswered) {
@@ -133,7 +133,7 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 	}
 
 	/**
-	 * 화면 제목(저장하지 않는다): 긴급은 고정 문구, 정리 결과 제목이 있으면 그 제목(F3), 자동 정리에 실패했으면 "원문 확인 필요",
+	 * 화면 제목(저장하지 않는다): 긴급은 고정 문구, 정리 결과 제목이 있으면 그 제목, 자동 정리에 실패했으면 "원문 확인 필요",
 	 * 아직 없으면 "정리 중".
 	 */
 	static String displayTitle(Inquiry inquiry) {

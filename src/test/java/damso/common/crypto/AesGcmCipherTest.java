@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 
 import damso.support.TestSecrets;
 
-/** US4 / FR-012·013: AES-256-GCM 왕복, 매번 다른 암호문, 변조·키 불일치·버전 오류 감지. */
+/** AES-256-GCM 왕복, 매번 다른 암호문, 변조·키 불일치·버전 오류 감지. */
 class AesGcmCipherTest {
 
 	private final AesGcmCipher cipher = new AesGcmCipher(TestSecrets.randomBytes(32));

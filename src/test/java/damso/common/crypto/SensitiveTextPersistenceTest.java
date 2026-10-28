@@ -14,7 +14,7 @@ import damso.support.IntegrationTestSupport;
 import damso.support.SecretNote;
 import damso.support.SecretNoteRepository;
 
-/** US4 / SC-004: SensitiveText 필드는 DB에 평문으로 남지 않고, 다시 읽으면 원문이다. */
+/** SensitiveText 필드는 DB에 평문으로 남지 않고, 다시 읽으면 원문이다. */
 class SensitiveTextPersistenceTest extends IntegrationTestSupport {
 
 	@Autowired

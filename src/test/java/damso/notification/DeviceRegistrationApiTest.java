@@ -19,7 +19,7 @@ import damso.notification.domain.NotificationKind;
 import damso.support.FakePushSender.Sent;
 import damso.support.IntegrationTestSupport;
 
-/** F2 US7 시나리오 4~5 / FR-032, SC-012: 기기는 로그인 세션에 묶이고, 세션이 끝나면 알림이 끊긴다. */
+/** 기기는 로그인 세션에 묶이고, 세션이 끝나면 알림이 끊긴다. */
 class DeviceRegistrationApiTest extends IntegrationTestSupport {
 
 	private static final String PATH = "/api/v1/me/devices";

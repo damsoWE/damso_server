@@ -9,7 +9,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 
 import damso.support.IntegrationTestSupport;
 
-/** FR-017: 기본 계정·기본 비밀번호가 없다. */
+/** 기본 계정·기본 비밀번호가 없다. */
 class NoDefaultAccountTest extends IntegrationTestSupport {
 
 	@Autowired

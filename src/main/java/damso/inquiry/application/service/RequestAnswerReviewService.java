@@ -20,9 +20,9 @@ import damso.inquiry.domain.InquiryContentPolicy;
 import damso.school.application.port.in.InquiryTargetQuery;
 
 /**
- * 답변 점검 요청 (FR-008·008a·009~013). pseudonymizedContext는 F3 전까지 항상 null이다(FR-008a).
- * 점검 포트가 실패하거나 예외를 던져도 이 서비스는 예외를 전파하지 않는다(fail-open, FR-012).
- * 점검 요청은 감사 기록을 남긴다(F5). 기록이 실패해도 점검 요청은 그대로 처리하고 로그만 남긴다(F5 research R4, 팀 결정 2026-10-28).
+ * 답변 점검 요청. pseudonymizedContext는 F3 전까지 항상 null이다.
+ * 점검 포트가 실패하거나 예외를 던져도 이 서비스는 예외를 전파하지 않는다(fail-open).
+ * 점검 요청은 감사 기록을 남긴다. 기록이 실패해도 점검 요청은 그대로 처리하고 로그만 남긴다(팀 결정 2026-10-28).
  * 바깥 트랜잭션을 두지 않는다 — 감사 기록은 자기 트랜잭션으로 커밋되고, 실패해도 이 요청을 롤백 전용으로 만들지 않는다.
  */
 @Service
@@ -50,13 +50,13 @@ public class RequestAnswerReviewService implements RequestAnswerReviewUseCase {
 	public AnswerReviewResult request(UUID teacherId, UUID inquiryId, String draftContent) {
 		Inquiry inquiry = inquiries.findInquiryById(inquiryId)
 				.filter(found -> targets.isCurrentHomeroomTeacher(teacherId, found.getClassroomId()))
-				// {inquiryId}는 항상 스레드 루트다 — 재문의 자신의 id로는 점검을 요청할 수 없다(research R1).
+				// {inquiryId}는 항상 스레드 루트다 — 재문의 자신의 id로는 점검을 요청할 수 없다.
 				.filter(found -> found.getThreadRootId() == null)
 				.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 		InquiryContentPolicy.validate(draftContent);
 		recordOrLog(teacherId, inquiry.getId());
 		try {
-			// pseudonymizedContext는 F3가 만드는 3요소 분해 결과가 들어가는 자리다. 지금은 항상 null이다(FR-008a).
+			// pseudonymizedContext는 F3가 만드는 3요소 분해 결과가 들어가는 자리다. 지금은 항상 null이다.
 			return review.review(draftContent, null).orElse(AnswerReviewResult.UNAVAILABLE);
 		}
 		catch (RuntimeException ex) {

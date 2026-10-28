@@ -13,7 +13,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import damso.notification.domain.NotificationKind;
 import damso.notification.domain.PushMessage;
 
-/** F2 T025 / FR-014, 원칙 V·VI: FCM에 나가는 것은 고정 문구와 종류·문의 UUID·건수뿐이고, 로그에는 문구·UUID·토큰이 없다. */
+/** FCM에 나가는 것은 고정 문구와 종류·문의 UUID·건수뿐이고, 로그에는 문구·UUID·토큰이 없다. */
 class FcmMessageMappingTest {
 
 	@ParameterizedTest

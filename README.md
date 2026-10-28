@@ -28,24 +28,9 @@
 - **출력 스키마 강제** — LLM 출력은 Structured Outputs + 서버 재검증, 쿼리 경로에 사용하지 않음
 - **안전한 기본값** — 기본 계정 미제공, 시크릿 미설정 시 기동 거부
 
-전체 원칙: [`.specify/memory/constitution.md`](.specify/memory/constitution.md) · 보안약점 점검: [`docs/security-checklist.md`](docs/security-checklist.md)
-
 ## 기술 스택
 
-Java 21 · Spring Boot 4.1 · Spring Security (JWT) · Spring Data JPA · PostgreSQL · Redis · OpenAI API · Nginx · Docker Compose
-
-## 문서
-
-| 문서 | 위치 |
-|---|---|
-| API 명세 | [`docs/api/openapi.yaml`](docs/api/openapi.yaml) |
-| 기획서 대비 변경 이력 | [`docs/decisions.md`](docs/decisions.md) |
-
-## 개발 방식
-
-- [spec-kit](https://github.com/github/spec-kit) 기반 명세 주도 개발(SDD): 기능별 명세는 [`specs/`](specs/)에 있습니다.
-- Claude Code 등 AI 코딩 도구를 활용하며, 사용 사실을 공개합니다.
-- 보안 원칙은 constitution에서 관리하고, AI 생성 코드는 PR 리뷰와 CI 보안 검증(Gitleaks 등)을 거쳐 머지합니다.
+Java 21 · Spring Boot 4.1 · Spring Security (JWT) · Spring Data JPA · PostgreSQL · Redis · OpenAI API · Caddy · Docker Compose
 
 ## License
 

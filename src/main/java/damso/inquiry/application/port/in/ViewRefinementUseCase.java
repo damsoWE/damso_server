@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/** 교사의 번역본 열람 (F3 US2). 번역본은 교사에게만 보인다. */
+/** 교사의 번역본 열람. 번역본은 교사에게만 보인다. */
 public interface ViewRefinementUseCase {
 
 	/** 이름·학급이 원래 값으로 되돌려진 정리 결과. 문의 내용이므로 toString은 가린다. */

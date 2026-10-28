@@ -13,9 +13,9 @@ import damso.inquiry.application.port.out.ThreatExpressionSource;
 import damso.inquiry.domain.ThreatRule;
 
 /**
- * 서버 리소스 파일(threat/expressions.txt)에서 위협·폭언 표현 목록을 읽는다(spec 005 research R3).
+ * 서버 리소스 파일(threat/expressions.txt)에서 위협·폭언 표현 목록을 읽는다.
  * 한 줄에 표현 하나, 빈 줄과 '#' 주석은 무시한다. 표현 안의 공백 자리는 남긴다(띄어쓰기를 허용할 자리, ThreatRule 참조).
- * 파일을 못 읽거나 표현이 하나도 없으면 기동을 거부한다 — 목록이 없는 채로 뜨면 표시가 조용히 꺼진다 (원칙 VIII).
+ * 파일을 못 읽거나 표현이 하나도 없으면 기동을 거부한다 — 목록이 없는 채로 뜨면 표시가 조용히 꺼진다.
  */
 @Component
 public final class ClasspathThreatExpressionSource implements ThreatExpressionSource {

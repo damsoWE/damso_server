@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-/** F2 T029 / FR-016·017·019·028, 원칙 V: 학부모 안내는 코드뿐이고 위기 종류별 번호가 고정되어 있다. */
+/** 학부모 안내는 코드뿐이고 위기 종류별 번호가 고정되어 있다. */
 class GuidancePolicyTest {
 
 	@Test

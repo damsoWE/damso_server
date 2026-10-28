@@ -15,7 +15,7 @@ import jakarta.persistence.UniqueConstraint;
 import damso.common.entity.BaseEntity;
 
 /**
- * 알림 요청(트랜잭셔널 아웃박스). 문의와 같은 트랜잭션에서 저장되므로 FCM·Redis가 죽어도 요청은 남는다 (원칙 IV).
+ * 알림 요청(트랜잭셔널 아웃박스). 문의와 같은 트랜잭션에서 저장되므로 FCM·Redis가 죽어도 요청은 남는다.
  * - 받는 사람은 요청의 교사가 아니라 보낼 때의 현재 담임으로 다시 정한다(긴급·재알림·일반). 묶음은 요청의 교사에게 간다.
  * - 대기 중 묶음은 교사당 하나: active_digest_key(대기 중이면 "DIGEST:{교사 UUID}", 끝나면 NULL)가 유니크다.
  * - 상태 전이는 허용된 것만: PENDING → SENDING/CANCELLED/SKIPPED, SENDING → SENT/PENDING/CANCELLED/SKIPPED,
@@ -93,7 +93,7 @@ public class NotificationRequest extends BaseEntity {
 		return new NotificationRequest(recipientId, NotificationKind.GENERAL_DIGEST, null, scheduledAt);
 	}
 
-	/** 답변 도착 알림(F4). recipientId는 학부모다 — 담임처럼 "보낼 때의 현재" 값으로 다시 찾지 않는다. */
+	/** 답변 도착 알림. recipientId는 학부모다 — 담임처럼 "보낼 때의 현재" 값으로 다시 찾지 않는다. */
 	public static NotificationRequest answer(UUID recipientId, UUID inquiryId, Instant scheduledAt) {
 		return new NotificationRequest(recipientId, NotificationKind.ANSWER, inquiryId, scheduledAt);
 	}

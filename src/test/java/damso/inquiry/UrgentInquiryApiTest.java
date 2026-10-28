@@ -32,7 +32,7 @@ import damso.inquiry.domain.NoticeCode;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F2 US2 시나리오 1~6 / FR-009~011·015·016·019·020, SC-002·003·009:
+ * 
  * 긴급 표현이 든 문의는 정제 없이 담임에게 전달되고, 1분 제한·Redis·푸시 장애와 무관하게 접수된다.
  */
 class UrgentInquiryApiTest extends IntegrationTestSupport {
@@ -124,7 +124,7 @@ class UrgentInquiryApiTest extends IntegrationTestSupport {
 		long elapsedMillis = Duration.ofNanos(System.nanoTime() - start).toMillis();
 
 		assertThat(response.getStatus()).isEqualTo(201);
-		assertThat(elapsedMillis).as("SC-002 3초 이내").isLessThan(3000);
+		assertThat(elapsedMillis).as("3초 이내").isLessThan(3000);
 	}
 
 	@Test

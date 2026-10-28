@@ -45,9 +45,9 @@ public class UrgentReminderService implements UrgentReminderPolicy {
 	}
 
 	/**
-	 * 재문의는 자기 자신이 ANSWERED까지 가지 않는다(research R2) — 교사가 그 재문의의 원문을 끝내 열람하지
+	 * 재문의는 자기 자신이 ANSWERED까지 가지 않는다 — 교사가 그 재문의의 원문을 끝내 열람하지
 	 * 않으면 자기 단계가 DELIVERED에 머문다. 스레드 루트가 "답변 완료"로 닫혔는지도 함께 봐야 재알림이 멈춘다
-	 * (F4 FR-020, PR #10 리뷰).
+	 *.
 	 */
 	private boolean threadIsClosed(Inquiry inquiry) {
 		if (inquiry.getThreadRootId() == null) {

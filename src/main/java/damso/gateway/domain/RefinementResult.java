@@ -9,7 +9,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 
 /**
- * 외부 AI 정리 결과의 서버 재검증과 복원 (research R6, FR-007·008·011). 하나라도 어기면 결과 전체를 버린다(fail-closed).
+ * 외부 AI 정리 결과의 서버 재검증과 복원. 하나라도 어기면 결과 전체를 버린다(fail-closed).
  * <ul>
  * <li>결과 안의 토큰은 이번 가명화가 만든 것만 — 모르는 토큰이 있으면 위반</li>
  * <li>복원한 뒤 길이: title 1~30자, facts 1~1,000자, requests 0~1,000자(코드 포인트)</li>
@@ -17,7 +17,7 @@ import java.util.regex.Matcher;
  * </ul>
  * 필드 구성(스키마 밖 필드 금지)은 JSON을 읽는 쪽이 먼저 확인한다.
  * 복원할 때 이름·학교·학급은 본 표기로 되돌리지만, 연락처·식별번호(전화·이메일·주소·주민번호)는 되돌리지 않고 고정 문구로 남긴다
- * — 정리 결과가 연락처를 새로 저장하지 않게(원칙 I, 실호출 점검 2026-10-25).
+ * — 정리 결과가 연락처를 새로 저장하지 않게(실호출 점검 2026-10-25).
  */
 public final class RefinementResult {
 

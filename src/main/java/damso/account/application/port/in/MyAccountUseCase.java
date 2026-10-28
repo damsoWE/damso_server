@@ -4,7 +4,7 @@ import java.util.UUID;
 
 import damso.account.domain.Role;
 
-/** 마이페이지의 내 정보 (FR-037). 본인 이메일만 돌려주고 다른 사용자의 정보는 다루지 않는다. */
+/** 마이페이지의 내 정보. 본인 이메일만 돌려주고 다른 사용자의 정보는 다루지 않는다. */
 public interface MyAccountUseCase {
 
 	MeView me(UUID userId);

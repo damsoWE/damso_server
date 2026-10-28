@@ -1,4 +1,4 @@
-# 민감 값은 ${DAMSO_*} 환경변수 참조만 둔다 (constitution 원칙 VIII).
+# 민감 값은 ${DAMSO_*} 환경변수 참조만 둔다.
 # 필수 시크릿 검증: damso.common.config.SecretsValidator
 spring:
   application:
@@ -10,7 +10,7 @@ spring:
   jpa:
     open-in-view: false
     hibernate:
-      # F1 팀 결정: 마이그레이션 도구 없이 엔티티 매핑으로 테이블 생성 (specs/001-auth-signup/research.md R1)
+      # F1 팀 결정: 마이그레이션 도구 없이 엔티티 매핑으로 테이블 생성
       ddl-auto: update
   servlet:
     multipart:
@@ -62,11 +62,11 @@ damso:
     secret: ${DAMSO_JWT_SECRET}
   openai:
     api-key: ${DAMSO_OPENAI_API_KEY}
-    # 모델 이름은 코드에 두지 않고 배포 환경에서 정한다 (F3 research R5, D2)
+    # 모델 이름은 코드에 두지 않고 배포 환경에서 정한다 (D2)
     model: ${DAMSO_OPENAI_MODEL}
     timeout:
       connect: 3s
-      # 외부 AI 한 번의 처리 시간 상한. 넘으면 응답 없음으로 보고 실패와 같이 다룬다 (F3 FR-013a)
+      # 외부 AI 한 번의 처리 시간 상한. 넘으면 응답 없음으로 보고 실패와 같이 다룬다
       read: 15s
   mail:
     from: ${DAMSO_MAIL_FROM}
@@ -81,10 +81,10 @@ damso:
     retry-delays: 1m,5m,15m
   inquiry:
     submit-interval: 60s
-    # 앱에서 쓰지 않는 "답변 완료" 종료 경로. false면 POST .../close가 404 (FR-031, decisions.md 2026-10-27)
+    # 앱에서 쓰지 않는 "답변 완료" 종료 경로. false면 POST .../close가 404
     close-enabled: false
   refinement:
-    # 정리 작업 안전망 실행 주기. 평소에는 접수 커밋 직후 바로 실행한다 (F3 research R7)
+    # 정리 작업 안전망 실행 주기. 평소에는 접수 커밋 직후 바로 실행한다
     dispatch-interval: 10s
     dispatch-on-commit: true
     lease: 60s

@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import damso.gateway.application.port.out.ExternalAiPort.AiTask;
 import damso.gateway.application.port.out.PromptSource;
 
-/** 서버 리소스(gateway/prompts/*.txt)에서 고정 시스템 지시를 읽는다. 하나라도 비었거나 못 읽으면 기동을 거부한다 (원칙 VIII). */
+/** 서버 리소스(gateway/prompts/*.txt)에서 고정 시스템 지시를 읽는다. 하나라도 비었거나 못 읽으면 기동을 거부한다. */
 @Component
 class ClasspathPromptSource implements PromptSource {
 

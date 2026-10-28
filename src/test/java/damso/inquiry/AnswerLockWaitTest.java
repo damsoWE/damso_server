@@ -19,7 +19,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import damso.support.IntegrationTestSupport;
 
 /**
- * 이슈 #26(체크리스트 시간 및 상태 2): 답변 전송은 루트 문의 행을 쓰기 잠금으로 읽는다. 다른 트랜잭션이 그 행을 오래 쥐고 있어도
+ * 이슈 #26: 답변 전송은 루트 문의 행을 쓰기 잠금으로 읽는다. 다른 트랜잭션이 그 행을 오래 쥐고 있어도
  * 커넥션을 쥔 채 무한정 기다리지 않고, 잠금 대기 상한(3초) 뒤 409 CONFLICT로 끝난다.
  */
 class AnswerLockWaitTest extends IntegrationTestSupport {

@@ -2,7 +2,7 @@ name: ci
 
 # PR과 main 푸시마다 테스트·정적분석(SpotBugs + find-sec-bugs)을 돌리고, 운영 이미지를 빌드해 알려진 취약점(Trivy)을 검사한다.
 # 하나라도 실패하면 검사가 실패로 표시된다. 브랜치 보호 규칙에서 test·image-scan을 필수 검사로 지정하면 머지가 막힌다.
-# (보안약점 체크리스트 코드오류 1·API 오용 2, 이슈 #26)
+# (이슈 #26)
 
 on:
   pull_request:

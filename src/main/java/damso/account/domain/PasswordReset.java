@@ -14,8 +14,8 @@ import damso.common.entity.BaseEntity;
 
 /**
  * 비밀번호 재설정 코드(6자리, 10분 유효, 1회용). 코드는 HMAC만 저장한다.
- * 사용자당 유효한 건은 1개다 — 다시 요청하면 이전 건을 지워 이전 코드가 무효가 된다 (FR-030).
- * user_id 유니크 인덱스로 DB에서도 1건을 보장한다. 기존 DB는 docs/db/2026-10-28-password-reset-unique-user.sql로 바꾼다.
+ * 사용자당 유효한 건은 1개다 — 다시 요청하면 이전 건을 지워 이전 코드가 무효가 된다.
+ * user_id 유니크 인덱스로 DB에서도 1건을 보장한다.
  */
 @Entity
 @Table(name = "password_reset",

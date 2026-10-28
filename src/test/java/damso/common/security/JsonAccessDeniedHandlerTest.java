@@ -11,7 +11,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 
 import tools.jackson.databind.json.JsonMapper;
 
-/** 필터 계층의 인증·인가 실패도 공통 형식으로 응답한다 (FR-022). */
+/** 필터 계층의 인증·인가 실패도 공통 형식으로 응답한다. */
 class JsonAccessDeniedHandlerTest {
 
 	private final JsonMapper mapper = JsonMapper.builder().build();

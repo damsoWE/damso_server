@@ -6,7 +6,7 @@ import damso.school.domain.InviteKind;
 
 /**
  * 초대 코드로 담임·보호자 연결을 확정한다. 가입(account)이 이 포트로만 school을 쓴다.
- * 없는·만료된·사용된·무효인·역할이 다른·대상이 이미 찬 코드는 모두 같은 INVALID_INVITE_CODE다 (FR-010).
+ * 없는·만료된·사용된·무효인·역할이 다른·대상이 이미 찬 코드는 모두 같은 INVALID_INVITE_CODE다.
  */
 public interface InviteRedeemUseCase {
 

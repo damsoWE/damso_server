@@ -12,7 +12,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * 통합 테스트는 @Async를 동기 실행기로 바꿔 결정적으로 돌린다. 그래서 운영에서의 구조(커밋 후·요청 스레드 밖·10초 안전망)가
- * 유지되는지는 여기서 어노테이션으로 확인한다 (research R7).
+ * 유지되는지는 여기서 어노테이션으로 확인한다.
  */
 class UrgentDispatchTriggerStructureTest {
 

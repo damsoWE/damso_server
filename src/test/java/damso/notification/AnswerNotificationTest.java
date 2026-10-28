@@ -16,7 +16,7 @@ import damso.notification.domain.NotificationKind;
 import damso.support.FakePushSender.Sent;
 import damso.support.IntegrationTestSupport;
 
-/** F4 US3 시나리오 1~4 / FR-023~025, SC-007·009: 답변 전송 시 학부모 알림, 고정 문구뿐, 꺼두면 저장만. */
+/** 답변 전송 시 학부모 알림, 고정 문구뿐, 꺼두면 저장만. */
 class AnswerNotificationTest extends IntegrationTestSupport {
 
 	private static final String DEVICE_TOKEN = "parent-device-token";

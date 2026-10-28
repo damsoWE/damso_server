@@ -26,7 +26,7 @@ public class LoginService implements LoginUseCase {
 
 	private final SessionIssuer sessionIssuer;
 
-	/** 없는 이메일에도 같은 비용으로 비밀번호를 비교하기 위한 고정 해시. 어떤 계정의 비밀번호도 아니다 (research R8). */
+	/** 없는 이메일에도 같은 비용으로 비밀번호를 비교하기 위한 고정 해시. 어떤 계정의 비밀번호도 아니다. */
 	private final String dummyHash;
 
 	public LoginService(UserAccountPort accounts, PasswordEncoder passwordEncoder, AttemptLimitUseCase attempts,

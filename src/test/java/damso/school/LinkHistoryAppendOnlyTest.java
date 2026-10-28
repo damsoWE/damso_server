@@ -17,7 +17,7 @@ import damso.school.adapter.out.persistence.LinkHistoryRepository;
 import damso.school.application.port.out.LinkHistoryPort;
 import damso.school.domain.LinkHistory;
 
-/** research R10, 원칙 III: 연결 이력에는 수정·삭제 경로가 없다 — 구조로 검사한다. */
+/** 연결 이력에는 수정·삭제 경로가 없다 — 구조로 검사한다. */
 class LinkHistoryAppendOnlyTest {
 
 	private static List<String> methodNames(Class<?> type) {

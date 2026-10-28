@@ -14,7 +14,7 @@ import damso.account.domain.Role;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F4 US7 시나리오 1·2 / FR-031·032, SC-014: 앱에서 쓰지 않는 종료 경로는 운영 기본값(damso.inquiry.close-enabled=false)에서
+ * 앱에서 쓰지 않는 종료 경로는 운영 기본값(damso.inquiry.close-enabled=false)에서
  * 막혀 있다. 교사는 담당 여부와 무관하게 없는 경로와 같은 404를 받고, 스레드는 열린 채로 남는다.
  * 교사가 아닌 사용자는 경로 단위 역할 검사에서 먼저 403이다. 설정을 켰을 때의 동작은 CloseInquiryApiTest가 본다.
  */
@@ -83,7 +83,7 @@ class CloseDisabledApiTest extends IntegrationTestSupport {
 		assertThat(disabled.getContentAsString()).isEqualTo(missing.getContentAsString());
 	}
 
-	/** F5: 꺼진 경로의 404는 거부된 요청이므로 종료 감사 기록을 남기지 않는다. */
+	/** 꺼진 경로의 404는 거부된 요청이므로 종료 감사 기록을 남기지 않는다. */
 	@Test
 	void disabledCloseLeavesNoAuditRecord() throws Exception {
 		ConfirmedInquiry confirmed = urgentInquiryConfirmedByTeacher();

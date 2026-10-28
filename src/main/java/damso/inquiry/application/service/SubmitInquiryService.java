@@ -37,9 +37,9 @@ import damso.school.application.port.in.InquiryTargetQuery;
 import damso.school.application.port.in.InquiryTargetQuery.ChildTarget;
 
 /**
- * 문의 접수 (research R6). 순서:
+ * 문의 접수. 순서:
  * ① 입력 검증 ② 중복 제출 확인(재시도는 같은 결과, 같은 키·다른 내용은 409) ③ 대상 확인(자녀·담임)
- * ④ 긴급 판정(규칙, AI 이전) ⑤ 일반이면 1분 제한 ⑥ 일반이면 위협·폭언 판정(규칙, 실패하면 표시 없음, spec 005) ⑦ 저장.
+ * ④ 긴급 판정(규칙, AI 이전) ⑤ 일반이면 1분 제한 ⑥ 일반이면 위협·폭언 판정(규칙, 실패하면 표시 없음) ⑦ 저장.
  * 긴급 문의는 1분 제한을 확인하지 않는다. 제한 저장소(Redis)를 쓸 수 없으면 일반 문의도 제한만 건너뛰고 접수한다 —
  * 도배 방지 장치가 학부모의 문의권을 막으면 안 된다. 본문·제목은 어떤 로그에도 남기지 않는다.
  */
@@ -123,7 +123,7 @@ public class SubmitInquiryService implements SubmitInquiryUseCase {
 			boolean threatFlagged = false;
 			if (!urgent) {
 				enforceSubmitLimit(parentId);
-				// 긴급이 먼저다 — 긴급 문의는 판정하지 않는다(spec 005 FR-005a). 제한에 걸린 요청도 판정하지 않는다.
+				// 긴급이 먼저다 — 긴급 문의는 판정하지 않는다. 제한에 걸린 요청도 판정하지 않는다.
 				threatFlagged = threatScreener.screenSafely(content);
 			}
 			return persist(parentId, target, content, urgent, threatFlagged, idempotencyKey, requestHash);
@@ -154,12 +154,12 @@ public class SubmitInquiryService implements SubmitInquiryUseCase {
 		Inquiry received = Inquiry.receive(parentId, target.studentId(), target.classroomId(),
 				target.homeroomTeacherId(), content, urgent, threatFlagged, idempotencyKey, requestHash, now);
 		if (urgent) {
-			// 긴급은 정제를 건너뛰고 접수와 같은 트랜잭션에서 교사에게 전달된 상태가 된다 (FR-009·010)
+			// 긴급은 정제를 건너뛰고 접수와 같은 트랜잭션에서 교사에게 전달된 상태가 된다
 			received.moveTo(InquiryStage.DELIVERED);
 		}
 		if (!urgent
 				&& notifications.previewGeneral(received.getTeacherId()) == NotifyInquiryUseCase.NotificationDecision.DEFERRED) {
-			// 일반 문의 알림은 정리가 확정된 뒤에 요청한다(F3 FR-032). 여기서는 학부모에게 보일 지연 안내만 접수 시각 기준으로 정해 둔다.
+			// 일반 문의 알림은 정리가 확정된 뒤에 요청한다. 여기서는 학부모에게 보일 지연 안내만 접수 시각 기준으로 정해 둔다.
 			received.markDeferredNotice();
 		}
 		Inquiry inquiry = inquiries.saveInquiry(received);
@@ -168,12 +168,12 @@ public class SubmitInquiryService implements SubmitInquiryUseCase {
 			histories.append(InquiryStageHistory.of(inquiry.getId(), InquiryStage.DELIVERED, now));
 			// 알림 요청은 문의와 같은 트랜잭션에 저장하고(아웃박스), 발송은 커밋 뒤에 한다. Redis·FCM을 호출하지 않는다.
 			notifications.requestUrgent(inquiry.getId(), inquiry.getTeacherId());
-			// 위기 종류 분류(F3)도 작업으로만 남긴다. 긴급 전달·알림은 분류를 기다리지 않고, 분류가 실패하면 기본 안내가 그대로다.
+			// 위기 종류 분류도 작업으로만 남긴다. 긴급 전달·알림은 분류를 기다리지 않고, 분류가 실패하면 기본 안내가 그대로다.
 			RefinementJob classify = refinementJobs.save(RefinementJob.classifyCrisis(inquiry.getId(), now));
 			events.publishEvent(new RefinementRequested(classify.getId()));
 		}
 		else {
-			// 정리 작업도 같은 트랜잭션에 저장하고(아웃박스), 외부 AI 호출은 커밋 뒤에 한다(F3 research R7)
+			// 정리 작업도 같은 트랜잭션에 저장하고(아웃박스), 외부 AI 호출은 커밋 뒤에 한다
 			RefinementJob job = refinementJobs.save(RefinementJob.refine(inquiry.getId(), now));
 			events.publishEvent(new RefinementRequested(job.getId()));
 		}

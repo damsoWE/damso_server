@@ -24,7 +24,7 @@ import damso.account.domain.Role;
 
 /**
  * 접근 토큰(JWT, HS256)을 발급한다. 서명 키는 검증 쪽(JwtDecoderConfig)과 같은 damso.jwt.secret이고 알고리즘은 HS256으로 고정이다.
- * 클레임: sub(사용자 UUID), role, sid(세션 UUID), iat, exp (research R4).
+ * 클레임: sub(사용자 UUID), role, sid(세션 UUID), iat, exp.
  */
 @Component
 class JwtAccessTokenIssuer implements AccessTokenIssuerPort {

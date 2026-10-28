@@ -40,14 +40,14 @@ public class TestSupportConfig {
 		return new FakePushSender();
 	}
 
-	/** 외부 AI에 접속하지 않는다. 받은 가린 본문을 기록하고 응답을 테스트가 정한다 (F3). */
+	/** 외부 AI에 접속하지 않는다. 받은 가린 본문을 기록하고 응답을 테스트가 정한다. */
 	@Bean
 	@Primary
 	FakeExternalAi fakeExternalAi() {
 		return new FakeExternalAi();
 	}
 
-	/** 실제 위협·폭언 판정에 실패 끼워 넣기·호출 횟수 세기를 더한 것 (spec 005). */
+	/** 실제 위협·폭언 판정에 실패 끼워 넣기·호출 횟수 세기를 더한 것. */
 	@Bean
 	@Primary
 	FailableThreatFlagScreener failableThreatFlagScreener(ThreatExpressionSource expressions) {

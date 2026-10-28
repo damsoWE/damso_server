@@ -15,7 +15,7 @@ import tools.jackson.databind.ObjectMapper;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F3 T048 / US5 시나리오 1~5, FR-022~024, SC-010·012: 학부모는 정제·교사 확인 단계를 시각과 함께 보지만, 정리 결과·정서·실패
+ * 학부모는 정제·교사 확인 단계를 시각과 함께 보지만, 정리 결과·정서·실패
  * 사유는 보지 않는다. 일반 문의에는 "교사에게 전달됨" 단계가 없다.
  */
 class ParentRefinementTimelineTest extends IntegrationTestSupport {

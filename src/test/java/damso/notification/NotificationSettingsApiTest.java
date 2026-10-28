@@ -21,8 +21,8 @@ import damso.notification.domain.AvailabilityCalendar;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F2 US7 시나리오 1~3·6~7 / FR-031, SC-011: 교사의 응답 가능 시간·일반 알림 설정.
- * F3 FR-032·033: 설정은 일반 문의 알림이 요청되는 시각(정리 확정 시각)에 적용된다. 커밋 직후 정리를 끄고 제출마다 직접 확정시킨다.
+ * 교사의 응답 가능 시간·일반 알림 설정.
+ * 설정은 일반 문의 알림이 요청되는 시각(정리 확정 시각)에 적용된다. 커밋 직후 정리를 끄고 제출마다 직접 확정시킨다.
  */
 @TestPropertySource(properties = "damso.refinement.dispatch-on-commit=false")
 class NotificationSettingsApiTest extends IntegrationTestSupport {
@@ -168,7 +168,7 @@ class NotificationSettingsApiTest extends IntegrationTestSupport {
 		save(teacherToken, body(true, window(tomorrowDay(), "09:00", "18:00")));
 		clock.advance(Duration.ofSeconds(61));
 		MockHttpServletResponse deferred = submitInquiry(s.parent().accessToken(), s.student().getId(), NORMAL_SAMPLE);
-		// F3 FR-032·033: 일반 문의 알림은 정리가 확정될 때 요청된다 — 지금(설정 저장 직후) 확정시킨다
+		// 일반 문의 알림은 정리가 확정될 때 요청된다 — 지금(설정 저장 직후) 확정시킨다
 		runRefinement();
 		List<String> deferredNotices = read(deferred, "$.notices");
 		assertThat(deferredNotices).containsExactly("RECEIVED", "DEFERRED_TO_AVAILABLE_HOURS");

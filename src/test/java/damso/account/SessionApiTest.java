@@ -18,7 +18,7 @@ import damso.account.domain.Role;
 import damso.account.domain.UserAccount;
 import damso.support.IntegrationTestSupport;
 
-/** US4 시나리오 6~10, FR-025·025a·025b·026·027, SC-007: 기기별 세션, 갱신 토큰 회전·재사용 탐지, 14일 만료. */
+/** 기기별 세션, 갱신 토큰 회전·재사용 탐지, 14일 만료. */
 class SessionApiTest extends IntegrationTestSupport {
 
 	private record Tokens(String access, String refresh) {

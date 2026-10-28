@@ -27,10 +27,10 @@ import damso.inquiry.domain.RefinementStatus;
 import damso.school.application.port.in.InquiryTargetQuery;
 
 /**
- * 교사 재시도 (F3 US3, FR-017, research R8). 문의 1건당 1회. 작업을 다시 열고(teacher_retry_used = true) 커밋 뒤 바로 실행한다.
+ * 교사 재시도. 문의 1건당 1회. 작업을 다시 열고(teacher_retry_used = true) 커밋 뒤 바로 실행한다.
  * 교사 재시도는 자동 재시도 없이 한 번만 시도하고, 성공해도 알림을 다시 보내지 않는다(실행기가 처리한다).
  * 동시에 두 번 눌러도 작업 행의 @Version이 하나만 통과시킨다 — 나머지는 409.
- * 받아들여진 재시도는 커밋된 뒤 누가 요청했는지 감사 기록을 남긴다(F5 research R9). 기록 시각은 요청 시각이다.
+ * 받아들여진 재시도는 커밋된 뒤 누가 요청했는지 감사 기록을 남긴다. 기록 시각은 요청 시각이다.
  * 기록이 실패해도 재시도는 그대로 진행되고 로그만 남는다. 동시 요청에서 진 쪽은 커밋되지 않으므로 기록하지 않는다.
  */
 @Service

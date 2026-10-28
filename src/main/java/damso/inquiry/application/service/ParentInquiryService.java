@@ -62,13 +62,13 @@ public class ParentInquiryService implements ParentInquiryQuery {
 		List<StageEventView> timeline = histories.findByInquiry(inquiryId).stream()
 				.map(history -> new StageEventView(history.getStage(), history.getOccurredAt()))
 				.toList();
-		// 재문의 자신의 id로는 이 스레드 상세를 취급하지 않는다(research R1) — 스레드 루트일 때만 묶어서 보여준다.
+		// 재문의 자신의 id로는 이 스레드 상세를 취급하지 않는다 — 스레드 루트일 때만 묶어서 보여준다.
 		boolean isThreadRoot = inquiry.getThreadRootId() == null;
 		List<FollowUpView> followUps = isThreadRoot ? followUpsOf(inquiry.getId()) : List.of();
 		List<AnswerView> answerViews = isThreadRoot ? answersOf(inquiry.getId()) : List.of();
 		return new InquiryDetail(inquiry.getId(), inquiry.getStudentId(), studentName, inquiry.getContent().reveal(),
 				inquiry.isUrgent(), inquiry.getStage(), inquiry.getSubmittedAt(), timeline,
-				// 접수 때 보인 안내와 같아야 한다 — 실제 알림 지연(notification_deferred)이 아니라 접수 때 판정한 값을 쓴다 (F3 R10)
+				// 접수 때 보인 안내와 같아야 한다 — 실제 알림 지연(notification_deferred)이 아니라 접수 때 판정한 값을 쓴다
 				GuidancePolicy.noticesFor(inquiry.isUrgent(), inquiry.isDeferredNotice()),
 				GuidancePolicy.hotlinesFor(inquiry.isUrgent(), inquiry.getCrisisType()), followUps, answerViews);
 	}

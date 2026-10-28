@@ -17,7 +17,7 @@ import damso.account.domain.Role;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F4 US1 시나리오 1~5 / FR-001~007, SC-001: 교사가 답변을 작성해 점검 없이 바로 전송한다.
+ * 교사가 답변을 작성해 점검 없이 바로 전송한다.
  * 전송은 문의 단계·점검 서비스 상태와 무관하게 동작한다.
  */
 class SendAnswerApiTest extends IntegrationTestSupport {

@@ -12,7 +12,7 @@ import damso.school.domain.Classroom;
 import damso.school.domain.Student;
 import damso.support.IntegrationTestSupport;
 
-/** US7 시나리오 1, FR-037: 마이페이지의 내 정보와 연결된 학급. */
+/** 마이페이지의 내 정보와 연결된 학급. */
 class MyAccountApiTest extends IntegrationTestSupport {
 
 	private MockHttpServletResponse rename(String token, String body) throws Exception {

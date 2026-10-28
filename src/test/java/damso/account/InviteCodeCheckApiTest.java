@@ -15,7 +15,7 @@ import damso.school.domain.Student;
 import damso.support.IntegrationTestSupport;
 
 /**
- * US2·US3 가입 전 코드 확인, FR-011a: 역할만 알려 주고 코드를 소모하지 않는다. 실패 응답과 횟수는 가입 1단계와 같다.
+ * 가입 전 코드 확인: 역할만 알려 주고 코드를 소모하지 않는다. 실패 응답과 횟수는 가입 1단계와 같다.
  */
 class InviteCodeCheckApiTest extends IntegrationTestSupport {
 

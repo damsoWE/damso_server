@@ -47,7 +47,7 @@ import damso.notification.application.port.in.NotifyInquiryUseCase;
 import damso.notification.application.port.in.NotifyInquiryUseCase.NotificationDecision;
 
 /**
- * 정리·분류 작업을 실행한다 (F3 research R7·R8·R10·R11).
+ * 정리·분류 작업을 실행한다.
  * - 커밋 직후 {@link RefinementDispatchTrigger}가 {@link #dispatchOne}으로 바로 실행하고, {@link #dispatchDue}가 10초마다
  *   못 끝낸 작업을 실행하는 안전망이다. 작업은 하나씩 짧은 트랜잭션에서 임대(RUNNING, 60초)하고 외부 AI는 트랜잭션 밖에서 부른다
  *   — 여러 개를 한꺼번에 임대하면 앞의 작업을 처리하는 동안 뒤의 임대가 끝난다(자체 코드 리뷰).

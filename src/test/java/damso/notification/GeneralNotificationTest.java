@@ -27,9 +27,9 @@ import damso.support.FakePushSender.Sent;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F2 US5 시나리오 1~6 / FR-027~030, SC-007·011: 응답 가능 시간 안에서는 즉시, 밖에서는 시작 시각에 묶음 한 번.
+ * 응답 가능 시간 안에서는 즉시, 밖에서는 시작 시각에 묶음 한 번.
  * 로그인 세션이 14일 슬라이딩이라 시계를 크게 옮길 수 없으므로, 구간은 "지금 기준 오늘·내일·모레 요일"로 만든다.
- * F3 FR-032·033: 일반 문의 알림은 접수가 아니라 정리 확정 때 요청된다. 커밋 직후 정리를 끄고, 제출마다 정리를 직접 확정시켜
+ * 일반 문의 알림은 접수가 아니라 정리 확정 때 요청된다. 커밋 직후 정리를 끄고, 제출마다 정리를 직접 확정시켜
  * 기준 시각이 "정리 확정 시각"임을 드러낸다(이 테스트에서는 접수 직후 확정하므로 기대값은 F2와 같다).
  */
 @TestPropertySource(properties = "damso.refinement.dispatch-on-commit=false")
@@ -75,7 +75,7 @@ class GeneralNotificationTest extends IntegrationTestSupport {
 		return s;
 	}
 
-	/** 제출하고 정리를 확정시킨다 — F3 FR-032·033: 일반 문의 알림은 정리가 확정된 시각에 요청된다. */
+	/** 제출하고 정리를 확정시킨다 — 일반 문의 알림은 정리가 확정된 시각에 요청된다. */
 	private MockHttpServletResponse submitGeneral(Scenario s, String suffix) throws Exception {
 		clock.advance(Duration.ofSeconds(61));
 		MockHttpServletResponse response = submitInquiry(s.parent().accessToken(), s.student().getId(),

@@ -7,7 +7,7 @@ import java.util.UUID;
 import damso.school.domain.InviteCode;
 import damso.school.domain.InviteKind;
 
-/** 초대 코드 발행·재발행·발행 현황 (FR-005·009·012). 코드 원문은 발행 결과에만 있다. */
+/** 초대 코드 발행·재발행·발행 현황. 코드 원문은 발행 결과에만 있다. */
 public interface InviteIssueUseCase {
 
 	/** 담임이 이미 있으면 CLASSROOM_HAS_TEACHER, 없는 학급이면 NOT_FOUND. 이전 미사용 코드는 즉시 무효. */

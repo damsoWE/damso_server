@@ -16,7 +16,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 /**
  * 모든 엔티티의 공통 기반.
- * - id: 생성 시점에 UUID v4로 할당 (constitution 원칙 VII, 순번 ID 미노출)
+ * - id: 생성 시점에 UUID v4로 할당 (순번 ID 미노출)
  * - version: 낙관적 락 (동시 수정 충돌 감지)
  * - toString: 클래스명과 id만 출력해 하위 클래스의 민감 필드가 로그에 섞이지 않게 한다
  */

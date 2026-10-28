@@ -18,7 +18,7 @@ import damso.school.domain.Classroom;
 import damso.school.domain.Student;
 import damso.support.IntegrationTestSupport;
 
-/** F2 T013: inquiry가 school을 읽는 통로. 본인 자녀·남의 자녀·담임 없음·담임 해제. */
+/** inquiry가 school을 읽는 통로. 본인 자녀·남의 자녀·담임 없음·담임 해제. */
 class InquiryTargetQueryTest extends IntegrationTestSupport {
 
 	@Autowired

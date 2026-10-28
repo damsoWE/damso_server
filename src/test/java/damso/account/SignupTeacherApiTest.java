@@ -17,7 +17,7 @@ import damso.account.domain.UserAccount;
 import damso.school.domain.Classroom;
 import damso.support.IntegrationTestSupport;
 
-/** US2 시나리오 1·5, FR-014·016·018·019: 교사가 초대 코드로 가입해 담임으로 확정된다. */
+/** 교사가 초대 코드로 가입해 담임으로 확정된다. */
 class SignupTeacherApiTest extends IntegrationTestSupport {
 
 	private Classroom classroom;
@@ -45,7 +45,7 @@ class SignupTeacherApiTest extends IntegrationTestSupport {
 		assertThat(UUID.fromString(pendingId)).isNotNull();
 		assertThat(started.getContentAsString()).doesNotContain("token").doesNotContain(code);
 
-		// 인증 전에는 계정도 연결도 코드 소모도 없다 (FR-016)
+		// 인증 전에는 계정도 연결도 코드 소모도 없다
 		assertThat(accountCount()).isZero();
 		assertThat(jdbc.queryForObject("select status from invite_code", String.class)).isEqualTo("ISSUED");
 		assertThat(classroomPort.findClassroomById(classroom.getId()).orElseThrow().hasTeacher()).isFalse();

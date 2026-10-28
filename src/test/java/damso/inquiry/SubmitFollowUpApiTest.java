@@ -23,7 +23,7 @@ import damso.school.domain.Classroom;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F4 US4 시나리오 1~3·7~8 / F2 FR-004, FR-014~016·015a, SC-006·011: 재문의 제출 —
+ * 재문의 제출 —
  * 본문 규칙·중복 확인·대상 재확인(현재 담임)·1분 제한(최초 문의와 같은 버킷 공유)·긴급 재문의의 즉시 접수.
  */
 class SubmitFollowUpApiTest extends IntegrationTestSupport {
@@ -129,7 +129,7 @@ class SubmitFollowUpApiTest extends IntegrationTestSupport {
 
 		assertThat(response.getStatus()).isEqualTo(201);
 		assertThat((Boolean) read(response, "$.urgent")).isTrue();
-		assertThat(elapsedMillis).as("SC-006 3초 이내").isLessThan(3_000);
+		assertThat(elapsedMillis).as("3초 이내").isLessThan(3_000);
 		String followUpId = read(response, "$.inquiryId");
 		assertThat(jdbc.queryForObject("select stage from inquiry where id = ?", String.class,
 				UUID.fromString(followUpId))).isEqualTo("DELIVERED");
@@ -182,8 +182,8 @@ class SubmitFollowUpApiTest extends IntegrationTestSupport {
 	}
 
 	/**
-	 * PR #10 리뷰: 긴급 재문의도 최초 긴급 문의와 같은 안내(notices·hotlines)를 받아야 한다
-	 * (FR-015·016 "그대로 따른다"). 응답과 스레드 상세의 ParentFollowUpView 둘 다 확인한다.
+	 * 긴급 재문의도 최초 긴급 문의와 같은 안내(notices·hotlines)를 받아야 한다
+	 * ("그대로 따른다"). 응답과 스레드 상세의 ParentFollowUpView 둘 다 확인한다.
 	 */
 	@Test
 	void urgentFollowUpResponseCarriesTheSameGuidanceAsTheInitialUrgentInquiry() throws Exception {
@@ -207,7 +207,7 @@ class SubmitFollowUpApiTest extends IntegrationTestSupport {
 	}
 
 	/**
-	 * PR #10 리뷰: 근무 시간 밖에 제출된 일반 재문의도 최초 문의와 같은 지연 안내(DEFERRED_TO_AVAILABLE_HOURS)를
+	 * 근무 시간 밖에 제출된 일반 재문의도 최초 문의와 같은 지연 안내(DEFERRED_TO_AVAILABLE_HOURS)를
 	 * 받아야 한다. 상담 번호는 긴급이 아니므로 없다.
 	 */
 	@Test

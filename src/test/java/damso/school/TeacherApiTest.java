@@ -15,7 +15,7 @@ import damso.school.domain.Classroom;
 import damso.school.domain.Student;
 import damso.support.IntegrationTestSupport;
 
-/** US6 시나리오 1~5, FR-033·035·036, SC-005·006: 교사 프로필과 담당 학급 연결 현황. */
+/** 교사 프로필과 담당 학급 연결 현황. */
 class TeacherApiTest extends IntegrationTestSupport {
 
 	private MockHttpServletResponse putProfile(String token, String displayName, String introduction)
@@ -99,7 +99,7 @@ class TeacherApiTest extends IntegrationTestSupport {
 		List<Boolean> notLinked = read(response, "$.students[?(@.name=='이둘')].guardianLinked");
 		assertThat(notLinked).containsExactly(false);
 
-		// 학부모의 이메일·이름은 어디에도 없다 (FR-036, SC-006)
+		// 학부모의 이메일·이름은 어디에도 없다
 		String body = response.getContentAsString();
 		assertThat(body).doesNotContain("@").doesNotContain(parent.email()).doesNotContain("정학부모")
 				.doesNotContain("박셋");

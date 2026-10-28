@@ -9,7 +9,7 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
- * 정리·분류 작업이 커밋되면 바로 실행한다 (F3 research R7). 요청 스레드 밖(@Async)에서 돌려 접수 응답이 외부 AI를 기다리지 않는다.
+ * 정리·분류 작업이 커밋되면 바로 실행한다. 요청 스레드 밖(@Async)에서 돌려 접수 응답이 외부 AI를 기다리지 않는다.
  * 실패해도 예외를 삼킨다 — 작업은 DB에 남아 있고 10초 주기 실행기가 안전망이다. 로그에는 작업 UUID만 남긴다.
  * damso.refinement.dispatch-on-commit=false면 즉시 실행하지 않고 안전망에만 맡긴다(테스트에서 "정리 확정 전" 상태를 보려고 쓴다).
  */

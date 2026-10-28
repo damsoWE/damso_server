@@ -28,12 +28,12 @@ import damso.gateway.domain.EmotionLevel;
 import damso.gateway.domain.MaskedText;
 
 /**
- * OpenAI HTTP API로 외부 AI를 호출한다 (research R5, D1 — RestClient, 새 의존성 없음).
- * - 대상 주소는 코드 상수다. 설정이나 입력으로 바꿀 수 없다(SSRF, security-checklist 1-12).
+ * OpenAI HTTP API로 외부 AI를 호출한다 (D1 — RestClient, 새 의존성 없음).
+ * - 대상 주소는 코드 상수다. 설정이나 입력으로 바꿀 수 없다(SSRF).
  * - 시스템 지시는 system 역할, 가린 본문은 user 역할로만 보낸다. 본문을 지시에 이어 붙이지 않는다(L1).
  * - 출력은 JSON 스키마(strict)로 강제하고, 공급자 측 저장을 끈다(store: false). 결과는 서버가 다시 검증한다(RefinementResult).
  * - 시간 초과·연결 실패·오류 응답·거부 응답은 모두 응답 없음이다. 로그에는 작업 종류와 HTTP 상태만 남기고 요청·응답 본문과
- *   공급자의 오류 본문은 남기지 않는다(원칙 VI).
+ *   공급자의 오류 본문은 남기지 않는다.
  */
 @Component
 class OpenAiClient implements ExternalAiPort {

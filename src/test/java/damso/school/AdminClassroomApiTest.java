@@ -18,7 +18,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import damso.account.domain.Role;
 import damso.support.IntegrationTestSupport;
 
-/** US1 시나리오 1·6, SC-005: 관리자 학급·학생 명단 API와 역할 검사. */
+/** 관리자 학급·학생 명단 API와 역할 검사. */
 class AdminClassroomApiTest extends IntegrationTestSupport {
 
 	private String admin;

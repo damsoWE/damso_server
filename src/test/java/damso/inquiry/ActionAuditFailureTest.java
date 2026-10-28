@@ -23,7 +23,7 @@ import damso.audit.domain.AuditTargetType;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F5 FR-005·006, research R9 [팀 결정 2026-10-28]: 재시도·종료는 처리가 커밋된 뒤 감사 기록을 남긴다. 기록이 실패해도
+ * [팀 결정 2026-10-28] 재시도·종료는 처리가 커밋된 뒤 감사 기록을 남긴다. 기록이 실패해도
  * 재시도는 202, 종료는 200이고 상태는 정상으로 바뀌며, 실패는 문의 식별자·행위 종류·오류 종류만 로그에 남는다.
  */
 @ExtendWith(OutputCaptureExtension.class)

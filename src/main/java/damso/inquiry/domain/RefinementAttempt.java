@@ -18,8 +18,8 @@ import org.hibernate.annotations.Immutable;
 import org.springframework.data.domain.Persistable;
 
 /**
- * 정리 시도 한 번의 기록. append-only다 (원칙 III). 내용·프롬프트·응답은 담지 않고 결과 코드만 남긴다.
- * 한 문의의 시도는 최대 3번이다(자동 1 + 자동 재시도 1 + 교사 1, SC-006).
+ * 정리 시도 한 번의 기록. append-only다. 내용·프롬프트·응답은 담지 않고 결과 코드만 남긴다.
+ * 한 문의의 시도는 최대 3번이다(자동 1 + 자동 재시도 1 + 교사 1).
  */
 @Entity
 @Immutable

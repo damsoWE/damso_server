@@ -6,7 +6,7 @@ import java.util.Set;
 import jakarta.validation.ConstraintViolation;
 
 /**
- * 검증 제약 종류 → 고정 사유 문구 (FR-024).
+ * 검증 제약 종류 → 고정 사유 문구.
  * 사유에는 제약 조건 값(최대 길이 등)만 들어가며, 사용자가 보낸 입력값은 절대 들어가지 않는다.
  */
 final class ValidationReasons {

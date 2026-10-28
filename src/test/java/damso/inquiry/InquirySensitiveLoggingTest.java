@@ -32,7 +32,7 @@ import damso.school.domain.Student;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F2 / SC-006, FR-008, 원칙 VI: 문의 제출(일반·긴급)·열람·알림 발송·기기 등록과 실패 경로(1분 제한 거부, 푸시 실패,
+ * 문의 제출(일반·긴급)·열람·알림 발송·기기 등록과 실패 경로(1분 제한 거부, 푸시 실패,
  * 감사 실패) 전체에서 문의 본문·제목, FCM 토큰, 학생 이름이 로그에 남지 않는다.
  */
 @ExtendWith(OutputCaptureExtension.class)
@@ -152,7 +152,7 @@ class InquirySensitiveLoggingTest extends IntegrationTestSupport {
 	}
 
 	/**
-	 * F3 T054 / SC-002·009, 원칙 II·VI: 정리 성공·형식 위반·응답 없음·교사 재시도·위기 분류·번역본·원문 열람 경로 전체에서
+	 * 정리 성공·형식 위반·응답 없음·교사 재시도·위기 분류·번역본·원문 열람 경로 전체에서
 	 * 문의 본문, 가린 본문, 정리 결과(제목·사실관계·요청사항), 학생·보호자·교사 이름, 전화번호가 로그에 남지 않는다.
 	 */
 	@Test
@@ -207,7 +207,7 @@ class InquirySensitiveLoggingTest extends IntegrationTestSupport {
 	}
 
 	/**
-	 * F5 T026 / 원칙 VI, FR-004·005: 번역본 열람(성공·감사 실패), 재시도, 점검 요청(성공·감사 실패), 종료, 슈퍼 관리자 현황
+	 * 번역본 열람(성공·감사 실패), 재시도, 점검 요청(성공·감사 실패), 종료, 슈퍼 관리자 현황
 	 * 경로 전체에서 문의 본문, 정리 결과, 답변 초안, 이름, 전화번호가 로그에 남지 않는다. 감사 실패 로그는 식별자·종류만 남긴다.
 	 */
 	@Test
@@ -274,7 +274,7 @@ class InquirySensitiveLoggingTest extends IntegrationTestSupport {
 	}
 
 	/**
-	 * spec 005 T025 / FR-013·014, SC-005, US3 시나리오 3: 위협·폭언 표시가 붙는 문의를 접수·조회·정리·알림까지 지나도 본문과
+	 * 위협·폭언 표시가 붙는 문의를 접수·조회·정리·알림까지 지나도 본문과
 	 * 판정에 걸린 표현이 로그에 남지 않고, 교사 알림은 표시 여부와 무관하게 같은 종류(고정 문구)다.
 	 */
 	@Test

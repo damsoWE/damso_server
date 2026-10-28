@@ -10,7 +10,7 @@ import damso.gateway.application.port.out.SchoolTermsSource;
 
 /**
  * 서버 리소스(pseudonymization/school-terms.txt)에서 학교 용어를 읽는다. 한 줄에 하나, 빈 줄과 '#' 주석은 무시한다.
- * 용어가 하나도 없으면 기동을 거부한다 — 학교 이름이 가려지지 않은 채 외부로 나가지 않게 (원칙 II·VIII).
+ * 용어가 하나도 없으면 기동을 거부한다 — 학교 이름이 가려지지 않은 채 외부로 나가지 않게.
  */
 @Component
 final class ClasspathSchoolTermsSource implements SchoolTermsSource {

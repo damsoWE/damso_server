@@ -14,7 +14,7 @@ import damso.account.domain.UserAccount;
 import damso.support.IntegrationTestSupport;
 
 /**
- * Edge Case "응답 시간 차이로도 가입 여부를 드러내지 않는다", research R8.
+ * "응답 시간 차이로도 가입 여부를 드러내지 않는다".
  * 느슨한 기준(중앙값 비율 0.5~2.0)으로 "없는 이메일이라 비밀번호 비교를 건너뛰는" 실수만 잡는다.
  */
 class LoginTimingTest extends IntegrationTestSupport {

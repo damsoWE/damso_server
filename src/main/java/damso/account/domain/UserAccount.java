@@ -14,9 +14,9 @@ import damso.common.crypto.SensitiveText;
 import damso.common.entity.BaseEntity;
 
 /**
- * 계정. 연락처 컬럼은 없다 (원칙 I). 이메일은 로그인 식별용이며 소문자로 정규화한다.
+ * 계정. 연락처 컬럼은 없다. 이메일은 로그인 식별용이며 소문자로 정규화한다.
  * 이름은 SensitiveText로 암호화 저장하고 로그에 [MASKED]로 찍힌다.
- * 탈퇴하면 이메일·비밀번호는 NULL, 이름은 "탈퇴한 사용자"가 된다 — NULL은 유니크 제약에서 중복이 아니라 재가입이 가능하다 (FR-038).
+ * 탈퇴하면 이메일·비밀번호는 NULL, 이름은 "탈퇴한 사용자"가 된다 — NULL은 유니크 제약에서 중복이 아니라 재가입이 가능하다.
  */
 @Entity
 @Table(name = "user_account", uniqueConstraints = @UniqueConstraint(name = "uk_user_account_email", columnNames = "email"))
@@ -68,7 +68,7 @@ public class UserAccount extends BaseEntity {
 		return new UserAccount(email, passwordHash, name, role, agreedAt);
 	}
 
-	/** 서버가 직접 만드는 슈퍼 관리자 (환경변수로 주입, FR-001). 약관 동의 시각은 없다. */
+	/** 서버가 직접 만드는 슈퍼 관리자 (환경변수로 주입). 약관 동의 시각은 없다. */
 	public static UserAccount superAdmin(String email, String passwordHash, String name) {
 		return new UserAccount(email, passwordHash, name, Role.SUPER_ADMIN, null);
 	}

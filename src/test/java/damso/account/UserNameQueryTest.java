@@ -14,7 +14,7 @@ import damso.account.domain.UserAccount;
 import damso.school.domain.Classroom;
 import damso.support.IntegrationTestSupport;
 
-/** F3 T013: 가명화 사전의 보호자·교사 이름. 없는 계정·탈퇴한 계정은 결과에 없다. */
+/** 가명화 사전의 보호자·교사 이름. 없는 계정·탈퇴한 계정은 결과에 없다. */
 class UserNameQueryTest extends IntegrationTestSupport {
 
 	@Autowired

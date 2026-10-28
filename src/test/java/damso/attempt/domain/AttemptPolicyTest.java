@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
-/** FR-011·024·030·032: 대기·잠금 규칙의 경계값. */
+/** 대기·잠금 규칙의 경계값. */
 class AttemptPolicyTest {
 
 	@ParameterizedTest

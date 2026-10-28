@@ -272,7 +272,7 @@ public abstract class IntegrationTestSupport {
 				"{\"pendingSignupId\":\"" + pendingSignupId + "\",\"code\":\"" + code + "\"}"), null);
 	}
 
-	// ---- 문의·알림 (F2) ----
+	// ---- 문의·알림 ----
 
 	private static final ObjectMapper JSON = new ObjectMapper();
 
@@ -317,7 +317,7 @@ public abstract class IntegrationTestSupport {
 				UUID.randomUUID(), userId, sessionId, token);
 	}
 
-	// ---- 가명화·정제 (F3) ----
+	// ---- 가명화·정제 ----
 
 	/** teacherWithClassroom()이 만드는 가짜 이름들. 실제 인물이 아니다. */
 	protected static final String STUDENT_NAME = "김하나";
@@ -342,7 +342,7 @@ public abstract class IntegrationTestSupport {
 	protected record SignedUp(String email, UUID userId, String accessToken, String refreshToken) {
 	}
 
-	// ---- 답변·점검·전송·재문의 (F4) ----
+	// ---- 답변·점검·전송·재문의 ----
 
 	/** teacherWithClassroom() + 긴급 문의 1건 + 교사가 원문을 열람해 TEACHER_CONFIRMED까지 만들어 둔 상태. */
 	protected record ConfirmedInquiry(Scenario scenario, UUID inquiryId) {
@@ -350,7 +350,7 @@ public abstract class IntegrationTestSupport {
 
 	/**
 	 * 답변·점검·종료 테스트의 공통 전제조건. 일반 문의는 F3의 REFINING → TEACHER_CONFIRMED 전이가 아직 없어
-	 * (research R3) 긴급 문의로 만든다.
+	 * 긴급 문의로 만든다.
 	 */
 	protected ConfirmedInquiry urgentInquiryConfirmedByTeacher() throws Exception {
 		Scenario scenario = teacherWithClassroom();

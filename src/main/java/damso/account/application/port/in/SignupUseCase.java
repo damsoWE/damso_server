@@ -6,7 +6,7 @@ import damso.account.application.service.TokenResult;
 import damso.account.domain.Role;
 
 /**
- * 가입 2단계 (research R5).
+ * 가입 2단계.
  * 1단계: 초대 코드를 검증하고 이메일로 6자리 인증 코드를 보낸다. 2단계: 인증 코드가 맞으면 한 트랜잭션에서
  * 계정 생성 → 초대 코드 소모 → 담임/보호자 연결 → 연결 이력 → 로그인 토큰 발급.
  */

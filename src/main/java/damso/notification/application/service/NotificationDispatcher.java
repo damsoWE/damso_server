@@ -33,7 +33,7 @@ import damso.notification.domain.PushMessage;
 import damso.notification.domain.TeacherNotificationSetting;
 
 /**
- * 알림 요청을 FCM으로 보낸다 (research R7).
+ * 알림 요청을 FCM으로 보낸다.
  * - 긴급은 커밋 직후 {@link UrgentDispatchTrigger}가 {@link #dispatchOne}으로 즉시 보내고,
  *   {@link #dispatchDue}가 10초마다 못 보낸 요청과 일반·묶음·재알림을 보내는 안전망이다.
  * - 요청은 짧은 트랜잭션에서 임대(SENDING, 60초)한 뒤 트랜잭션 밖에서 전송한다. 느린 FCM 호출이 DB 행 잠금을 쥐지 않고,
@@ -151,7 +151,7 @@ public class NotificationDispatcher {
 				.filter(device -> sessions.isActive(device.getSessionId()))
 				.toList();
 		if (live.isEmpty()) {
-			// 기기가 생길 때까지 PENDING으로 두고 다음 주기에 다시 본다 (FR-032)
+			// 기기가 생길 때까지 PENDING으로 두고 다음 주기에 다시 본다
 			finish(request, List.of(), Outcome.RELEASE, now, recipient);
 			return;
 		}
@@ -222,7 +222,7 @@ public class NotificationDispatcher {
 	}
 
 	private Optional<UUID> recipientOf(NotificationRequest request) {
-		// 묶음·답변 알림은 "현재 담임"을 다시 찾지 않는다 — 받는 사람이 이미 정해져 있다(묶음: 교사, 답변: 학부모, F4).
+		// 묶음·답변 알림은 "현재 담임"을 다시 찾지 않는다 — 받는 사람이 이미 정해져 있다(묶음: 교사, 답변: 학부모).
 		if (request.getKind() == NotificationKind.GENERAL_DIGEST || request.getKind() == NotificationKind.ANSWER) {
 			return Optional.of(request.getRecipientId());
 		}

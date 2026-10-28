@@ -12,7 +12,7 @@ import damso.common.crypto.SecureCodes;
 import damso.school.domain.Classroom;
 import damso.support.IntegrationTestSupport;
 
-/** US2 시나리오 2·3, FR-010·011, SC-003·004: 코드가 쓸 수 없는 이유를 구분하지 않고, 5회 실패 시 잠긴다. */
+/** 코드가 쓸 수 없는 이유를 구분하지 않고, 5회 실패 시 잠긴다. */
 class SignupInviteCodeFailureTest extends IntegrationTestSupport {
 
 	private String bodyFor(String code) throws Exception {

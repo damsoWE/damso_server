@@ -4,7 +4,7 @@ import org.springframework.http.HttpStatus;
 
 /**
  * 시스템 전체 공통 에러 코드.
- * 메시지는 고정 문구이며 예외 메시지·입력값을 담지 않는다 (constitution 원칙 VI).
+ * 메시지는 고정 문구이며 예외 메시지·입력값을 담지 않는다.
  * 기능별 코드는 이 목록에 추가하되, 기존 코드의 의미는 바꾸지 않는다.
  */
 public enum ErrorCode {
@@ -19,7 +19,7 @@ public enum ErrorCode {
 	UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "지원하지 않는 형식입니다."),
 	INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "일시적인 오류가 발생했습니다."),
 
-	// F1 (specs/001-auth-signup). 기존 코드 뒤에 둔다 — fromStatus는 선언 순서대로 찾으므로
+	// F1. 기존 코드 뒤에 둔다 — fromStatus는 선언 순서대로 찾으므로
 	// 400·401·409는 계속 위의 공통 코드로 대응된다.
 	INVALID_INVITE_CODE(HttpStatus.BAD_REQUEST, "코드를 확인해 주세요."),
 	INVALID_VERIFICATION_CODE(HttpStatus.BAD_REQUEST, "인증 코드가 올바르지 않거나 만료되었습니다."),
@@ -28,16 +28,16 @@ public enum ErrorCode {
 	CLASSROOM_HAS_TEACHER(HttpStatus.CONFLICT, "이미 담임이 연결된 학급입니다."),
 	STUDENT_HAS_GUARDIAN(HttpStatus.CONFLICT, "이미 보호자가 연결된 학생입니다."),
 
-	// F2 (specs/002-inquiry-intake-urgent). 역시 기존 코드 뒤에 둔다.
+	// F2. 역시 기존 코드 뒤에 둔다.
 	NO_HOMEROOM_TEACHER(HttpStatus.CONFLICT, "담임 선생님이 아직 연결되지 않았습니다."),
 	INQUIRY_CONTENT_UNAVAILABLE(HttpStatus.CONFLICT, "아직 열람할 수 없는 문의입니다."),
 
-	// F3 (specs/003-pseudonymization-pipeline). 역시 기존 코드 뒤에 둔다.
+	// F3. 역시 기존 코드 뒤에 둔다.
 	// INQUIRY_CONTENT_UNAVAILABLE은 F3부터 응답하지 않지만(일반 문의 원문 열람 허용) 의미를 바꾸지 않도록 남긴다.
 	REFINEMENT_NOT_READY(HttpStatus.CONFLICT, "아직 정리된 내용이 없습니다."),
 	REFINEMENT_RETRY_UNAVAILABLE(HttpStatus.CONFLICT, "다시 정리할 수 없는 문의입니다."),
 
-	// F4 (specs/004-answer-review-send). 역시 기존 코드 뒤에 둔다.
+	// F4. 역시 기존 코드 뒤에 둔다.
 	THREAD_CLOSED(HttpStatus.CONFLICT, "이미 종료된 문의입니다."),
 	INQUIRY_NOT_READY_TO_CLOSE(HttpStatus.CONFLICT, "아직 종료할 수 없는 문의입니다.");
 

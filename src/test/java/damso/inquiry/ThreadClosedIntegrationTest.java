@@ -25,9 +25,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F4 US5 시나리오 3~4 / FR-021, 원칙 백엔드 요건 동시성: 종료된 스레드는 재문의·답변을 모두 거부하고,
+ * 백엔드 요건 동시성: 종료된 스레드는 재문의·답변을 모두 거부하고,
  * 동시 종료 요청은 하나만 성공한다(@Version).
- * 운영에서는 종료 경로가 꺼져 있다(FR-031). 종료 경로를 다시 열 때를 대비해 FR-021·022 서버 검증을 계속 확인한다(PR #19 리뷰 P0).
+ * 운영에서는 종료 경로가 꺼져 있다. 종료 경로를 다시 열 때를 대비해 서버 검증을 계속 확인한다(PR #19 리뷰 P0).
  */
 @TestPropertySource(properties = "damso.inquiry.close-enabled=true")
 class ThreadClosedIntegrationTest extends IntegrationTestSupport {

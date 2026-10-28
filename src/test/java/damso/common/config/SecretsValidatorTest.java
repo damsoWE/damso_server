@@ -12,7 +12,7 @@ import org.springframework.mock.env.MockEnvironment;
 
 import damso.support.TestSecrets;
 
-/** US2 / SC-002: 필수 시크릿 검증 (foundation 6개 + F1 추가분). 실패 메시지에 이름은 있고 값은 없다. */
+/** 필수 시크릿 검증 (foundation 6개 + F1 추가분). 실패 메시지에 이름은 있고 값은 없다. */
 class SecretsValidatorTest {
 
 	private static final String KEY_32 = Base64.getEncoder().encodeToString(TestSecrets.randomBytes(32));

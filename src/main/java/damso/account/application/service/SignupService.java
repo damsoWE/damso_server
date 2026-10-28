@@ -68,7 +68,7 @@ public class SignupService implements SignupUseCase {
 		return roleOf(validateInviteCode(inviteCode, UserAccount.normalizeEmail(email)));
 	}
 
-	/** 가입 1단계와 코드 확인이 같은 규칙을 쓴다: 잠금 확인 → 검증 → 코드 무효면 이메일 기준 실패 기록(FR-011). */
+	/** 가입 1단계와 코드 확인이 같은 규칙을 쓴다: 잠금 확인 → 검증 → 코드 무효면 이메일 기준 실패 기록. */
 	private InviteTarget validateInviteCode(String inviteCode, String email) {
 		attempts.ensureAllowed(AttemptKind.INVITE_CODE, email);
 		try {
@@ -98,7 +98,7 @@ public class SignupService implements SignupUseCase {
 
 		InviteTarget target = validateInviteCode(command.inviteCode(), email);
 
-		// 가입된 이메일이든 아니든 처리 시간과 응답이 같도록 비밀번호 해시를 항상 먼저 계산한다 (research R8)
+		// 가입된 이메일이든 아니든 처리 시간과 응답이 같도록 비밀번호 해시를 항상 먼저 계산한다
 		String passwordHash = passwordEncoder.encode(command.password());
 		attempts.ensureMailSendAllowed(email);
 

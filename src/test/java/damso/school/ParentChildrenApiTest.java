@@ -19,7 +19,7 @@ import damso.school.domain.Classroom;
 import damso.school.domain.Student;
 import damso.support.IntegrationTestSupport;
 
-/** US3 시나리오 1~5, US6 시나리오 3, SC-005·006: 학부모 가입·자녀 추가·자녀 목록. */
+/** 학부모 가입·자녀 추가·자녀 목록. */
 class ParentChildrenApiTest extends IntegrationTestSupport {
 
 	private MockHttpServletResponse link(String accessToken, String inviteCode) throws Exception {
@@ -69,7 +69,7 @@ class ParentChildrenApiTest extends IntegrationTestSupport {
 		assertThat((String) read(listed, "$[0].teacher.displayName")).isEqualTo("최선생");
 		assertThat((String) read(listed, "$[0].teacher.introduction")).isEmpty();
 
-		// 담임·다른 학부모의 이메일이나 이름이 응답에 없다 (FR-036, SC-006)
+		// 담임·다른 학부모의 이메일이나 이름이 응답에 없다
 		String body = listed.getContentAsString();
 		assertThat(body).doesNotContain("@").doesNotContain(teacher.email()).doesNotContain(otherParent.email())
 				.doesNotContain("이둘").doesNotContain("정부모").doesNotContain("email");

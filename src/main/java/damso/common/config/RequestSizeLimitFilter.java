@@ -21,7 +21,7 @@ import damso.common.error.ErrorResponse;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * 요청 본문 최대 64KB (FR-025, research R9). 보안 필터보다 먼저 실행된다.
+ * 요청 본문 최대 64KB. 보안 필터보다 먼저 실행된다.
  * - Content-Length가 있으면 바로 비교해 413으로 거부
  * - 없으면(chunked) 읽은 바이트를 세다가 넘는 순간 PayloadTooLargeException → 공통 핸들러가 413으로 응답
  */

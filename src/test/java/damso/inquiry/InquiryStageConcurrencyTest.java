@@ -14,7 +14,7 @@ import damso.inquiry.domain.Inquiry;
 import damso.inquiry.domain.InquiryStage;
 import damso.support.IntegrationTestSupport;
 
-/** F2 T041 / FR-022, 백엔드 요건 "낙관적 락": 같은 버전에서 동시에 전이하면 한 번만 성공한다. */
+/** 백엔드 요건 "낙관적 락": 같은 버전에서 동시에 전이하면 한 번만 성공한다. */
 class InquiryStageConcurrencyTest extends IntegrationTestSupport {
 
 	@Autowired

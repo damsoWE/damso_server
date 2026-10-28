@@ -33,7 +33,7 @@ import damso.common.security.CurrentUser;
 
 /**
  * 로그인 전 단계(가입·로그인·갱신·비밀번호 재설정)와 로그아웃. 공개 경로는 SecurityConfig.PUBLIC_PATHS에 하나씩 명시돼 있다.
- * 요청 본문에 역할·학급·학생 값을 받지 않는다 — 초대 코드가 정한다 (FR-015).
+ * 요청 본문에 역할·학급·학생 값을 받지 않는다 — 초대 코드가 정한다.
  */
 @RestController
 @RequestMapping("/api/v1/auth")

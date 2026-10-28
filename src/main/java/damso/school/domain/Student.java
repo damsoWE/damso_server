@@ -11,8 +11,8 @@ import damso.common.crypto.SensitiveText;
 import damso.common.entity.BaseEntity;
 
 /**
- * 학생. 이름은 아동 개인정보이자 F3 가명화 사전의 원천이라 SensitiveText로 암호화 저장한다 (research R13).
- * 보호자는 0~1명이다(FR-020). 학부모 탈퇴 시 NULL로 비운다. 같은 학급의 동명이인은 허용하고 구분은 UUID로 한다.
+ * 학생. 이름은 아동 개인정보이자 F3 가명화 사전의 원천이라 SensitiveText로 암호화 저장한다.
+ * 보호자는 0~1명이다. 학부모 탈퇴 시 NULL로 비운다. 같은 학급의 동명이인은 허용하고 구분은 UUID로 한다.
  */
 @Entity
 @Table(name = "student", indexes = @Index(name = "idx_student_classroom", columnList = "classroom_id"))

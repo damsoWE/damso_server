@@ -18,7 +18,7 @@ import damso.support.IntegrationTestSupport;
 import damso.support.SecretNote;
 import damso.support.SecretNoteRepository;
 
-/** US5 / SC-005: 민감 값은 어떤 로그 경로로도 원문이 남지 않는다. */
+/** 민감 값은 어떤 로그 경로로도 원문이 남지 않는다. */
 @ExtendWith(OutputCaptureExtension.class)
 class SensitiveLoggingTest extends IntegrationTestSupport {
 

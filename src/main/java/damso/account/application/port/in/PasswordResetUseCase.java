@@ -1,7 +1,7 @@
 package damso.account.application.port.in;
 
 /**
- * 비밀번호 재설정: 가입 이메일로 6자리 재설정 코드를 보내고, 앱에서 코드와 새 비밀번호를 입력한다 (FR-029~031).
+ * 비밀번호 재설정: 가입 이메일로 6자리 재설정 코드를 보내고, 앱에서 코드와 새 비밀번호를 입력한다.
  * 가입 여부와 관계없이 요청 응답은 같다(가입 여부 추측 차단).
  */
 public interface PasswordResetUseCase {

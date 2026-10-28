@@ -11,7 +11,7 @@ public interface SubmitFollowUpUseCase {
 
 	/**
 	 * 재문의 자신의 접수 결과(F2 InquirySubmittedResult와 같은 모양). 긴급 재문의도 최초 문의와 같은 안내
-	 * 코드(notices·hotlines)를 받는다 — 재문의도 "즉시 전달 경로를 그대로 따른다"(FR-015·016, PR #10 리뷰).
+	 * 코드(notices·hotlines)를 받는다 — 재문의도 "즉시 전달 경로를 그대로 따른다".
 	 */
 	record FollowUpSubmittedResult(UUID inquiryId, UUID threadRootId, boolean urgent, Instant submittedAt,
 			List<NoticeCode> notices, List<HotlineCode> hotlines) {

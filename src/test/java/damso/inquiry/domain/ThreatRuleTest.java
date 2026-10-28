@@ -15,7 +15,7 @@ import damso.inquiry.adapter.out.resource.ClasspathThreatExpressionSource;
 import damso.inquiry.adapter.out.resource.ClasspathUrgentExpressionSource;
 
 /**
- * spec 005 T006 / FR-003·004a·005a·006, SC-001: 위협·폭언 판정은 정규화한 본문에 표현이 포함되는지만 본다.
+ * 위협·폭언 판정은 정규화한 본문에 표현이 포함되는지만 본다.
  * 대표 사례(표시할 문장 / 표시하지 않을 문장)가 목록 변경의 회귀 기준이다.
  */
 class ThreatRuleTest {
@@ -69,7 +69,7 @@ class ThreatRuleTest {
 		}
 	}
 
-	/** research R4: 긴급 목록과 겹치는 표현은 쓰이지 않으므로 목록에 두지 않는다. 대표 문장도 긴급이 아니어야 판정 대상이다. */
+	/** 긴급 목록과 겹치는 표현은 쓰이지 않으므로 목록에 두지 않는다. 대표 문장도 긴급이 아니어야 판정 대상이다. */
 	@Test
 	void nothingInTheThreatListOrItsCasesIsUrgent() throws IOException {
 		for (String expression : SOURCE.expressions()) {
@@ -95,7 +95,7 @@ class ThreatRuleTest {
 		assertThat(latin.isFlagged("shut-up")).isFalse();
 	}
 
-	/** 오탐 최소화(research R2): 표현은 어절 시작에서만, 띄어쓰기 차이는 표현에 공백을 둔 자리에서만 허용한다. */
+	/** 오탐 최소화: 표현은 어절 시작에서만, 띄어쓰기 차이는 표현에 공백을 둔 자리에서만 허용한다. */
 	@Test
 	void matchesOnlyAtWordStartsAndAllowsSpacesOnlyWhereTheExpressionHasThem() {
 		ThreatRule sample = new ThreatRule(List.of("모가지", "애새끼", "가만 두지 않겠"));

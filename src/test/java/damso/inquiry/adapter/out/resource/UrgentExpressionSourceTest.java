@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
 
-/** F2 T011 / 원칙 VIII, research R2: 목록이 비었거나 읽지 못하면 기동 거부, 주석·빈 줄 무시, 정규화해서 보관. */
+/** 목록이 비었거나 읽지 못하면 기동 거부, 주석·빈 줄 무시, 정규화해서 보관. */
 class UrgentExpressionSourceTest {
 
 	private static ByteArrayResource text(String content) {

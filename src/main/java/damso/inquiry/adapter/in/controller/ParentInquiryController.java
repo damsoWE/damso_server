@@ -26,7 +26,7 @@ import damso.inquiry.application.port.in.SubmitInquiryUseCase;
 
 /**
  * 학부모 문의 API (경로 단위 역할 검사는 SecurityConfig의 /api/v1/parent/**). 사용자 ID는 토큰에서만 꺼낸다.
- * 문의를 수정·삭제하는 경로는 없다 (원칙 III).
+ * 문의를 수정·삭제하는 경로는 없다.
  */
 @RestController
 @RequestMapping("/api/v1/parent/inquiries")

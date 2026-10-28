@@ -11,7 +11,7 @@ import org.springframework.core.io.ClassPathResource;
 
 import damso.gateway.application.port.out.ExternalAiPort.AiTask;
 
-/** F3 T014 / 원칙 VIII, research R2·R5: 학교 용어·프롬프트 파일이 비었거나 없으면 기동 거부, 배포 파일은 정해진 내용. */
+/** 학교 용어·프롬프트 파일이 비었거나 없으면 기동 거부, 배포 파일은 정해진 내용. */
 class GatewayResourceTest {
 
 	private static ByteArrayResource text(String content) {

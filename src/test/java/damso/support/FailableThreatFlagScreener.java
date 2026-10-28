@@ -6,7 +6,7 @@ import damso.inquiry.application.port.out.ThreatExpressionSource;
 import damso.inquiry.application.service.ThreatFlagScreener;
 
 /**
- * 실제 위협·폭언 판정을 그대로 하되, 테스트가 판정 실패를 끼워 넣고 호출 횟수를 셀 수 있다(spec 005).
+ * 실제 위협·폭언 판정을 그대로 하되, 테스트가 판정 실패를 끼워 넣고 호출 횟수를 셀 수 있다.
  * 공용 설정(TestSupportConfig)에 두어 테스트 클래스마다 컨텍스트가 늘지 않게 한다. 테스트마다 reset()으로 되돌린다.
  */
 public class FailableThreatFlagScreener extends ThreatFlagScreener {

@@ -4,7 +4,7 @@ import java.security.SecureRandom;
 import java.util.Base64;
 
 /**
- * 초대 코드·인증 코드·갱신 토큰 생성. 모두 SecureRandom이다 (원칙 백엔드 요건, 체크리스트 보안기능 8).
+ * 초대 코드·인증 코드·갱신 토큰 생성. 모두 SecureRandom이다.
  */
 public final class SecureCodes {
 

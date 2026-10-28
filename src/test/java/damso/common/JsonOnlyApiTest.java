@@ -18,7 +18,7 @@ import damso.account.domain.UserAccount;
 import damso.support.IntegrationTestSupport;
 
 /**
- * 보안약점 체크리스트 입력데이터 4·6·8·9: API는 JSON만 주고받는다. 의존성(firebase-admin)이 XML 변환기를 끌고 와도 XML 본문을
+ * API는 JSON만 주고받는다. 의존성(firebase-admin)이 XML 변환기를 끌고 와도 XML 본문을
  * 받거나 XML로 응답하지 않고, 파일 업로드(multipart)를 파싱하지 않는다.
  */
 class JsonOnlyApiTest extends IntegrationTestSupport {

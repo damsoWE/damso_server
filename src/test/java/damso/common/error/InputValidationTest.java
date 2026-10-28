@@ -12,7 +12,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import damso.support.IntegrationTestSupport;
 import tools.jackson.databind.JsonNode;
 
-/** US7 / FR-023~025: 진입 지점 검증, 필드별 고정 사유, 입력값 비반환, 64KB 초과 거부. */
+/** 진입 지점 검증, 필드별 고정 사유, 입력값 비반환, 64KB 초과 거부. */
 class InputValidationTest extends IntegrationTestSupport {
 
 	private static final String MARKER = "ECHO-MARKER-";

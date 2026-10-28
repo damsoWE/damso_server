@@ -24,7 +24,7 @@ import damso.support.FakePushSender.Sent;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F2 US2 시나리오 4~5·7 / FR-011~014, SC-007·012·013: 긴급 알림의 즉시 발송·재시도·재알림·중복 방지.
+ * 긴급 알림의 즉시 발송·재시도·재알림·중복 방지.
  * 통합 테스트에서는 @Async가 동기 실행기라 "커밋 직후 즉시 발송"이 제출 응답 전에 끝난다.
  */
 class UrgentNotificationTest extends IntegrationTestSupport {

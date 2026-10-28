@@ -22,7 +22,7 @@ import damso.school.domain.Classroom;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F3 T036 / US3 시나리오 1~10, FR-014~018, SC-003·005·006: 검증 안 된 결과는 버리고 곧바로 1회 다시 시도하며, 그래도 실패하면
+ * 검증 안 된 결과는 버리고 곧바로 1회 다시 시도하며, 그래도 실패하면
  * "원문 확인 필요"가 된다. 교사는 1회 더 시도할 수 있다(동시 요청도 1건). 외부 AI가 죽어도 접수·목록은 정상이다.
  */
 class RefinementFailureTest extends IntegrationTestSupport {
@@ -51,7 +51,7 @@ class RefinementFailureTest extends IntegrationTestSupport {
 		return send(post("/api/v1/teacher/inquiries/" + id + "/refinement/retry"), token);
 	}
 
-	/** F5 T009: 받아들여진 재시도만 누가 요청했는지 감사 기록에 남는다. (actor_id, target_id) 목록. */
+	/** 받아들여진 재시도만 누가 요청했는지 감사 기록에 남는다. (actor_id, target_id) 목록. */
 	private List<String> retryRecords() {
 		return jdbc.queryForList("select actor_id || ':' || target_id from audit_log "
 				+ "where action = 'REFINEMENT_RETRY_REQUESTED'", String.class);

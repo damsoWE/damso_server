@@ -17,7 +17,7 @@ import org.springframework.data.repository.Repository;
 import damso.inquiry.adapter.out.persistence.SpringDataAnswerRepository;
 import damso.inquiry.domain.Answer;
 
-/** 원칙 III·VI, FR-003·004, SC-004·009: 답변에는 수정·삭제 경로가 없고 본문은 로그에 섞이지 않는다. */
+/** 답변에는 수정·삭제 경로가 없고 본문은 로그에 섞이지 않는다. */
 class AnswerAppendOnlyTest {
 
 	@Test

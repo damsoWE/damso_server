@@ -23,7 +23,7 @@ import damso.school.domain.Classroom;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F5 T019 / US3, FR-014~016, SC-003·007, research R6: 슈퍼 관리자는 학급 × 처리 상태(waiting·confirmed·answered)
+ * 슈퍼 관리자는 학급 × 처리 상태(waiting·confirmed·answered)
  * 건수만 본다. 긴급 여부·학생 단위 정보·본문·제목·연락처는 없고, 슈퍼 관리자가 아닌 계정은 403이다.
  */
 @TestPropertySource(properties = "damso.inquiry.close-enabled=true")
@@ -137,7 +137,7 @@ class AdminInquiryStatusApiTest extends IntegrationTestSupport {
 			assertThat(Set.copyOf(item.propertyNames())).containsExactlyInAnyOrder("classroomId", "waiting",
 					"confirmed", "answered");
 		}
-		// 본문·제목·답변·학생·학부모·교사 정보, 연락처, 긴급 여부, 문의 식별자가 어디에도 없다(FR-015)
+		// 본문·제목·답변·학생·학부모·교사 정보, 연락처, 긴급 여부, 문의 식별자가 어디에도 없다
 		String raw = response.getContentAsString();
 		assertThat(raw).doesNotContain(general.toString()).doesNotContain(urgent.toString())
 				.doesNotContain(s.student().getId().toString()).doesNotContain(STUDENT_NAME)

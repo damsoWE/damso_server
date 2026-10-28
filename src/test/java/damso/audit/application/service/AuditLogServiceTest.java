@@ -18,7 +18,7 @@ import damso.audit.domain.AuditAction;
 import damso.audit.domain.AuditLog;
 import damso.audit.domain.AuditTargetType;
 
-/** PR #21 리뷰: 호출한 쪽이 정한 시각은 지금부터 5분 전까지만 받는다. 범위 밖이면 예외이고 기록하지 않는다. */
+/** 호출한 쪽이 정한 시각은 지금부터 5분 전까지만 받는다. 범위 밖이면 예외이고 기록하지 않는다. */
 class AuditLogServiceTest {
 
 	private static final Instant NOW = Instant.parse("2026-10-28T09:00:00Z");

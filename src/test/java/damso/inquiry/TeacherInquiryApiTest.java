@@ -22,9 +22,9 @@ import damso.school.domain.Student;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F2 US3 시나리오 1~4 / FR-024~026, SC-005·010·013: 교사 목록(긴급 우선)·상세(본문 없음)·긴급 원문 열람.
+ * 교사 목록(긴급 우선)·상세(본문 없음)·긴급 원문 열람.
  * F3 이후 일반 문의는 커밋 직후 정리되므로, 이 클래스는 정리 확정 전 상태("정리 중"·접수 단계)를 보도록 즉시 실행을 끈다.
- * 정리 후 제목·번역본은 specs/003의 TeacherRefinementApiTest가 확인한다.
+ * 정리 후 제목·번역본은 TeacherRefinementApiTest가 확인한다.
  */
 @TestPropertySource(properties = "damso.refinement.dispatch-on-commit=false")
 class TeacherInquiryApiTest extends IntegrationTestSupport {
@@ -195,7 +195,7 @@ class TeacherInquiryApiTest extends IntegrationTestSupport {
 
 	@Test
 	void generalInquiryContentIsViewableBeforeRefinementAndAudited() throws Exception {
-		// F3 FR-019: F2에서는 409 INQUIRY_CONTENT_UNAVAILABLE이었지만, F3부터 일반 문의도 정리 상태와 상관없이 원문을 연다.
+		// F2에서는 409 INQUIRY_CONTENT_UNAVAILABLE이었지만, F3부터 일반 문의도 정리 상태와 상관없이 원문을 연다.
 		// 정리 전(이 클래스는 커밋 직후 정리를 끈다) 원문 열람은 기록만 남고 단계는 바뀌지 않는다(번역본 첫 열람이 기준).
 		Scenario s = teacherWithClassroom();
 		UUID id = submit(s, NORMAL_SAMPLE);
@@ -264,8 +264,8 @@ class TeacherInquiryApiTest extends IntegrationTestSupport {
 	}
 
 	/**
-	 * spec 005 T016 / contracts threat-flag.openapi.yaml: 목록 항목·상세의 키는 계약의 required와 정확히 같다(additionalProperties: false).
-	 * 이 클래스는 즉시 정리를 끄므로 정리 전(PENDING)에도 위협·폭언 표시가 보이는지 함께 본다(US1 시나리오 3).
+	 * 목록 항목·상세의 키는 계약의 required와 정확히 같다(additionalProperties: false).
+	 * 이 클래스는 즉시 정리를 끄므로 정리 전(PENDING)에도 위협·폭언 표시가 보이는지 함께 본다.
 	 */
 	@Test
 	void listItemAndDetailCarryExactlyTheContractFieldsIncludingThreatFlagged() throws Exception {

@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
- * 가입 1단계 요청. 역할·학급·학생 값은 받지 않는다 — 초대 코드가 정한다 (FR-015).
+ * 가입 1단계 요청. 역할·학급·학생 값은 받지 않는다 — 초대 코드가 정한다.
  * 초대 코드는 영문 대문자+숫자 10자리(0·O·1·I·L 제외, 소문자 입력은 서버가 대문자로 맞춘다).
  */
 public record SignupRequestDTO(

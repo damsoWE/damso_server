@@ -37,9 +37,9 @@ import damso.school.application.port.in.InquiryTargetQuery;
 import damso.school.application.port.in.InquiryTargetQuery.ChildTarget;
 
 /**
- * 재문의 제출 (F4, research R5). SubmitInquiryService를 복제하지 않고 같은 순서를 따르는 자매 서비스다:
+ * 재문의 제출. SubmitInquiryService를 복제하지 않고 같은 순서를 따르는 자매 서비스다:
  * ① 입력 검증 ② 중복 제출 확인 ③ 대상 재확인(스레드 시작 시점으로 고정하지 않고 매번 현재 담임을 다시 본다)
- * ④ 긴급 판정 ⑤ 일반이면 1분 제한(최초 문의와 같은 버킷 공유) ⑥ 일반이면 위협·폭언 판정(규칙, 실패하면 표시 없음, spec 005) ⑦ 저장.
+ * ④ 긴급 판정 ⑤ 일반이면 1분 제한(최초 문의와 같은 버킷 공유) ⑥ 일반이면 위협·폭언 판정(규칙, 실패하면 표시 없음) ⑦ 저장.
  * rootInquiryId는 경로 파라미터로 항상 스레드 루트의 id다(재문의 자신의 id로는 호출할 수 없다).
  * F3 머지 뒤로는 정리·위기 분류도 SubmitInquiryService와 같은 방식으로 작업(아웃박스)만 남긴다(PR #10 리뷰 6번) —
  * 재문의도 그냥 또 다른 Inquiry 행이라 RefinementRunner·가명화 쪽은 고칠 필요가 없다.
@@ -113,10 +113,10 @@ public class SubmitFollowUpService implements SubmitFollowUpUseCase {
 			}
 
 			// 쓰기 잠금으로 조회한다 — 종료(CloseInquiryService)가 같은 행을 쓰는 동안 이 트랜잭션이 기다리게 해,
-			// "검사(stage 확인) 뒤 사용(재문의 저장)" 사이에 종료가 끼어드는 TOCTOU를 막는다(PR #10 리뷰).
+			// "검사(stage 확인) 뒤 사용(재문의 저장)" 사이에 종료가 끼어드는 TOCTOU를 막는다.
 			Inquiry root = inquiries.findInquiryByIdForUpdate(rootInquiryId)
 					.filter(found -> parentId.equals(found.getParentId()))
-					// {inquiryId}는 항상 스레드 루트다 — 재문의 자신의 id로는 이 경로를 쓸 수 없다(research R1).
+					// {inquiryId}는 항상 스레드 루트다 — 재문의 자신의 id로는 이 경로를 쓸 수 없다.
 					.filter(found -> found.getThreadRootId() == null)
 					.orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND));
 			if (root.getStage() == InquiryStage.ANSWERED) {
@@ -132,7 +132,7 @@ public class SubmitFollowUpService implements SubmitFollowUpUseCase {
 			boolean threatFlagged = false;
 			if (!urgent) {
 				enforceSubmitLimit(parentId);
-				// 긴급이 먼저다 — 긴급 재문의는 판정하지 않는다(spec 005 FR-005a). 제한에 걸린 요청도 판정하지 않는다.
+				// 긴급이 먼저다 — 긴급 재문의는 판정하지 않는다. 제한에 걸린 요청도 판정하지 않는다.
 				threatFlagged = threatScreener.screenSafely(content);
 			}
 			return persist(root.getId(), parentId, target, content, urgent, threatFlagged, idempotencyKey,
@@ -167,7 +167,7 @@ public class SubmitFollowUpService implements SubmitFollowUpUseCase {
 		}
 		if (!urgent
 				&& notifications.previewGeneral(followUp.getTeacherId()) == NotifyInquiryUseCase.NotificationDecision.DEFERRED) {
-			// 일반 재문의 알림도 정리가 확정된 뒤에 요청한다(F3 FR-032와 같은 규칙). 여기서는 접수 시각 기준으로
+			// 일반 재문의 알림도 정리가 확정된 뒤에 요청한다(정리가 확정된 뒤 요청하는 일반 문의와 같은 규칙). 여기서는 접수 시각 기준으로
 			// 학부모에게 보일 지연 안내만 정해 둔다.
 			followUp.markDeferredNotice();
 		}
@@ -176,12 +176,12 @@ public class SubmitFollowUpService implements SubmitFollowUpUseCase {
 		if (urgent) {
 			histories.append(InquiryStageHistory.of(inquiry.getId(), InquiryStage.DELIVERED, now));
 			notifications.requestUrgent(inquiry.getId(), inquiry.getTeacherId());
-			// 위기 종류 분류(F3)도 재문의마다 작업으로 남긴다 — 분류가 실패해도 긴급 전달·알림은 이미 끝나 있다.
+			// 위기 종류 분류도 재문의마다 작업으로 남긴다 — 분류가 실패해도 긴급 전달·알림은 이미 끝나 있다.
 			RefinementJob classify = refinementJobs.save(RefinementJob.classifyCrisis(inquiry.getId(), now));
 			events.publishEvent(new RefinementRequested(classify.getId()));
 		}
 		else {
-			// 정리 작업도 같은 트랜잭션에 저장하고(아웃박스), 외부 AI 호출은 커밋 뒤에 한다(F3 research R7과 같은 규칙).
+			// 정리 작업도 같은 트랜잭션에 저장하고(아웃박스), 외부 AI 호출은 커밋 뒤에 한다(문의 접수와 같은 규칙).
 			RefinementJob job = refinementJobs.save(RefinementJob.refine(inquiry.getId(), now));
 			events.publishEvent(new RefinementRequested(job.getId()));
 		}

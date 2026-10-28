@@ -5,7 +5,7 @@ import java.util.List;
 
 /**
  * 학부모에게 보이는 시스템 안내를 정하는 순수 규칙. 결과는 코드뿐이고 문구는 API 계약에 고정되어 있다.
- * AI가 만든 문장이나 교사 명의의 문장은 어디에도 없다 (원칙 V, FR-016·017·019).
+ * AI가 만든 문장이나 교사 명의의 문장은 어디에도 없다.
  */
 public final class GuidancePolicy {
 

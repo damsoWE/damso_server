@@ -22,7 +22,7 @@ import damso.gateway.domain.RefinementResult.Valid;
 import damso.gateway.domain.Roster;
 
 /**
- * 가명화 게이트웨이 — 일반 문의 정리 (원칙 II, research R1·R6). 가명화·자기 점검·외부 호출은 공통 흐름({@link MaskedAiCall})이 하고,
+ * 가명화 게이트웨이 — 일반 문의 정리. 가명화·자기 점검·외부 호출은 공통 흐름({@link MaskedAiCall})이 하고,
  * 여기서는 응답의 형식·허용값을 다시 검증한 뒤 메모리에서 복원한다. 대응표는 이 메서드 안에서만 쓰고 버린다.
  */
 @Service

@@ -18,9 +18,9 @@ import org.hibernate.annotations.Immutable;
 import org.springframework.data.domain.Persistable;
 
 /**
- * 누가 언제 무엇을 열람했는지 남기는 감사 기록. append-only다 — 수정·삭제 경로가 없다 (원칙 III, research R11).
+ * 누가 언제 무엇을 열람했는지 남기는 감사 기록. append-only다 — 수정·삭제 경로가 없다.
  * - BaseEntity를 상속하지 않는다(수정 시각·버전이 의미 없음). @Immutable이고 setter가 없다.
- * - 행위자·대상은 UUID뿐이다. 본문·이메일·이름 같은 개인정보 컬럼이 없다 (원칙 VI).
+ * - 행위자·대상은 UUID뿐이다. 본문·이메일·이름 같은 개인정보 컬럼이 없다.
  * - actor_id는 FK를 걸지 않는다. 계정이 비식별화된 뒤에도 기록은 그대로 남는다.
  * F2는 기록만 하고 조회 API는 두지 않는다(F5가 서버에서만 조회).
  */

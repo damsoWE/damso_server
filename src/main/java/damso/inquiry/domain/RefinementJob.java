@@ -15,7 +15,7 @@ import jakarta.persistence.UniqueConstraint;
 import damso.common.entity.BaseEntity;
 
 /**
- * 정리·분류 작업(아웃박스, F3 research R7). 문의 접수와 같은 트랜잭션에서 저장되므로 외부 AI가 죽어도 작업은 남는다.
+ * 정리·분류 작업(아웃박스). 문의 접수와 같은 트랜잭션에서 저장되므로 외부 AI가 죽어도 작업은 남는다.
  * 내용은 담지 않는다 — 상태·횟수·시각뿐이다.
  * - 문의·종류마다 하나: (inquiry_id, kind) 유니크.
  * - 전이: PENDING → RUNNING, RUNNING → DONE/FAILED, RUNNING → RUNNING(임대 만료 후 다시 확보), FAILED → PENDING(교사 재시도, 1회).

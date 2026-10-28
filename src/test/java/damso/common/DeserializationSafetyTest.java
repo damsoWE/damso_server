@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 
 /**
- * 보안약점 체크리스트 코드오류 5(신뢰할 수 없는 데이터의 역직렬화): 운영 코드에 Java 네이티브 역직렬화와, 데이터에 적힌
+ * 신뢰할 수 없는 데이터의 역직렬화: 운영 코드에 Java 네이티브 역직렬화와, 데이터에 적힌
  * 타입대로 객체를 만드는 JSON 설정이 없다. JSON은 고정 DTO·트리(JsonNode)로만 읽고, Redis는 문자열 템플릿만 쓴다.
  */
 class DeserializationSafetyTest {

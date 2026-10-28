@@ -18,7 +18,7 @@ import damso.school.application.port.in.RosterQuery.ClassRoster;
 import damso.school.application.port.in.RosterQuery.RosterStudent;
 
 /**
- * 가명화 사전 재료를 모은다 (F3 research R2). 문의의 접수 시점 학급을 기준으로 학생·보호자·담임 이름과 학년·반을 school·account의
+ * 가명화 사전 재료를 모은다. 문의의 접수 시점 학급을 기준으로 학생·보호자·담임 이름과 학년·반을 school·account의
  * port.in으로 읽는다. 학교 용어는 넣지 않는다 — 게이트웨이가 자기 리소스에서 채운다(inquiry는 게이트웨이의 port.out을 모른다).
  * 이름은 이 객체 밖으로 로그에 나가지 않는다(Roster.toString은 건수만).
  */

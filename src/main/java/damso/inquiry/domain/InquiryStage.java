@@ -5,7 +5,7 @@ package damso.inquiry.domain;
  * 일반: RECEIVED → REFINING → TEACHER_CONFIRMED → ANSWERED
  * 긴급: RECEIVED → DELIVERED → TEACHER_CONFIRMED → ANSWERED
  * 단계는 되돌릴 수 없다. 건너뛰는 전이는 하나뿐이다: 자동 정리에 실패한(원문 확인 필요) 일반 문의는 교사가 원문을 처음 열람할 때
- * RECEIVED → TEACHER_CONFIRMED가 된다(F3 FR-025). 이 전이는 정리 상태를 아는 Inquiry.confirmByOriginalView()만 쓴다.
+ * RECEIVED → TEACHER_CONFIRMED가 된다. 이 전이는 정리 상태를 아는 Inquiry.confirmByOriginalView()만 쓴다.
  * REFINING은 "정제 중"이 아니라 "정제 완료"다 — 검증을 통과한 정리 결과가 생긴 시점에 기록된다.
  */
 public enum InquiryStage {

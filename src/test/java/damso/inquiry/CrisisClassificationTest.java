@@ -19,7 +19,7 @@ import damso.inquiry.application.service.CrisisClassificationService;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F2 US6 시나리오 1~6 / FR-017~020, SC-009: 위기 종류 분류 결과를 받는 연결 지점은 허용값만 받고,
+ * 위기 종류 분류 결과를 받는 연결 지점은 허용값만 받고,
  * 학부모 안내는 위기 종류에 맞는 번호 코드뿐이다.
  */
 class CrisisClassificationTest extends IntegrationTestSupport {

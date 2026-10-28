@@ -8,7 +8,7 @@ import damso.common.error.BusinessException;
 import damso.common.error.ErrorCode;
 
 /**
- * 인증 주체. 사용자·역할·세션은 토큰에서만 꺼낸다 — 요청 본문·파라미터의 값은 권한 판단에 쓰지 않는다 (원칙 VII).
+ * 인증 주체. 사용자·역할·세션은 토큰에서만 꺼낸다 — 요청 본문·파라미터의 값은 권한 판단에 쓰지 않는다.
  */
 public record CurrentUser(UUID userId, String role, UUID sessionId) {
 

@@ -10,7 +10,7 @@ import jakarta.persistence.UniqueConstraint;
 import damso.common.entity.BaseEntity;
 
 /**
- * 학급. 슈퍼 관리자가 만든다. 담임은 0~1명이고 교사와 학급은 1:1이다 (FR-019).
+ * 학급. 슈퍼 관리자가 만든다. 담임은 0~1명이고 교사와 학급은 1:1이다.
  * 담임 교사 UUID는 DB 유니크로도 한 학급에만 묶인다. 교사 탈퇴 시 NULL로 비워 담임이 없는 상태가 된다.
  * 학교는 하나로 본다(대회용 MVP). 교사 계정은 account 도메인이 소유하므로 UUID로만 가리킨다.
  */

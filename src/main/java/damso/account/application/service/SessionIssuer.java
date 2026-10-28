@@ -16,7 +16,7 @@ import damso.common.crypto.Digests;
 import damso.common.crypto.SecureCodes;
 
 /**
- * 로그인·가입 확정 공용: 기기마다 새 세션을 만들고 접근 토큰 + 갱신 토큰을 발급한다 (FR-025a).
+ * 로그인·가입 확정 공용: 기기마다 새 세션을 만들고 접근 토큰 + 갱신 토큰을 발급한다.
  * 갱신 토큰 원문은 반환값에만 있고 저장되는 것은 SHA-256 해시뿐이다.
  */
 @Component

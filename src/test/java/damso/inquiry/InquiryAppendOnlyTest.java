@@ -21,7 +21,7 @@ import damso.inquiry.application.port.out.InquiryStageHistoryPort;
 import damso.inquiry.domain.Inquiry;
 import damso.inquiry.domain.InquiryStageHistory;
 
-/** 원칙 III, research R4·R5, SC-004: 문의 원문과 단계 이력에는 수정·삭제 경로가 없다 — 구조로 검사한다. */
+/** 문의 원문과 단계 이력에는 수정·삭제 경로가 없다 — 구조로 검사한다. */
 class InquiryAppendOnlyTest {
 
 	private static List<String> methodNames(Class<?> type) {

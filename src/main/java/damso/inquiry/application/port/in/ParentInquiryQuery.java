@@ -13,7 +13,7 @@ public interface ParentInquiryQuery {
 
 	/**
 	 * {@code lastAnsweredAt}은 스레드 전체(최초 문의 + 재문의)의 마지막 답변 전송 시각, 답변이 없으면 null이다
-	 * (F4 US6, FR-026~029). 답변 여부는 따로 담지 않고 {@link #hasAnswer()}로 이 값에서 얻는다.
+	 *. 답변 여부는 따로 담지 않고 {@link #hasAnswer()}로 이 값에서 얻는다.
 	 */
 	record InquirySummary(UUID inquiryId, UUID studentId, String studentName, boolean urgent, InquiryStage stage,
 			Instant submittedAt, Instant lastAnsweredAt) {
@@ -31,8 +31,8 @@ public interface ParentInquiryQuery {
 	}
 
 	/**
-	 * 스레드 타임라인에 포함되는 재문의 하나 — 학부모 본인 글이라 본문이 평문으로 보인다(F4). 긴급 재문의도
-	 * 최초 문의와 같은 안내 코드를 담는다(FR-015·016, PR #10 리뷰).
+	 * 스레드 타임라인에 포함되는 재문의 하나 — 학부모 본인 글이라 본문이 평문으로 보인다. 긴급 재문의도
+	 * 최초 문의와 같은 안내 코드를 담는다.
 	 */
 	record FollowUpView(UUID inquiryId, String content, boolean urgent, InquiryStage stage, Instant submittedAt,
 			List<NoticeCode> notices, List<HotlineCode> hotlines) {

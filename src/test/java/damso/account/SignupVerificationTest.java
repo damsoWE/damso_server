@@ -13,7 +13,7 @@ import damso.account.domain.Role;
 import damso.school.domain.Classroom;
 import damso.support.IntegrationTestSupport;
 
-/** US2 시나리오 4, FR-017·032, Edge Case: 이메일 인증 코드의 만료·횟수 제한·재발송과 이미 가입된 이메일. */
+/** 이메일 인증 코드의 만료·횟수 제한·재발송과 이미 가입된 이메일. */
 class SignupVerificationTest extends IntegrationTestSupport {
 
 	private String teacherCode() {

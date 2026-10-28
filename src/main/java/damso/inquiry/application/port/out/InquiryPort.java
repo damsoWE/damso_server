@@ -19,7 +19,7 @@ public interface InquiryPort {
 	/**
 	 * findInquiryById와 같지만 쓰기 잠금(SELECT ... FOR UPDATE)으로 조회한다. 이 트랜잭션이 끝날 때까지
 	 * 그 행을 쓰려는 다른 트랜잭션(예: 종료)은 대기한다 — 확인(stage 검사)과 사용(저장) 사이의 TOCTOU를 막는다
-	 * (F4 PR #10 리뷰). 답변 전송·재문의 제출처럼 "루트가 종료되지 않았는지 확인한 뒤 그 확인이 유효한 동안
+	 *. 답변 전송·재문의 제출처럼 "루트가 종료되지 않았는지 확인한 뒤 그 확인이 유효한 동안
 	 * 써야 하는" 경로에서만 쓴다 — 조회만 하는 경로(목록·상세)에는 쓰지 않는다.
 	 */
 	Optional<Inquiry> findInquiryByIdForUpdate(UUID id);
@@ -46,11 +46,11 @@ public interface InquiryPort {
 
 	/**
 	 * 스레드(루트 또는 재문의) 전체 메시지: id = rootId 또는 thread_root_id = rootId, 제출 시각 오름차순
-	 * (F4, FR-016·017).
+	 *.
 	 */
 	List<Inquiry> findThreadMessages(UUID rootId);
 
-	/** 주어진 스레드 루트 가운데 위협·폭언 표시가 붙은 재문의가 있는 루트의 id(spec 005, 교사 목록의 스레드 단위 표시). */
+	/** 주어진 스레드 루트 가운데 위협·폭언 표시가 붙은 재문의가 있는 루트의 id(교사 목록의 스레드 단위 표시). */
 	Set<UUID> findThreadsWithThreatFlaggedFollowUp(Collection<UUID> rootIds);
 
 	/**

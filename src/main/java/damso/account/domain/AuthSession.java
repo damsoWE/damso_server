@@ -14,8 +14,8 @@ import jakarta.persistence.Table;
 import damso.common.entity.BaseEntity;
 
 /**
- * 세션 = 갱신 토큰 계열. 로그인 1회(기기 1대)마다 하나가 생긴다 (FR-025a).
- * id가 접근 토큰의 sid 클레임이다. 마지막 갱신 후 14일이 지나면 만료되고, 갱신할 때마다 연장된다 (FR-025b).
+ * 세션 = 갱신 토큰 계열. 로그인 1회(기기 1대)마다 하나가 생긴다.
+ * id가 접근 토큰의 sid 클레임이다. 마지막 갱신 후 14일이 지나면 만료되고, 갱신할 때마다 연장된다.
  * 폐기(revoked)와 만료는 되돌릴 수 없다.
  */
 @Entity

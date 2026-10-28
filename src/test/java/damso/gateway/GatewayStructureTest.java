@@ -17,7 +17,7 @@ import org.springframework.core.type.filter.RegexPatternTypeFilter;
 import damso.gateway.application.port.out.ExternalAiPort;
 
 /**
- * F3 T019 / 원칙 II, research R1, analyze C1: 외부 AI로 나가는 길은 게이트웨이 하나뿐이다.
+ * 외부 AI로 나가는 길은 게이트웨이 하나뿐이다.
  * - ExternalAiPort를 받는 클래스는 gateway.application.service에만 있다(가명화를 먼저 하는 서비스).
  * - ExternalAiPort의 운영 구현은 OpenAiClient 하나다.
  * - gateway 밖의 어떤 클래스도 gateway의 출력 포트를 참조하지 않는다(다른 도메인은 port.in으로만).

@@ -20,7 +20,7 @@ import damso.account.domain.UserAccount;
 import damso.support.IntegrationTestSupport;
 import damso.support.TestJwtIssuer;
 
-/** US3 / SC-003 / FR-007: 기본 거부, 헤더 토큰만, 세션 쿠키 없음, 진단 정보 비노출. */
+/** 기본 거부, 헤더 토큰만, 세션 쿠키 없음, 진단 정보 비노출. */
 class AccessControlTest extends IntegrationTestSupport {
 
 	@ParameterizedTest

@@ -19,7 +19,7 @@ import damso.school.domain.Student;
 import damso.support.IntegrationTestSupport;
 
 /**
- * SC-006, FR-041, 원칙 VI: 가입·로그인·갱신·재설정·탈퇴·코드 발행 흐름 전체에서
+ * 가입·로그인·갱신·재설정·탈퇴·코드 발행 흐름 전체에서
  * 초대 코드 원문, 인증·재설정 코드, 비밀번호, 토큰, 이메일이 로그에 남지 않는다. 실패 경로도 포함한다.
  */
 @ExtendWith(OutputCaptureExtension.class)

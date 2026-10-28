@@ -15,7 +15,7 @@ import damso.inquiry.domain.InquiryStage;
 import damso.school.application.port.in.InquiryTargetQuery;
 
 /**
- * 슈퍼 관리자 문의 현황 (F5 US3, research R6). 단계를 그대로 세면 DELIVERED가 곧 긴급 건수가 되므로 세 묶음으로만 나눈다.
+ * 슈퍼 관리자 문의 현황. 단계를 그대로 세면 DELIVERED가 곧 긴급 건수가 되므로 세 묶음으로만 나눈다.
  * 학급 순서는 관리자 학급 목록과 같은 학년·반 순이다. 본문·제목은 읽지 않는다. 감사 기록 대상이 아니다.
  */
 @Service

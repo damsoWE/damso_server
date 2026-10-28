@@ -25,7 +25,7 @@ import damso.notification.domain.TeacherNotificationSetting;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F3 T040 / US7 시나리오 1~8, FR-032~034, SC-013·014: 일반 문의 알림은 접수 때가 아니라 정리가 확정될 때(성공·원문 확인 필요)
+ * 일반 문의 알림은 접수 때가 아니라 정리가 확정될 때(성공·원문 확인 필요)
  * 한 번만 요청된다. 응답 가능 시간·알림 끔·묶음 규칙은 그대로이고 기준 시각만 정리 확정 시각이다. 학부모 안내는 접수 때 값으로 고정된다.
  * 정리 확정 전 상태를 보려고 커밋 직후 정리를 끄고, 실행기를 직접 돌린다.
  */

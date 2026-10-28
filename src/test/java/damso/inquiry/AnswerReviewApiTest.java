@@ -23,7 +23,7 @@ import damso.inquiry.domain.AnswerReviewResult.Highlight;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F4 US2 시나리오 1·3~7 / FR-008·008a·011·013, SC-002·010: 답변 점검은 F3 전까지 항상 실패를 반환하는
+ * 답변 점검은 F3 전까지 항상 실패를 반환하는
  * 스텁이고, 결과를 저장하지 않으며, 실제 어댑터가 들어왔을 때 가명화된 맥락만 받는다.
  */
 class AnswerReviewApiTest extends IntegrationTestSupport {
@@ -61,7 +61,7 @@ class AnswerReviewApiTest extends IntegrationTestSupport {
 		return send(json(post("/api/v1/teacher/inquiries/" + inquiryId + "/answer-reviews"), body), token);
 	}
 
-	/** F5 T010: 점검 요청 감사 기록의 (actor_id, target_id) 목록. */
+	/** 점검 요청 감사 기록의 (actor_id, target_id) 목록. */
 	private List<String> reviewRecords() {
 		return jdbc.queryForList("select actor_id || ':' || target_id from audit_log "
 				+ "where action = 'ANSWER_REVIEW_REQUESTED'", String.class);
@@ -78,7 +78,7 @@ class AnswerReviewApiTest extends IntegrationTestSupport {
 		assertThat((Boolean) read(response, "$.available")).isFalse();
 		List<Object> highlights = read(response, "$.highlights");
 		assertThat(highlights).isEmpty();
-		// F5: 점검 요청마다 누가 어느 스레드에 요청했는지 남는다
+		// 점검 요청마다 누가 어느 스레드에 요청했는지 남는다
 		assertThat(reviewRecords())
 				.containsExactly(confirmed.scenario().teacher().userId() + ":" + confirmed.inquiryId());
 	}
@@ -138,7 +138,7 @@ class AnswerReviewApiTest extends IntegrationTestSupport {
 		List<Map<String, String>> highlights = read(response, "$.highlights");
 		assertThat(highlights).hasSize(1);
 		assertThat(highlights.get(0).get("suggestion")).isEqualTo("검토 후 다시 안내드릴게요");
-		// F3 전까지 호출하는 쪽은 pseudonymizedContext에 항상 null을 넘긴다(FR-008a) — 가명화 전 원문이 아니다.
+		// F3 전까지 호출하는 쪽은 pseudonymizedContext에 항상 null을 넘긴다 — 가명화 전 원문이 아니다.
 		assertThat(FakeReviewConfig.capturedPseudonymizedContext.get()).isNull();
 	}
 

@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
-/** F2 T014 / FR-014, 원칙 V: 알림은 고정 문구뿐이고 이름·본문이 들어갈 자리가 없다. */
+/** 알림은 고정 문구뿐이고 이름·본문이 들어갈 자리가 없다. */
 class PushMessageTest {
 
 	@ParameterizedTest

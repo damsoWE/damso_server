@@ -15,7 +15,7 @@ import damso.account.domain.Role;
 import damso.account.domain.UserAccount;
 import damso.support.IntegrationTestSupport;
 
-/** FR-001, research R12: 환경변수 둘 다 있을 때만 1회 생성, 기본 계정 없음. */
+/** 환경변수 둘 다 있을 때만 1회 생성, 기본 계정 없음. */
 class SuperAdminBootstrapTest extends IntegrationTestSupport {
 
 	private static final String PASSWORD = "Admin" + "Pw12345";

@@ -14,7 +14,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F4 US4 시나리오 5 / FR-016·017, research R1: 스레드 상세의 재문의·답변 타임라인(시간순),
+ * 스레드 상세의 재문의·답변 타임라인(시간순),
  * 재문의 자신의 id로는 같은 스레드 상세로 취급하지 않음(별도 엔드포인트 없음).
  */
 class ThreadTimelineApiTest extends IntegrationTestSupport {

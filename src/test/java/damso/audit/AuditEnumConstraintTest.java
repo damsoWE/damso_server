@@ -3,9 +3,6 @@ package damso.audit;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
@@ -27,7 +24,7 @@ import damso.audit.domain.AuditLog;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F5 research R8: Hibernate는 enum(STRING) 컬럼에 허용값 CHECK 제약을 만든다. 운영 DB는 ddl-auto=update라
+ * Hibernate는 enum(STRING) 컬럼에 허용값 CHECK 제약을 만든다. 운영 DB는 ddl-auto=update라
  * 이미 있는 제약을 넓히지 않으면 새 AuditAction 값 INSERT가 실패한다. 이 테스트는 그 동작을 실제로 확인해 둔다.
  * 제약을 F2 시점(값 3개)으로 되돌린 뒤 hbm2ddl.auto=update로 audit_log 엔티티만 띄워 본다(앱 기동과 같은 경로).
  * 다른 테스트와 스키마를 공유하므로 끝나면 제약을 현재 enum 값 전체로 되돌린다.
@@ -68,28 +65,6 @@ class AuditEnumConstraintTest extends IntegrationTestSupport {
 			replaceConstraint(Arrays.stream(AuditAction.values()).map(Enum::name).toList());
 		}
 		insert(AuditAction.INQUIRY_CLOSED);
-	}
-
-	@Test
-	void deploymentSqlWidensTheNarrowCheckAndCanRunTwice() throws IOException {
-		// docs/db/2026-10-27-f5-audit-action-check.sql — 운영 DB(F2 시점 제약)에 배포 전 실행하는 SQL
-		String sql = Files.readString(Path.of("docs/db/2026-10-27-f5-audit-action-check.sql"));
-		try {
-			replaceConstraint(F2_ACTIONS);
-			insert(AuditAction.INQUIRY_CONTENT_VIEWED);
-
-			jdbc.execute(sql);
-			jdbc.execute(sql);
-
-			String definition = constraintDefinition();
-			for (AuditAction action : AuditAction.values()) {
-				assertThat(definition).contains("'" + action.name() + "'");
-				insert(action);
-			}
-		}
-		finally {
-			replaceConstraint(Arrays.stream(AuditAction.values()).map(Enum::name).toList());
-		}
 	}
 
 	private String constraintDefinition() {

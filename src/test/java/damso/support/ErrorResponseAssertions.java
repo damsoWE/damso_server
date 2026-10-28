@@ -9,7 +9,7 @@ import java.util.Set;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-/** SC-001: 모든 오류 응답이 공통 형식이며 내부 정보를 노출하지 않는지 검사한다. */
+/** 모든 오류 응답이 공통 형식이며 내부 정보를 노출하지 않는지 검사한다. */
 public final class ErrorResponseAssertions {
 
 	private static final JsonMapper MAPPER = JsonMapper.builder().build();

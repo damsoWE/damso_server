@@ -6,7 +6,7 @@ import damso.gateway.domain.GatewayFailure;
 import damso.gateway.domain.Roster;
 
 /**
- * 일반 문의 3요소 정리의 입구 (원칙 II, research R1). 가명화 → 가린 뒤 자기 점검 → 외부 AI → 서버 재검증 → 복원 순서를 이 입구가
+ * 일반 문의 3요소 정리의 입구. 가명화 → 가린 뒤 자기 점검 → 외부 AI → 서버 재검증 → 복원 순서를 이 입구가
  * 강제한다. 호출하는 쪽은 원문과 명단만 넘기고, 외부로 나가는 글은 볼 수 없다. 학교 용어는 게이트웨이가 직접 채운다.
  */
 public interface RefineInquiryGateway {

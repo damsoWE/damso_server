@@ -14,7 +14,7 @@ import damso.gateway.domain.GatewayFailure;
 import damso.gateway.domain.Roster;
 
 /**
- * 가명화 게이트웨이 — 긴급 문의 위기 종류 분류 (F3 research R11). 가명화·자기 점검·외부 호출은 공통 흐름({@link MaskedAiCall})이 하고,
+ * 가명화 게이트웨이 — 긴급 문의 위기 종류 분류. 가명화·자기 점검·외부 호출은 공통 흐름({@link MaskedAiCall})이 하고,
  * 여기서는 결과가 crisisType 하나뿐이고 허용값(SELF_HARM·ABUSE·OTHER_SAFETY)인지만 본다. 아니면 버린다.
  */
 @Service

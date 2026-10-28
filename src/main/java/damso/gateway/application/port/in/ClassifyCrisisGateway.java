@@ -4,7 +4,7 @@ import damso.gateway.domain.GatewayFailure;
 import damso.gateway.domain.Roster;
 
 /**
- * 긴급 문의 위기 종류 분류의 입구 (F3 research R11). 일반 정리와 같이 가명화 → 가린 뒤 자기 점검 → 외부 AI → 허용값 검증을 거친다.
+ * 긴급 문의 위기 종류 분류의 입구. 일반 정리와 같이 가명화 → 가린 뒤 자기 점검 → 외부 AI → 허용값 검증을 거친다.
  * 결과는 코드 하나(SELF_HARM·ABUSE·OTHER_SAFETY)뿐이라 복원할 내용이 없다.
  */
 public interface ClassifyCrisisGateway {

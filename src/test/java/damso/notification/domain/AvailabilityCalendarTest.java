@@ -11,7 +11,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
-/** F2 T045 / FR-027·029: 응답 가능 시간 판정은 Asia/Seoul 기준이고 시작은 포함·종료는 미포함이다. */
+/** 응답 가능 시간 판정은 Asia/Seoul 기준이고 시작은 포함·종료는 미포함이다. */
 class AvailabilityCalendarTest {
 
 	private static Instant seoul(int year, int month, int day, int hour, int minute) {

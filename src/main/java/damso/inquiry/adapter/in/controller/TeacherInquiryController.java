@@ -27,7 +27,7 @@ import damso.inquiry.application.port.in.ViewRefinementUseCase;
 
 /**
  * 교사 문의 API (경로 단위 역할 검사는 SecurityConfig의 /api/v1/teacher/**). 사용자 ID는 토큰에서만 꺼내고,
- * 현재 담임인 학급의 문의만 보인다. 목록·상세에는 본문이 없다 — 원문은 /content(감사 기록), 번역본은 /refinement로만 연다(F3).
+ * 현재 담임인 학급의 문의만 보인다. 목록·상세에는 본문이 없다 — 원문은 /content(감사 기록), 번역본은 /refinement로만 연다.
  */
 @RestController
 @RequestMapping("/api/v1/teacher/inquiries")

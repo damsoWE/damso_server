@@ -21,9 +21,9 @@ import damso.support.FakeExternalAi;
 import damso.support.IntegrationTestSupport;
 
 /**
- * spec 005 T015 / US1 시나리오 1~9, FR-005·005a·005b·007·010, SC-002·003·006:
+ * 
  * 위협·폭언 표시는 접수 때 규칙으로 정해져 교사 목록·상세에 보이고, 외부 AI 상태·번역본 내용·이후 처리와 무관하게 바뀌지 않는다.
- * spec 005 T021 / US2 시나리오 1~3, SC-001: 대표 사례 전체를 실제 접수 API로 넣어 교사 화면의 표시를 확인한다.
+ * 대표 사례 전체를 실제 접수 API로 넣어 교사 화면의 표시를 확인한다.
  */
 @ExtendWith(OutputCaptureExtension.class)
 class ThreatFlagApiTest extends IntegrationTestSupport {
@@ -221,7 +221,7 @@ class ThreatFlagApiTest extends IntegrationTestSupport {
 		assertThat(flagInDetail(s, mixed)).isTrue();
 	}
 
-	/** spec 005 FR-005c: 재문의(F4)도 접수할 때마다 같은 규칙으로 표시를 정하고, 교사 상세의 followUps에서 보인다. */
+	/** 재문의도 접수할 때마다 같은 규칙으로 표시를 정하고, 교사 상세의 followUps에서 보인다. */
 	@Test
 	void followUpsAreScreenedOneByOneAndShownInTheThreadDetail() throws Exception {
 		Scenario s = teacherWithClassroom();
@@ -249,7 +249,7 @@ class ThreatFlagApiTest extends IntegrationTestSupport {
 		assertThat(threat.getContentAsString()).doesNotContainIgnoringCase("threat");
 	}
 
-	/** PR #13 리뷰: 재문의에만 위협 표현이 있어도 교사 목록에서 스레드 단위 표시(threadThreatFlagged)로 보인다. */
+	/** 재문의에만 위협 표현이 있어도 교사 목록에서 스레드 단위 표시(threadThreatFlagged)로 보인다. */
 	@Test
 	void threadFlagInTheListIncludesFollowUps() throws Exception {
 		Scenario s = teacherWithClassroom();

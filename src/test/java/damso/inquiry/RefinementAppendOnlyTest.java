@@ -28,7 +28,7 @@ import damso.inquiry.domain.RefinementAttempt;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F3 T030 / 원칙 III, FR-010·029: 정리 결과와 시도 기록은 append-only이고 문의당 결과는 하나다.
+ * 정리 결과와 시도 기록은 append-only이고 문의당 결과는 하나다.
  * 정리 결과는 저장·표시용일 뿐 조회 조건 같은 실행 경로에 쓰이지 않는다(구조로 검사한다).
  */
 class RefinementAppendOnlyTest extends IntegrationTestSupport {
@@ -83,7 +83,7 @@ class RefinementAppendOnlyTest extends IntegrationTestSupport {
 
 	@Test
 	void refinementValuesAreNeverQueryArguments() {
-		// 저장소 포트의 조회 메서드는 정리 결과 값(문자열·결과 객체)을 조건으로 받지 않는다 — UUID·시각·종류로만 찾는다 (FR-010)
+		// 저장소 포트의 조회 메서드는 정리 결과 값(문자열·결과 객체)을 조건으로 받지 않는다 — UUID·시각·종류로만 찾는다
 		for (Class<?> port : List.of(InquiryRefinementPort.class, RefinementJobPort.class, RefinementAttemptPort.class,
 				InquiryPort.class)) {
 			for (Method method : port.getDeclaredMethods()) {

@@ -14,10 +14,10 @@ import org.springframework.transaction.event.TransactionalEventListener;
 import damso.account.application.port.out.VerificationMailPort;
 
 /**
- * SMTP(JavaMailSender)로 인증 메일을 보낸다 (research R9).
+ * SMTP(JavaMailSender)로 인증 메일을 보낸다.
  * 호출은 이벤트만 발행하고, 실제 발송은 트랜잭션 커밋 후 별도 스레드에서 한다(트랜잭션이 없으면 바로).
  * 본문은 고정 템플릿 — 코드 6자리 외에 이름·학생 정보를 넣지 않는다.
- * 발송 실패 로그에는 메일 종류와 예외 종류만 남긴다(이메일 주소·코드 미기록, 원칙 VI).
+ * 발송 실패 로그에는 메일 종류와 예외 종류만 남긴다(이메일 주소·코드 미기록).
  */
 @Component
 class SmtpVerificationMailSender implements VerificationMailPort {

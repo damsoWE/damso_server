@@ -5,7 +5,7 @@ import java.util.Objects;
 /**
  * 민감 텍스트(문의·답변 본문, 정제 결과 등)를 담는 값 타입.
  * - 엔티티 필드 타입으로 쓰면 SensitiveTextConverter가 자동으로 AES-256-GCM 암호화해 저장한다.
- * - toString()은 항상 [MASKED] — 로그·예외 메시지에 원문이 섞이지 않는다 (constitution 원칙 VI).
+ * - toString()은 항상 [MASKED] — 로그·예외 메시지에 원문이 섞이지 않는다.
  * - 원문은 reveal()로만 꺼낸다. 게터 이름이 아니므로 JSON으로 자동 직렬화되지 않는다.
  */
 public final class SensitiveText {

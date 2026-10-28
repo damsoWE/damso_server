@@ -18,7 +18,7 @@ import damso.gateway.application.port.out.ExternalAiPort.AiTask;
 import damso.support.IntegrationTestSupport;
 
 /**
- * F3 T018 / US1 시나리오 7, FR-006·013, SC-004: 커밋 직후 즉시 실행을 끄고(안전망만) 정리 확정 전 상태와 실행기 동작을 본다.
+ * 커밋 직후 즉시 실행을 끄고(안전망만) 정리 확정 전 상태와 실행기 동작을 본다.
  * 접수는 외부 AI를 기다리지 않고, 같은 작업은 한 번만 실행되며, 멈춘 작업은 임대가 끝나면 다시 실행된다.
  */
 @TestPropertySource(properties = "damso.refinement.dispatch-on-commit=false")
@@ -56,7 +56,7 @@ class RefinementDispatchTest extends IntegrationTestSupport {
 		runRefinement();
 		Duration elapsed = Duration.ofNanos(System.nanoTime() - started);
 
-		// 가짜 외부 AI는 지연 없이 답한다 — 남는 시간은 가명화·검증·저장뿐이다 (SC-004의 자동 점검 부분)
+		// 가짜 외부 AI는 지연 없이 답한다 — 남는 시간은 가명화·검증·저장뿐이다
 		assertThat(elapsed).isLessThan(Duration.ofSeconds(1));
 		assertThat(jdbc.queryForObject("select count(*) from inquiry_refinement where inquiry_id = ?", Integer.class,
 				id)).isEqualTo(1);

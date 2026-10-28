@@ -14,10 +14,10 @@ import jakarta.persistence.UniqueConstraint;
 import damso.common.entity.BaseEntity;
 
 /**
- * 초대 코드. 원문은 저장하지 않고 서버 키 HMAC(code_hash)만 둔다 (FR-007).
- * 1회용이고 발행 후 24시간 뒤 만료된다 (FR-008). 같은 대상에 활성 코드는 하나뿐이다:
+ * 초대 코드. 원문은 저장하지 않고 서버 키 HMAC(code_hash)만 둔다.
+ * 1회용이고 발행 후 24시간 뒤 만료된다. 같은 대상에 활성 코드는 하나뿐이다:
  * active_target_key는 ISSUED일 때 "{kind}:{대상 UUID}", USED·REVOKED면 NULL이고 유니크라
- * 대상당 ISSUED 코드가 둘이 될 수 없다(PostgreSQL 유니크는 NULL끼리 충돌하지 않는다, research R6).
+ * 대상당 ISSUED 코드가 둘이 될 수 없다(PostgreSQL 유니크는 NULL끼리 충돌하지 않는다).
  * 코드 종류에 맞는 대상은 생성 메서드로만 정해진다.
  */
 @Entity

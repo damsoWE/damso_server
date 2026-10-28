@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * 가명화 사전 재료를 읽는 통로 (F3 research R2). 학급의 학생 이름·보호자·담임과 학년·반을 돌려준다.
+ * 가명화 사전 재료를 읽는 통로. 학급의 학생 이름·보호자·담임과 학년·반을 돌려준다.
  * 이름은 이때만 복호화한 String이며 로그·예외에 넣지 않는다 — toString은 건수만 보여 준다.
  */
 public interface RosterQuery {

@@ -34,16 +34,16 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import damso.common.config.PayloadTooLargeException;
 
 /**
- * MVC 계층의 모든 예외를 공통 ErrorResponse로 바꾼다 (FR-001~003).
+ * MVC 계층의 모든 예외를 공통 ErrorResponse로 바꾼다.
  * 응답에는 고정 문구만 담고, 원인은 서버 로그에만 남긴다.
- * 서버 로그에도 요청 본문·쿼리스트링은 남기지 않는다 (constitution 원칙 VI).
+ * 서버 로그에도 요청 본문·쿼리스트링은 남기지 않는다.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
 	private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-	/** 잠금·대기 중 (R15). 남은 시간은 Retry-After 헤더(초)로 알린다. 본문은 공통 형식 그대로. */
+	/** 잠금·대기 중. 남은 시간은 Retry-After 헤더(초)로 알린다. 본문은 공통 형식 그대로. */
 	@ExceptionHandler(TooManyAttemptsException.class)
 	ResponseEntity<ErrorResponse> handleTooManyAttempts(TooManyAttemptsException ex) {
 		return ResponseEntity.status(ErrorCode.TOO_MANY_ATTEMPTS.status())
@@ -74,7 +74,7 @@ public class GlobalExceptionHandler {
 	}
 
 	/**
-	 * 낙관적 락 실패 — 같은 버전을 기준으로 한 두 번째 수정 (FR-010).
+	 * 낙관적 락 실패 — 같은 버전을 기준으로 한 두 번째 수정.
 	 * 유니크 제약 위반도 같은 충돌로 본다(동시에 같은 학급을 만들거나 같은 대상의 코드를 발행한 경우).
 	 * 행 잠금 대기 상한을 넘긴 경우(다른 요청이 같은 행을 쥐고 있음)도 같은 충돌로 본다.
 	 */
@@ -119,7 +119,7 @@ public class GlobalExceptionHandler {
 		return respond(ErrorCode.PAYLOAD_TOO_LARGE);
 	}
 
-	/** @Valid 요청 본문 검증 실패 (FR-023, FR-024). */
+	/** @Valid 요청 본문 검증 실패. */
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	ResponseEntity<ErrorResponse> handleInvalidBody(MethodArgumentNotValidException ex) {
 		List<ErrorResponse.FieldError> errors = new ArrayList<>();

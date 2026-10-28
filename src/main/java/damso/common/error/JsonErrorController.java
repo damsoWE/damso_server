@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * MVC 밖(서블릿 컨테이너·필터)에서 난 오류가 도달하는 /error 경로.
- * Boot 기본 BasicErrorController를 대체해 공통 ErrorResponse로만 응답한다 (FR-002).
+ * Boot 기본 BasicErrorController를 대체해 공통 ErrorResponse로만 응답한다.
  */
 @RestController
 public class JsonErrorController implements ErrorController {
