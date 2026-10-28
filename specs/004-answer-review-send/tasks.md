@@ -11,7 +11,7 @@ description: "Task list for 004-answer-review-send"
 
 **Tests**: 포함한다. spec의 성공 기준(SC-001~011)이 자동화 테스트로 확인할 수 있는 형태이고, 보안약점 체크리스트의 `조치` 근거로 테스트 이름이 필요하다(F1·F2와 같은 방식).
 
-**Organization**: spec의 사용자 스토리(US1~US5) 단위로 묶었다. US2(점검)는 US1(전송) 위에서 동작하지만 독립적으로 테스트할 수 있다. US3(알림)·US5(종료)는 US1의 전송 서비스를 확장한다. US4(재문의)는 F2의 접수 파이프라인을 재사용한다(아래 Dependencies).
+**Organization**: spec의 사용자 스토리(US1~US5) 단위로 묶었다(2026-10-28 추가분 US6·US7은 파일 하단 Phase 9~12). US2(점검)는 US1(전송) 위에서 동작하지만 독립적으로 테스트할 수 있다. US3(알림)·US5(종료)는 US1의 전송 서비스를 확장한다. US4(재문의)는 F2의 접수 파이프라인을 재사용한다(아래 Dependencies).
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -39,6 +39,7 @@ description: "Task list for 004-answer-review-send"
 - [x] T001 작업 브랜치 확인: `git branch --show-current`가 `features/f4-answer-review-send`(이슈 #7 연결)인지 확인한다. 아니면 `git switch features/f4-answer-review-send`
 - [x] T002 **Contract-first — 구현 전에** `docs/api/openapi.yaml`에 `specs/004-answer-review-send/contracts/answer.openapi.yaml`을 통합: 경로 6개(오퍼레이션 7개) 추가, 스키마 추가, 공통 `ErrorCode` enum에 `THREAD_CLOSED`·`INQUIRY_NOT_READY_TO_CLOSE` 2개 추가, contract의 외부 `$ref`(`../../../docs/api/openapi.yaml#…`)는 내부 참조로 바꾼다, 태그 3개 추가, `info.version` `0.3.0` → `0.4.0`. `npx -y @redocly/cli@1.34.5 lint docs/api/openapi.yaml`이 valid여야 한다. 태그 `api-v0.4`는 PR merge 후 main에서 `/api-release api-v0.4`로 찍는다
 - [ ] T003 프론트엔드 공지: 프론트 레포(`damsoWE/damso_app`) 담당에게 F4 API 명세(`docs/api/openapi.yaml` 0.4.0)를 알린다. 알릴 내용: 경로 6개(답변 점검·전송·종료, 재문의, 학부모 알림 설정), 에러 코드 2개(`THREAD_CLOSED`, `INQUIRY_NOT_READY_TO_CLOSE`), 학부모 답변 알림 기본값은 켜짐. **점검(`POST .../answer-reviews`)은 F3 연동 전까지 임시 상태로, 지금은 항상 `available=false`만 돌아온다 — 교사가 점검을 요청하든 안 하든 실질적인 점검 효과가 없으니 프론트는 "점검 완료"처럼 보이는 UI 문구를 쓰지 말고 `reviewed`를 "점검을 요청한 적이 있는지"로만 표시해야 한다.** 공지한 날짜·채널을 PR 설명에 적는다
+  - 메모: 이후 앱에서는 종료(`/close`)를 호출하지 않기로 함. 공지할 때 종료 경로와 `THREAD_CLOSED`·`INQUIRY_NOT_READY_TO_CLOSE`는 앱에서 쓰지 않는다고 함께 알린다(decisions.md 2026-10-27)
 - [x] T004 `./gradlew build -x test`로 컴파일 확인 (Windows: `.\gradlew.bat build -x test`)
 
 ---
@@ -178,6 +179,7 @@ description: "Task list for 004-answer-review-send"
 - [x] T044 [P] `docs/security-checklist.md` 갱신 — 보안기능 2(답변·점검·종료의 현재 담임 검증, 재문의의 본인 학부모 검증)·보안기능 5(`answer.content` 암호화)·에러처리 2(점검 서비스 장애에도 전송 가능, fail-open)·캡슐화 2(답변·점검 로그 0건)·시간 및 상태 1("답변 완료" 전이 `@Version`)의 상태를 `조치`로 바꾸고 근거(클래스·테스트 이름) 기재
 - [x] T045 [P] `docs/features.md` 상태 표 F4 행을 `구현 완료`로 갱신
 - [x] T046 `quickstart.md` 2절 수동 확인을 실행하고 결과를 이 파일 하단 "구현 메모"에 적는다: 긴급 문의로 열람→점검→전송→재문의→추가 답변→종료까지 전 흐름, 답변 알림 on/off
+  - 메모: 종료 단계는 서버 검증 확인용이며 앱에서는 호출하지 않음(decisions.md 2026-10-27)
 - [x] T047 `./gradlew test` 전체 실행 — 실패가 있으면 숨기지 말고 테스트 이름과 함께 보고한다
 - [x] T048 이 파일 하단에 "구현 메모" 절을 만들어 계획과 달라진 점을 F1·F2 tasks.md와 같은 형식으로 기록한다
 
@@ -272,3 +274,107 @@ Phase 2 ── US1 ─┬─ US2
 - **T046 수동 확인(2026-10-25)**: PostgreSQL·Redis·Mailpit 컨테이너(`docker compose up -d postgres redis mailpit`)와 로컬 서버(포트 18080, 무작위 생성한 임시 시크릿, 슈퍼 관리자는 환경변수로 생성, JDK 21)로 quickstart 2절 흐름을 curl로 실행했다. 학급·학생·교사·학부모 초대 코드 발행 → 가입(Mailpit에서 인증 코드 읽음) → 기기 등록 → **긴급 문의 접수**(`DELIVERED`, `URGENT_DELIVERED` + 상담 번호 둘) → 교사 원문 열람(`TEACHER_CONFIRMED`, 열람 즉시) → 점검 요청(스텁 `available=false`) → 답변 전송(201) → 학부모 재문의(같은 스레드, `threadRootId`=루트 id) → 교사 추가 답변(201) → 교사·학부모 양쪽 상세에 `followUps`·`answers`가 시간순으로 반영(교사 쪽 재문의는 본문 없이 "정리 중" 제목, 학부모 쪽은 평문) 확인. `notification_request`에 `URGENT`·`GENERAL`·`ANSWER` 1건씩(ANSWER는 답변 2건이라 2건)이 쌓였고, 10초 안전망이 돈 뒤 가짜 FCM 자격 증명 탓에 `FCM 발송 오류 (type=IOException)`만 남기고 재시도 대기(`attempts=1`)로 넘어갔다(F2와 같은 양상, 실기기 미보유로 실제 수신 미확인). 교사가 종료(`POST .../close`) → 그 뒤 학부모 재문의 시도 409 `THREAD_CLOSED` 확인. 학부모가 답변 알림을 끈 뒤(`PUT /api/v1/parent/notification-settings`) 교사가 다시 답변을 보내려 했으나, 스레드가 이미 종료돼 있어 그 시도 자체가 409 `THREAD_CLOSED`로 막혔다(알림 꺼짐 상태에서 ANSWER 요청이 안 생기는 것은 `AnswerExposureTest.parentNotificationOffOnlySuppressesAnswerKindAndDoesNotAffectExistingF2Alerts`로 별도 확인). 서버 로그에 문의·답변·재문의 본문, 기기 토큰, 이름이 없었다. 확인 후 서버·컨테이너·임시 `.env`는 정리했다.
 - **T047 전체 테스트**: `./gradlew test` — **458개 테스트 모두 통과**(실패·오류 0, `build/test-results/test/*.xml` 기준).
 - **docs 갱신**: `docs/security-checklist.md`(보안기능 2·5, 시간 및 상태 1, 에러처리 2, 캡슐화 2), `docs/features.md`(F4 `구현 완료`).
+
+---
+
+# 2026-10-28 추가 — 목록의 답변 여부(US6)·종료 경로 차단(US7)
+
+**Input**: spec.md(US6·US7, FR-026~032, SC-012~015, Clarifications Session 2026-10-28), plan.md "2026-10-28 추가", research.md R10~R15, data-model.md "2026-10-28 추가", [contracts/list-answer-status.openapi.yaml](./contracts/list-answer-status.openapi.yaml), quickstart.md 2-1절
+
+**Tests**: 포함한다(위 T001~T048과 같은 이유). 운영 DB 닫힌 스레드 0건은 2026-10-28 사용자 확인(research R14) — 처리 작업 없음.
+
+**Branch**: `features/f4-close-not-used` (PR #19, 이슈 #18). T001~T048은 그대로 두고 아래를 이어서 진행한다.
+
+---
+
+## Phase 9: Setup (2026-10-28 추가분)
+
+**Purpose**: Contract-first — 코드보다 명세를 먼저 바꾼다(constitution 개발 흐름)
+
+- [ ] T049 작업 브랜치 확인: `git branch --show-current`가 `features/f4-close-not-used`인지 확인한다. 아니면 `git switch features/f4-close-not-used`
+- [ ] T050 **Contract-first — 구현 전에** `docs/api/openapi.yaml`에 `specs/004-answer-review-send/contracts/list-answer-status.openapi.yaml`을 반영한다: ① `ParentInquirySummary`·`TeacherInquirySummary`의 `properties`와 `required`에 `hasAnswer`(`type: boolean`)·`lastAnsweredAt`(`type: string, format: date-time, nullable: true`)를 추가하고 설명은 계약 그대로(스레드 전체 기준, stage와 무관, 답변 본문 없음, 답변이 없으면 null) ② `POST /api/v1/teacher/inquiries/{inquiryId}/close`에 `deprecated: true`, summary·description을 계약대로 바꾸고 `'404'`를 공통 `NotFound` 대신 계약의 설명(꺼져 있음 → `NOT_FOUND`)으로 교체, `'200'`·`'409'` 설명에 "(설정을 켰을 때만)" ③ `InquiryStage.description`에 "앱에서는 종료를 호출하지 않아 ANSWERED가 생기지 않는다(decisions.md 2026-10-27). 답변 여부는 목록의 hasAnswer로 판단한다." ④ `POST .../follow-ups`·`POST .../answers`의 409 `THREAD_CLOSED` 설명에 "종료 경로가 운영에서 꺼져 있어 지금은 생기지 않는다." ⑤ `info.version` `0.6.0` → `0.7.0`. `npx -y @redocly/cli@1.34.5 lint docs/api/openapi.yaml`이 valid여야 한다. 새 경로·새 `ErrorCode` 없음
+- [ ] T051 프론트엔드 공지(사람 작업): `damsoWE/damso_app` 담당에게 `docs/api/openapi.yaml` 0.7.0을 알린다. 알릴 내용: 목록 두 곳의 `hasAnswer`·`lastAnsweredAt`(답변한 문의 판단은 `stage`가 아니라 `hasAnswer`로), `/close`는 운영에서 꺼져 있어 404, `ANSWERED`·`THREAD_CLOSED`는 앱에서 생기지 않음. 공지한 날짜·채널을 PR #19 설명에 적는다
+
+**Checkpoint**: lint valid. 이후 US6·US7은 서로 독립
+
+---
+
+## Phase 10: User Story 6 - 학부모·교사가 문의 목록에서 답변한 문의를 구별한다 (Priority: P1) 🎯
+
+**Goal**: 학부모·교사 목록 항목에 `hasAnswer`·`lastAnsweredAt` (FR-026~030)
+
+**Independent Test**: 답변 없는 문의와 답변 있는 문의를 하나씩 만들고 학부모·교사 목록 양쪽에서 구별되는지 확인한다
+
+### Tests for User Story 6
+
+- [ ] T052 [P] [US6] `src/test/java/damso/inquiry/InquiryListAnswerStatusTest.java`(신규, `IntegrationTestSupport` 상속, `@TestPropertySource(properties = "damso.refinement.dispatch-on-commit=false")` — `ParentInquiryQueryApiTest`와 같은 컨텍스트) — 학부모 목록 `GET /api/v1/parent/inquiries`와 교사 목록 `GET /api/v1/teacher/inquiries` 양쪽에서: ① 답변 없는 문의 → `hasAnswer=false`, `lastAnsweredAt`이 JSON에 키로 있고 값은 `null` (US6 시나리오 1) ② `POST /api/v1/teacher/inquiries/{id}/answers` 1회 → `hasAnswer=true`, `lastAnsweredAt`이 그때의 `clock.instant()`와 같음 (시나리오 2, SC-012) ③ 그 뒤 학부모 재문의(`submitFollowUp`) → 여전히 `true`, 시각 그대로 (시나리오 3) ④ `clock`을 옮기고 추가 답변 → `lastAnsweredAt`이 새 시각 (시나리오 6) ⑤ 재문의가 먼저 오고 그 뒤 첫 답변 → `true` (Edge Case: 스레드 전체 기준) ⑥ 목록 응답 본문 문자열에 보낸 답변 본문이 없음 (시나리오 4, SC-013) ⑦ 답변 있는 문의와 없는 문의가 섞인 목록에서 각 항목이 자기 스레드 값만 가짐(다른 스레드 답변이 섞이지 않음) ⑧ 담임 교체: 답변 뒤 `classroomPort.findClassroomById(...)` → `releaseTeacher()` → `createAccount(Role.TEACHER)`로 만든 새 교사로 `assignTeacher(newTeacherId)` → `saveClassroom(...)`(`TeacherInquiryApiTest.formerHomeroomTeacherLosesAccessAfterRelease`와 같은 `classroomPort` 사용 방식) → 새 담임 목록에서도 이전 담임의 답변으로 `hasAnswer=true` (Edge Case) ⑨ 학부모 목록 항목의 키 집합이 `inquiryId, studentId, studentName, urgent, stage, submittedAt, hasAnswer, lastAnsweredAt`과 정확히 같음 ⑩ 답변한 교사가 `POST /api/v1/me/withdrawal`(현재 비밀번호 재확인)로 탈퇴한 뒤 학부모 목록에서 `hasAnswer=true`·`lastAnsweredAt` 그대로 (US6 시나리오 5)
+- [ ] T053 [P] [US6] `src/test/java/damso/inquiry/TeacherInquiryApiTest.java` — `listItemAndDetailCarryExactlyTheContractFieldsIncludingThreatFlagged`(268행)의 목록 키 집합에 `"hasAnswer", "lastAnsweredAt"`을 더하고 `hasAnswer`가 `Boolean`인지 확인. 상세(`$`) 키 집합은 바꾸지 않는다(상세는 이번 범위 밖)
+
+### Implementation for User Story 6
+
+- [ ] T054 [P] [US6] `src/main/java/damso/inquiry/adapter/out/persistence/SpringDataAnswerRepository.java` — 읽기 메서드 1개 추가: `@Query("select a.threadRootId as threadRootId, max(a.sentAt) as lastSentAt from Answer a where a.threadRootId in :rootIds group by a.threadRootId")`로 루트 id 묶음별 마지막 전송 시각을 돌려준다(반환 타입은 같은 패키지의 package-private 프로젝션 인터페이스 또는 `Object[]` — 구현 시 단순한 쪽). 메서드 이름은 `find…`로 시작하고 `@Modifying`을 붙이지 않는다(`AnswerAppendOnlyTest` 유지). 본문(`content`)은 select하지 않는다(원칙 VI). 기존 인덱스 `idx_answer_thread(thread_root_id, sent_at)` 사용, 엔티티·인덱스 변경 없음
+- [ ] T055 [US6] `src/main/java/damso/inquiry/application/port/out/AnswerPort.java` + `src/main/java/damso/inquiry/adapter/out/persistence/AnswerPersistenceAdapter.java` — `Map<UUID, Instant> findLastAnsweredAt(Collection<UUID> rootIds)`: 입력이 비어 있으면 쿼리 없이 `Map.of()`(`InquiryPersistenceAdapter.findThreadsWithThreatFlaggedFollowUp`과 같은 처리), 답변 없는 루트는 Map에 없음 (depends on T054)
+- [ ] T056 [P] [US6] `src/main/java/damso/inquiry/application/port/in/ParentInquiryQuery.java` + `src/main/java/damso/inquiry/application/service/ParentInquiryService.java` — `InquirySummary`에 `boolean hasAnswer`, `Instant lastAnsweredAt`(답변이 없으면 `null`) 추가(기존 `toString`의 이름 가리기 유지). `list()`에서 조회한 루트 id들로 `answers.findLastAnsweredAt(...)`를 **한 번** 호출해 `lastAnsweredAt = map.get(id)`, `hasAnswer = lastAnsweredAt != null` (FR-026·028, depends on T055)
+- [ ] T057 [P] [US6] `src/main/java/damso/inquiry/application/port/in/TeacherInquiryQuery.java` + `src/main/java/damso/inquiry/application/service/TeacherInquiryService.java` — `InquirySummary`에 같은 두 필드 추가. `list()`에서 `findThreadsWithThreatFlaggedFollowUp` 옆에 `answers.findLastAnsweredAt(...)`를 페이지당 **한 번** 호출하고 `summaryOf`로 넘긴다. 담임이 없어 빈 페이지를 돌려주는 경로는 그대로 (FR-027·028·030, depends on T055)
+- [ ] T058 [US6] `src/main/java/damso/inquiry/adapter/in/controller/dto/response/ParentInquirySummaryResponseDTO.java` + `TeacherInquirySummaryResponseDTO.java` — record 컴포넌트 `boolean hasAnswer`, `Instant lastAnsweredAt`을 `submittedAt` 뒤에 추가하고 `from(...)`에서 옮긴다. JSON 키는 정확히 `hasAnswer`·`lastAnsweredAt`, `lastAnsweredAt`은 null이어도 키가 나와야 한다(기존 `refinementStatus`와 같은 직렬화) (FR-029, depends on T056, T057)
+
+**Checkpoint**: T052·T053 통과, 기존 `ParentInquiryQueryApiTest`·`TeacherInquiryApiTest`·`ThreatFlagApiTest`·`AnswerAppendOnlyTest` 통과. 특히 FR-030(노출 범위·정렬 유지)은 기존 `TeacherInquiryApiTest.listPutsUrgentFirstThenNewestAndHasNoContentOrParentInfo`·`teacherOfAnotherClassroomSeesNothingOfIt`·`ParentInquiryQueryApiTest.listShowsOnlyMyInquiriesNewestFirstWithoutContent`가 그대로 통과하는 것으로 확인한다
+
+---
+
+## Phase 11: User Story 7 - 앱에서 쓰지 않는 종료 경로를 정리한다 (Priority: P2)
+
+**Goal**: `damso.inquiry.close-enabled`(기본 false)로 종료 경로를 막고, 종료 검증 코드·테스트는 유지 (FR-031·032)
+
+**Independent Test**: 기본 설정에서 담당 교사가 종료를 호출하면 404이고 스레드가 열린 채로 남는지, 설정을 켠 기존 종료 테스트가 그대로 통과하는지 확인한다
+
+### Tests for User Story 7
+
+- [ ] T059 [P] [US7] `src/test/java/damso/inquiry/CloseDisabledApiTest.java`(신규, `IntegrationTestSupport` 상속, `@TestPropertySource` 없음 — 운영 기본값 그대로) — `urgentInquiryConfirmedByTeacher()`로 만든 문의에: ① 담당 교사 `POST /api/v1/teacher/inquiries/{id}/close` → 404, `ErrorResponseAssertions.assertSafeErrorResponse(body, "NOT_FOUND")`, DB `stage`는 `TEACHER_CONFIRMED` 그대로, `inquiry_stage_history`에 `ANSWERED` 0줄 (US7 시나리오 1, SC-014) ② 그 뒤 학부모 재문의 201, 교사 답변 201 (시나리오 1) ③ 다른 학급 교사 404, 학부모 403, 슈퍼 관리자 403, 모두 stage 그대로 (시나리오 2) ④ 없는 id(`UUID.randomUUID()`)로 호출해도 같은 404 본문(꺼진 경로와 없는 문의를 구별할 수 없음)
+- [ ] T060 [P] [US7] 종료 성공을 전제로 한 기존 테스트 5개 클래스에 `@TestPropertySource(properties = "damso.inquiry.close-enabled=true")`를 붙이고, 클래스 Javadoc에 "운영에서는 꺼져 있다(FR-031). 종료 경로를 다시 열 때를 대비해 FR-021·022 서버 검증을 계속 확인한다(PR #19 리뷰 P0)"를 한 줄 더한다. **테스트 메서드는 지우거나 바꾸지 않는다**: `src/test/java/damso/inquiry/CloseInquiryApiTest.java`, `src/test/java/damso/inquiry/ThreadClosedIntegrationTest.java`, `src/test/java/damso/notification/UrgentReminderStopsAfterCloseTest.java`, `src/test/java/damso/inquiry/AnswerExposureTest.java`, `src/test/java/damso/inquiry/AnswerSensitiveLoggingTest.java` (research R13)
+
+### Implementation for User Story 7
+
+- [ ] T061 [US7] `src/main/java/damso/inquiry/application/service/CloseInquiryService.java` — 생성자에 `@Value("${damso.inquiry.close-enabled:false}") boolean closeEnabled`를 받아 필드로 두고(`RefinementDispatchTrigger`의 `dispatch-on-commit`과 같은 방식), `close()`의 **첫 줄**에서 `!closeEnabled`면 `throw new BusinessException(ErrorCode.NOT_FOUND)` — 문의 조회·담당 교사 확인보다 먼저. 이후 로직(소유권 → 루트 확인 → `THREAD_CLOSED` → `INQUIRY_NOT_READY_TO_CLOSE` → 전이·이력)은 바꾸지 않는다. 클래스 Javadoc에 "앱에서 쓰지 않아 운영에서는 꺼져 있다(decisions.md 2026-10-27, FR-031). 전이·검증은 다시 열 때를 위해 남긴다" 추가 (depends on T059, T060)
+- [ ] T062 [US7] `src/main/resources/application.yml` — `damso.inquiry` 아래 `submit-interval` 다음에 `close-enabled: false`와 주석 "앱에서 쓰지 않는 '답변 완료' 종료 경로. false면 POST .../close가 404 (FR-031, decisions.md 2026-10-27)" 추가. 코드 기본값(`:false`)과 같게 둔다(원칙 VIII)
+
+**Checkpoint**: T059 통과, T060의 5개 클래스가 이전과 같이 통과
+
+---
+
+## Phase 12: Polish (2026-10-28 추가분)
+
+- [ ] T063 [P] `docs/security-checklist.md` 보안기능 2(부적절한 인가) 근거의 F4 범위 끝에 "종료 경로는 운영에서 꺼져 있고(`damso.inquiry.close-enabled=false`, 교사 호출 404), 담당 교사 검증·닫힌 스레드 거부는 유지한다 — `CloseDisabledApiTest`, `CloseInquiryApiTest`(설정 켬)"를 더한다
+- [ ] T064 [P] `docs/decisions.md` 2026-10-27 행의 **미결** ①②를 해결 내용으로 갱신한다(constitution "기획서와 달라지는 결정은 decisions.md에 MUST"): ① → "2026-10-28 해결: 목록 응답에 `hasAnswer`·`lastAnsweredAt` 추가(api 0.7.0), 앱은 `stage`가 아니라 `hasAnswer`로 판단" ② → "2026-10-28 해결: 서버에서 종료 경로를 설정(`damso.inquiry.close-enabled`, 기본 false)으로 막음, 교사 호출 404, 종료 전이·검증 코드와 테스트는 유지. 운영 DB 닫힌 스레드 0건 확인". **영향 범위**의 "다음 api 태그 때 openapi.yaml 반영"은 "api 0.7.0에서 반영"으로 바꾼다
+- [ ] T065 `./gradlew test` 전체 실행(Windows: `.\gradlew.bat test`) — 실패가 있으면 숨기지 말고 테스트 이름과 함께 보고한다
+- [ ] T066 이 파일 하단에 "구현 메모 (2026-10-28)" 절을 만들어 계획과 달라진 점, T065 결과(테스트 수·실패 0 여부), T051 공지 여부를 기록한다
+- [ ] T067 (사람 작업, merge 후) main에서 `/api-release api-v0.7`로 태그를 찍는다
+
+---
+
+## Dependencies & Execution Order (2026-10-28 추가분)
+
+- **Phase 9(Setup)**: 바로 시작. constitution Contract-first 순서(명세 → 프론트 공지 → 코드)를 따른다: T050(명세) → **T051(공지)** → 코드 작업
+- **US6(Phase 10)**: **T051 이후**. T054 → T055 → T056·T057(병렬) → T058
+- **US7(Phase 11)**: **T051 이후**, US6과 독립. T059·T060 → T061 → T062
+- **Polish(Phase 12)**: US6·US7 완료 후. T063·T064는 병렬
+- 테스트(T052·T053·T059·T060)는 계약만 보고 쓸 수 있으므로 T050 이후 미리 써도 된다. **운영 코드(T054~T058, T061·T062) 커밋은 T051 공지가 끝난 뒤**에 한다
+
+```
+T049 ─ T050 ─ T051 (사람, 공지) ─┬─ US6: T052·T053 ─ T054 ─ T055 ─ T056 ∥ T057 ─ T058 ─┐
+                                 └─ US7: T059 ∥ T060 ─ T061 ─ T062 ─────────────────────┤
+                                                       Polish: T063 ∥ T064 ─ T065 ─ T066 ─ (merge) ─ T067
+```
+
+### Parallel Opportunities (2026-10-28 추가분)
+
+- US6 테스트 T052·T053, US7 테스트 T059·T060은 서로 다른 파일이라 병렬 가능
+- T056(학부모)·T057(교사)은 서로 다른 파일이라 병렬 가능
+- US6 전체와 US7 전체는 겹치는 파일이 없다(`docs/api/openapi.yaml`은 T050에서 한 번에 끝낸다)
+
+### Implementation Strategy (2026-10-28 추가분)
+
+1. T049·T050 → **멈추고 확인**: lint valid, 계약과 `docs/api/openapi.yaml`이 일치 → T051 프론트 공지
+2. US6(프론트가 막혀 있는 작업, P1) → Checkpoint → 커밋(`Feat : …`, git-conventions)
+3. US7 → Checkpoint → 커밋
+4. Polish → 전체 테스트 → 구현 메모

@@ -6,7 +6,7 @@
 
 ## Summary
 
-교사가 담당 학급 문의에 답변을 작성해 전송한다. 전송 전 점검(선택)은 답변 + 가명화된 문의 맥락을 함께 참고해 오해 소지 표현·근거 누락을 짚어주지만, 가명화 게이트웨이(F3)가 아직 없으므로 이번 구현은 **포트 인터페이스 + 항상 "점검 실패"를 반환하는 스텁 어댑터**로만 둔다(사용자 확인 2026-10-25). 문의는 스레드로 운영되어 학부모가 재문의하면 F2의 긴급 분류·1분 제한을 그대로 거치고, 교사는 "답변 완료"로 명시적으로 종료한다. 답변 도착 알림은 F2가 만든 FCM 아웃박스·기기 등록을 재사용하고 기본값은 켜짐(on)이다.
+교사가 담당 학급 문의에 답변을 작성해 전송한다. 전송 전 점검(선택)은 답변 + 가명화된 문의 맥락을 함께 참고해 오해 소지 표현·근거 누락을 짚어주지만, 가명화 게이트웨이(F3)가 아직 없으므로 이번 구현은 **포트 인터페이스 + 항상 "점검 실패"를 반환하는 스텁 어댑터**로만 둔다(사용자 확인 2026-10-25). 문의는 스레드로 운영되어 학부모가 재문의하면 F2의 긴급 분류·1분 제한을 그대로 거치고, 교사는 "답변 완료"로 명시적으로 종료한다(2026-10-28부터 종료 경로는 운영에서 막힘 — 아래 "2026-10-28 추가" 절). 답변 도착 알림은 F2가 만든 FCM 아웃박스·기기 등록을 재사용하고 기본값은 켜짐(on)이다.
 
 - **답변**: 새 `answer` 테이블(암호화 본문, 불변). 점검 여부 없이도 바로 전송 가능.
 - **점검(임시 상태, F3 연동 전)**: `AnswerReviewPort`(port.out) + `UnavailableAnswerReviewAdapter`(스텁, 항상 `Optional.empty()`) → FR-012 fail-open 경로. **F3가 완성되기 전까지는 교사가 점검을 요청하든 안 하든 모든 답변이 실질적인 점검 없이 전송된다** — `reviewed` 플래그는 "점검을 요청했는지"만 기록하고 "점검이 유의미한 결과를 줬는지"를 보증하지 않는다. F3가 완성되면 `UnavailableAnswerReviewAdapter`만 실제 가명화 게이트웨이 호출로 교체한다.
@@ -129,3 +129,67 @@ src/main/java/damso/
 > **Fill ONLY if Constitution Check has violations that must be justified**
 
 해당 없음.
+
+---
+
+## 2026-10-28 추가 — 목록의 답변 여부(US6)·종료 경로 차단(US7)
+
+**Branch**: `features/f4-close-not-used` (PR #19, 이슈 #18) | **Date**: 2026-10-28 | **근거**: `docs/decisions.md` 2026-10-27 미결 ①②, spec Clarifications Session 2026-10-28
+
+### Summary
+
+- **목록의 답변 여부(US6)**: 학부모·교사 문의 목록 항목에 `hasAnswer`·`lastAnsweredAt`을 더한다. 저장하지 않고, 목록에 나온 루트 id 묶음으로 `answer`에서 `max(sent_at)`을 한 번에 집계한다(교사 목록 `threadThreatFlagged`와 같은 패턴). 스키마 변경 없음(research R10·R11).
+- **종료 경로 차단(US7)**: `CloseInquiryService.close()` 첫 줄에서 `damso.inquiry.close-enabled`(기본 false)가 꺼져 있으면 404 `NOT_FOUND`. 종료 전이·검증 코드는 그대로 둔다. 종료 성공을 전제로 한 테스트 5개 클래스는 설정을 켜서 FR-021·022 검증을 계속 확인하고, 꺼진 동작은 새 테스트로 확인한다(research R12·R13).
+- **명세**: Contract-first로 `docs/api/openapi.yaml` 0.6.0 → 0.7.0(research R15).
+
+### Technical Context (변경분)
+
+- **Storage**: 스키마 변경 없음. 기존 인덱스 `idx_answer_thread(thread_root_id, sent_at)` 사용.
+- **Configuration**: 새 설정 `damso.inquiry.close-enabled`(boolean, 기본 false). 시크릿 아님.
+- **Testing**: 기존 `IntegrationTestSupport` 재사용. 종료 테스트 5개 클래스에 `@TestPropertySource(properties = "damso.inquiry.close-enabled=true")` — 테스트 컨텍스트 1개 증가.
+- **Performance**: 목록 요청당 쿼리 1개 추가(교사는 페이지 최대 50개 루트, 학부모는 본인 문의 전체). 인덱스만으로 집계.
+- **Dependencies**: 새 의존성 없음.
+
+### Constitution Check (변경분)
+
+| 원칙 | 대응 | 결과 |
+|---|---|---|
+| III. 원문 보존 | `answer`는 읽기만 한다. `SpringDataAnswerRepository`에 `find…` 읽기 메서드만 추가(`AnswerAppendOnlyTest` 유지) | ✅ |
+| VI. 민감정보 비노출 | 집계 쿼리는 `thread_root_id`·`sent_at`만 읽고 본문을 읽지 않는다. 목록 응답에 본문 없음(SC-013) | ✅ |
+| VII. 건별 소유권 | 집계 대상은 이미 소유권 검증을 거친 목록의 루트 id뿐(FR-030). 종료 경로는 막혀도 담당 교사 검증 코드·테스트를 유지(FR-032, PR #19 리뷰 P0) | ✅ |
+| VIII. 안전한 기본값 | 종료 설정 기본값은 코드·yml 모두 false — 설정이 빠지면 막힌 쪽 | ✅ |
+| 백엔드: 동시성 | 답변 저장 경로를 바꾸지 않아 루트 `@Version` 충돌이 늘지 않는다(R10 기각안 참고) | ✅ |
+| 개발 흐름: Contract-first | `contracts/list-answer-status.openapi.yaml` → 사람 리뷰 → `docs/api/openapi.yaml` 0.7.0 반영 → 프론트 공지 → 코드 | ✅ contracts 사람 리뷰 완료(2026-10-28, 사용자). 공지 → 코드 순서는 tasks.md Dependencies에서 강제 |
+| 큰 영향 결정 확인(CLAUDE.md) | 새 권한·외부 시스템·DB 스키마 변경 없음. 종료 차단 방식·응답 코드는 사용자 확인(2026-10-28, 클래리파이 Q2·Q3·Q4) | ✅ |
+
+**설계 후 재점검**: 위반 없음. 남은 확인은 운영 DB의 닫힌 스레드 수(research R14, 사람 작업)뿐이다.
+
+### Source Code (변경분)
+
+```text
+src/main/java/damso/inquiry/
+├── application/
+│   ├── port/in/ParentInquiryQuery.java      # (수정) InquirySummary에 hasAnswer·lastAnsweredAt
+│   ├── port/in/TeacherInquiryQuery.java     # (수정) 〃
+│   ├── port/out/AnswerPort.java             # (수정) 루트 id 묶음 → 마지막 답변 시각 Map
+│   └── service/
+│       ├── ParentInquiryService.java        # (수정) list()에서 집계 결과 합치기
+│       ├── TeacherInquiryService.java       # (수정) list()·summaryOf()에서 〃
+│       └── CloseInquiryService.java         # (수정) close-enabled 검사(첫 줄)
+└── adapter/
+    ├── in/controller/dto/response/ParentInquirySummaryResponseDTO.java   # (수정) 필드 2개
+    ├── in/controller/dto/response/TeacherInquirySummaryResponseDTO.java  # (수정) 〃
+    └── out/persistence/
+        ├── SpringDataAnswerRepository.java  # (수정) group by 집계 읽기 메서드
+        └── AnswerPersistenceAdapter.java    # (수정) 빈 입력이면 빈 Map
+
+src/main/resources/application.yml           # (수정) damso.inquiry.close-enabled: false
+
+src/test/java/damso/
+├── inquiry/CloseDisabledApiTest.java        # (신규) 꺼진 상태 동작
+├── inquiry/InquiryListAnswerStatusTest.java # (신규) 목록의 답변 여부
+├── inquiry/TeacherInquiryApiTest.java       # (수정) 목록 필드 집합 검사에 2개 추가
+└── (종료 테스트 5개 클래스)                   # (수정) @TestPropertySource close-enabled=true
+
+docs/api/openapi.yaml                        # (수정) 0.7.0
+```
