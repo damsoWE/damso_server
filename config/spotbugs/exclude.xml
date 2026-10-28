@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SpotBugs + find-sec-bugs 예외 (이슈 #26). 하나하나 코드로 확인한 뒤 사유와 함께만 둔다.
+  여기 없는 지적은 모두 고쳤다(상수 시간 해시 비교, null 역참조, 방어적 복사, 생성자 예외 클래스 final 등).
+  새 지적이 나오면 먼저 고치고, 고칠 수 없는 경우에만 사유를 적어 여기에 더한다. 보안약점 체크리스트(docs/security-checklist.md)와 함께 본다.
+-->
+<FindBugsFilter>
+
+	<!-- 정보성 규칙: 외부에 열린 엔드포인트 목록을 알려 줄 뿐 결함이 아니다. 엔드포인트별 인증·인가는 SecurityConfig와 테스트로 확인한다. -->
+	<Match>
+		<Bug pattern="SPRING_ENDPOINT"/>
+	</Match>
+
+	<!--
+	  로그 인자는 UUID·enum·예외 클래스 이름·HTTP 상태·요청 메서드와 경로뿐이고 사용자가 쓴 문자열(본문·이름·이메일)은 남기지 않는다
+	  (InquirySensitiveLoggingTest 등). 요청 경로는 디코딩 전 값(getRequestURI)이라 개행 문자가 들어올 수 없다.
+	-->
+	<Match>
+		<Bug pattern="CRLF_INJECTION_LOGS"/>
+	</Match>
+
+	<!--
+	  Spring이 생성자로 주입하는 싱글턴 협력 객체(출력 포트·ObjectMapper·StringRedisTemplate)다. 데이터가 아니라 앱 단위로 공유하도록
+	  만든 빈이므로 복사 대상이 아니다.
+	-->
+	<Match>
+		<Bug pattern="EI_EXPOSE_REP2"/>
+		<Or>
+			<Field type="damso.account.application.port.out.PasswordResetPort"/>
+			<Field type="damso.account.application.port.out.PendingSignupPort"/>
+			<Field type="damso.audit.application.port.out.AuditLogPort"/>
+			<Field type="damso.inquiry.application.port.out.InquiryStageHistoryPort"/>
+			<Field type="damso.inquiry.application.port.out.RefinementAttemptPort"/>
+			<Field type="damso.notification.application.port.out.NotificationSettingPort"/>
+			<Field type="damso.school.application.port.out.LinkHistoryPort"/>
+			<Field type="damso.school.application.port.out.TeacherProfilePort"/>
+			<Field type="tools.jackson.databind.ObjectMapper"/>
+			<Field type="org.springframework.data.redis.core.StringRedisTemplate"/>
+		</Or>
+	</Match>
+
+	<!-- 요청 본문 크기 제한 래퍼: 감싼 입력 스트림을 서블릿 API(getInputStream)로 돌려주는 것이 이 클래스의 역할이다. -->
+	<Match>
+		<Class name="damso.common.config.RequestSizeLimitFilter$LimitedRequest"/>
+		<Bug pattern="EI_EXPOSE_REP"/>
+	</Match>
+
+	<!--
+	  JPA 엔티티는 Hibernate 프록시 때문에 final로 둘 수 없다. 생성자는 도메인 불변식(값 검증)을 지키려고 예외를 던진다.
+	  finalizer 공격은 앱 안에서 엔티티를 상속한 악성 코드가 돌아야 성립하므로 해당되지 않는다(외부 코드 로딩 없음, 체크리스트 보안기능 14).
+	-->
+	<Match>
+		<Bug pattern="CT_CONSTRUCTOR_THROW"/>
+		<Or>
+			<Class name="damso.inquiry.domain.Inquiry"/>
+			<Class name="damso.school.domain.Classroom"/>
+			<Class name="damso.school.domain.Student"/>
+			<Class name="damso.school.domain.TeacherProfile"/>
+		</Or>
+	</Match>
+
+	<!--
+	  가명화 정규식은 반복 수량자에 모두 상한이 있고 중첩된 무한 반복이 없어 역추적이 다항 시간에 머문다. 입력은 문의 본문 상한(2,000자)
+	  안이다. 본문 상한을 채운 역추적 유도 입력에서도 짧게 끝나는 것을 PseudonymizerBacktrackingTest가 확인한다.
+	-->
+	<Match>
+		<Bug pattern="REDOS"/>
+		<Or>
+			<Class name="damso.gateway.domain.Pseudonymizer"/>
+			<Class name="damso.gateway.domain.TokenKind"/>
+		</Or>
+	</Match>
+
+	<!--
+	  긴급·위협 표현 탐지는 본문과 표현 목록을 같은 방식(NFKC + 소문자, Locale.ROOT)으로 맞춘 뒤 비교한다. 정규화를 검증 뒤에 해서
+	  우회되는 문제가 아니라, 전각·대소문자 변형으로 탐지를 피하지 못하게 하려는 정규화다.
+	-->
+	<Match>
+		<Bug pattern="IMPROPER_UNICODE"/>
+		<Or>
+			<Class name="damso.inquiry.domain.ThreatRule"/>
+			<Class name="damso.inquiry.domain.UrgentRule"/>
+		</Or>
+	</Match>
+
+	<!--
+	  /error는 어떤 메서드로 온 요청의 오류도 받아야 해 메서드를 제한하지 않는다. 쿠키·세션을 쓰지 않고 헤더 토큰만 받으므로
+	  CSRF가 성립하지 않는다(체크리스트 입력데이터 11).
+	-->
+	<Match>
+		<Class name="damso.common.error.JsonErrorController"/>
+		<Bug pattern="SPRING_CSRF_UNRESTRICTED_REQUEST_MAPPING"/>
+	</Match>
+
+	<!-- Spring Security의 HttpSecurity.build()가 Exception을 선언하므로 그대로 따른다. -->
+	<Match>
+		<Class name="damso.common.security.SecurityConfig"/>
+		<Bug pattern="THROWS_METHOD_THROWS_CLAUSE_BASIC_EXCEPTION"/>
+	</Match>
+
+	<!-- 열람 실패를 감사 기록에 남긴 뒤 같은 예외를 다시 던진다(본문이 나가지 않게). 감싸지 않고 그대로 던지는 것이 의도다. -->
+	<Match>
+		<Bug pattern="THROWS_METHOD_THROWS_RUNTIMEEXCEPTION"/>
+		<Or>
+			<Class name="damso.inquiry.application.service.ViewInquiryContentService"/>
+			<Class name="damso.inquiry.application.service.ViewRefinementService"/>
+		</Or>
+	</Match>
+
+</FindBugsFilter>
