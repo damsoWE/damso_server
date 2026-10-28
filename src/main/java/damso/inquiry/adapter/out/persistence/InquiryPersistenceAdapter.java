@@ -47,6 +47,8 @@ class InquiryPersistenceAdapter implements InquiryPort, InquiryStageHistoryPort 
 
 	@Override
 	public Optional<Inquiry> findInquiryByIdForUpdate(UUID id) {
+		// 다른 트랜잭션이 이 행을 오래 쥐고 있어도 커넥션을 쥔 채 무한정 기다리지 않는다. 시간이 지나면 락 획득 실패 예외가 난다.
+		inquiries.limitLockWait(LOCK_WAIT_MILLIS);
 		return inquiries.findByIdForUpdate(id);
 	}
 

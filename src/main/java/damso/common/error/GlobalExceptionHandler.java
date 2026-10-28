@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -75,9 +76,10 @@ public class GlobalExceptionHandler {
 	/**
 	 * 낙관적 락 실패 — 같은 버전을 기준으로 한 두 번째 수정 (FR-010).
 	 * 유니크 제약 위반도 같은 충돌로 본다(동시에 같은 학급을 만들거나 같은 대상의 코드를 발행한 경우).
+	 * 행 잠금 대기 상한을 넘긴 경우(다른 요청이 같은 행을 쥐고 있음)도 같은 충돌로 본다.
 	 */
 	@ExceptionHandler({ OptimisticLockingFailureException.class, OptimisticLockException.class,
-			DataIntegrityViolationException.class })
+			DataIntegrityViolationException.class, PessimisticLockingFailureException.class })
 	ResponseEntity<ErrorResponse> handleConflict(Exception ex) {
 		return respond(ErrorCode.CONFLICT);
 	}
