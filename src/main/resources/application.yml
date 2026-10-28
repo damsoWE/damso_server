@@ -63,6 +63,8 @@ damso:
     retry-delays: 1m,5m,15m
   inquiry:
     submit-interval: 60s
+    # 앱에서 쓰지 않는 "답변 완료" 종료 경로. false면 POST .../close가 404 (FR-031, decisions.md 2026-10-27)
+    close-enabled: false
   refinement:
     # 정리 작업 안전망 실행 주기. 평소에는 접수 커밋 직후 바로 실행한다 (F3 research R7)
     dispatch-interval: 10s

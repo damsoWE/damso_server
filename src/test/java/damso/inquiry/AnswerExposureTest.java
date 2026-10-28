@@ -9,6 +9,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.TestPropertySource;
 
 import damso.account.domain.Role;
 import damso.support.IntegrationTestSupport;
@@ -16,7 +17,9 @@ import damso.support.IntegrationTestSupport;
 /**
  * F4 Polish / SC-005·010: 다른 학급 교사·다른 학부모·슈퍼 관리자가 답변·점검·종료·재문의 API에 접근할 수 있는
  * 경로가 0개, 점검 결과를 저장하는 테이블·컬럼이 없음, 학부모 알림 설정이 F2의 기존 알림 경로와 섞이지 않는다.
+ * 운영에서는 종료 경로가 꺼져 있다(FR-031). 종료 경로를 다시 열 때를 대비해 FR-021·022 서버 검증을 계속 확인한다(PR #19 리뷰 P0).
  */
+@TestPropertySource(properties = "damso.inquiry.close-enabled=true")
 class AnswerExposureTest extends IntegrationTestSupport {
 
 	private MockHttpServletResponse sendAnswer(String token, UUID inquiryId) throws Exception {
