@@ -56,7 +56,13 @@ public class GlobalExceptionHandler {
 	}
 
 	@ExceptionHandler(BusinessException.class)
-	ResponseEntity<ErrorResponse> handleBusiness(BusinessException ex) {
+	ResponseEntity<ErrorResponse> handleBusiness(BusinessException ex, HttpServletRequest request) {
+		if (ex.errorCode() == ErrorCode.INTERNAL_ERROR) {
+			// 서버 쪽 실패(Redis 장애 등)는 원인 없이 500만 남지 않게 기록한다. 메시지에는 값이 섞일 수 있어 종류만 남긴다
+			Throwable cause = ex.getCause();
+			log.error("Internal error on {} {} (cause={})", request.getMethod(), request.getRequestURI(),
+					cause == null ? "none" : cause.getClass().getSimpleName());
+		}
 		return respond(ex.errorCode());
 	}
 
