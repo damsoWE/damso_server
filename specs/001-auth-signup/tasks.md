@@ -382,5 +382,6 @@ Phase 2 ─┬─ US1 ── US2 ── US3 ─┬─ US6
   - [X] T095 프론트 공지: 2026-10-28 Slack(사용자). 코드 수정은 공지 뒤에 했다
   - [X] T096 `PasswordResetService.request()` — `reserveMailSend` 결과를 버리던 것을 `ensureMailSendAllowed`로 바꿔 계정 조회 **전에** 대기를 확인하고 대기 중이면 `TooManyAttemptsException`(429 + `Retry-After`). 대기가 없으면 지금처럼 가입된 활성 계정일 때만 코드 생성·발송, 아니면 202
   - [X] T097 `PasswordResetApiTest` — `requestingAgainWithinAMinuteSendsNoSecondMailButStillLooksTheSame`(202 기대)를 `requestingAgainWithinAMinuteIsTooManyAttemptsForRegisteredAndUnregisteredAlike`로 바꿈(가입·미가입 모두 429·같은 본문·`Retry-After` 1~60, 61초 뒤 정상 발송), 재현 테스트 `resetRightAfterASignupMailSharesTheSameWait` 추가
+  - [X] T097a 코드 리뷰 반영: `TooManyAttemptsException.MAX_SECONDS` 600 → 3600(명세만 바꾸고 코드가 600에서 잘라 시간당 제한 대기를 짧게 알리던 문제), `PasswordResetUseCase.request()` Javadoc·`AuthController` 주석을 429 동작에 맞춤, 테스트 `sixthRequestWithinAnHourReportsTheRealHourlyWait`(시간당 6번째 요청의 `Retry-After`가 601~3600) 추가
   - [ ] T098 `api-v0.8` 태그(머지 후)
 - **T088 전체 테스트**: `./gradlew test` — 37개 클래스, **246개 테스트 모두 통과**(실패·건너뜀 0).

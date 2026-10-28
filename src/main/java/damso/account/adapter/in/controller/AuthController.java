@@ -100,7 +100,7 @@ class AuthController {
 		logout.logout(user.sessionId());
 	}
 
-	/** 가입 여부와 관계없이 같은 202를 돌려준다. */
+	/** 가입 여부와 관계없이 같은 202를 돌려준다. 메일 발송 대기 중이면 가입 여부와 관계없이 같은 429다. */
 	@PostMapping("/password-reset")
 	@ResponseStatus(HttpStatus.ACCEPTED)
 	void requestPasswordReset(@Valid @RequestBody PasswordResetRequestDTO request) {

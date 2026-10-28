@@ -210,6 +210,22 @@ class PasswordResetApiTest extends IntegrationTestSupport {
 		assertThat(mail.sendCount(registered)).isEqualTo(2);
 	}
 
+	/** 이슈 #22: 시간당 5회 제한에 걸리면 Retry-After가 600초에서 잘리지 않고 실제 남은 시간(최대 1시간)을 알린다. */
+	@Test
+	void sixthRequestWithinAnHourReportsTheRealHourlyWait() throws Exception {
+		String email = createAccount(Role.PARENT).getEmail();
+		for (int i = 0; i < 5; i++) {
+			assertThat(request(email).getStatus()).isEqualTo(202);
+			clock.advance(Duration.ofSeconds(61));
+		}
+
+		MockHttpServletResponse sixth = request(email);
+
+		assertThat(sixth.getStatus()).isEqualTo(429);
+		assertThat(Long.parseLong(sixth.getHeader("Retry-After"))).isBetween(601L, 3600L);
+		assertThat(mail.sendCount(email)).isEqualTo(5);
+	}
+
 	/** 이슈 #22 재현: 이미 가입된 이메일로 가입을 시도해 안내 메일이 나간 직후 재설정을 요청하면 같은 발송 대기에 걸린다. */
 	@Test
 	void resetRightAfterASignupMailSharesTheSameWait() throws Exception {
