@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: DAMSO API
-  version: 0.7.0
+  version: 0.8.0
   description: |
     담소 통합 API 명세 (원본). 변경 시 이 파일을 먼저 수정하고 api-vX.Y 태그를 찍는다.
     - 인증: Authorization 헤더의 Bearer 토큰(HS256). 쿠키·세션 없음.
@@ -244,6 +244,13 @@ paths:
       tags: [auth]
       operationId: requestPasswordReset
       summary: 재설정 코드 요청 (가입 여부와 관계없이 같은 응답)
+      description: |
+        발송 제한에 걸리면 가입 여부와 관계없이 429 TOO_MANY_ATTEMPTS + Retry-After. 제한은 가입 인증 메일과 따로 센다.
+        - 같은 이메일 + 같은 요청 위치(IP): 60초 1회·1시간 5회
+        - 같은 이메일(모든 요청 위치 합산): 1시간 10통
+        - 같은 요청 위치(모든 이메일 합산): 1시간 20회
+        제한은 계정 조회 전에 판단하고 계정 조회·코드 발급은 응답 뒤에 하므로, 가입된 이메일과 가입 안 된 이메일의 응답 내용·시간이 같다(가입 여부 비노출).
+        이메일만이 아니라 요청 위치까지 묶어 세므로, 남이 내 이메일로 요청해도 내 요청 위치에서는 바로 받을 수 있다.
       security: []
       requestBody:
         required: true
@@ -258,6 +265,7 @@ paths:
       responses:
         '202': { description: "\"입력한 이메일로 안내를 보냈습니다\" — 가입된 이메일일 때만 실제 발송" }
         '400': { $ref: '#/components/responses/InvalidInput' }
+        '429': { $ref: '#/components/responses/TooManyAttempts' }
 
   /api/v1/auth/password-reset/verify:
     post:
@@ -1785,8 +1793,8 @@ components:
       description: 잠금·대기 중 (TOO_MANY_ATTEMPTS)
       headers:
         Retry-After:
-          description: 다시 시도할 수 있을 때까지 남은 초
-          schema: { type: integer, minimum: 1, maximum: 600 }
+          description: 다시 시도할 수 있을 때까지 남은 초. 메일 발송 시간당 제한에 걸리면 최대 1시간
+          schema: { type: integer, minimum: 1, maximum: 3600 }
       content:
         application/json:
           schema: { $ref: '#/components/schemas/ErrorResponse' }

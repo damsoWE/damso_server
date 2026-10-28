@@ -8,7 +8,8 @@ public class TooManyAttemptsException extends BusinessException {
 
 	static final long MIN_SECONDS = 1;
 
-	static final long MAX_SECONDS = 600;
+	/** 메일 발송 시간당 제한(1시간 안 5회)에 걸리면 최대 1시간을 기다린다(openapi TooManyAttempts, 이슈 #22). */
+	static final long MAX_SECONDS = 3600;
 
 	private final long retryAfterSeconds;
 
