@@ -48,6 +48,13 @@ class PasswordResetTimingStructureTest {
 	}
 
 	@Test
+	void requestOpensNoTransaction() throws Exception {
+		Method request = PasswordResetService.class.getMethod("request", String.class, String.class);
+
+		assertThat(request.getAnnotation(Transactional.class).propagation()).isEqualTo(Propagation.NOT_SUPPORTED);
+	}
+
+	@Test
 	void issuingRunsAfterCommitOffTheRequestThreadInItsOwnTransaction() throws Exception {
 		Method listener = PasswordResetIssuer.class.getDeclaredMethod("onPasswordResetRequested",
 				PasswordResetRequested.class);
