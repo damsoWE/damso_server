@@ -40,6 +40,8 @@ jobs:
         with:
           context: .
           platforms: linux/arm64
+          # 베이스 이미지(eclipse-temurin)는 매번 새로 받는다 — 빌드 캐시가 JDK 보안 패치 전 이미지를 재사용하지 않게(CVE-2026-91403, 이슈 #23)
+          pull: true
           push: true
           tags: |
             leehyunwoo02/damso:latest
