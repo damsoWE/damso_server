@@ -65,6 +65,10 @@ public class RedisAttemptLimitAdapter implements AttemptLimitPort {
 		rule.waitSecondsByCount().forEach(seconds -> args.add(String.valueOf(seconds)));
 		try {
 			List<Long> result = redis.execute(recordFailureScript, List.of(key(kind, subjectHash)), args.toArray());
+			// 스크립트는 항상 두 값을 돌려준다. 비어 오면 기록됐는지 알 수 없으므로 통과시키지 않는다(fail-closed)
+			if (result == null || result.size() < 2) {
+				throw new BusinessException(ErrorCode.INTERNAL_ERROR);
+			}
 			return toState(result.get(0), result.get(1));
 		}
 		catch (DataAccessException ex) {

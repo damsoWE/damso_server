@@ -36,7 +36,13 @@ public final class TestJwtIssuer {
 	}
 
 	public static String unsigned(String role) {
-		return new PlainJWT(claims(role, Instant.now().plusSeconds(600), true, UUID.randomUUID())).serialize();
+		return new PlainJWT(claims(role, Instant.now().plusSeconds(600), true, UUID.randomUUID(),
+				UUID.randomUUID().toString())).serialize();
+	}
+
+	/** 서명·만료·세션은 유효하고 sub만 지정한 값(null이면 없음)인 토큰. */
+	public static String withSubject(String role, UUID sessionId, String subject) {
+		return signed(TestSecrets.jwtKey(), role, Instant.now().plusSeconds(600), true, sessionId, subject);
 	}
 
 	private static String signed(byte[] key, String role, Instant exp, boolean withIat) {
@@ -44,8 +50,14 @@ public final class TestJwtIssuer {
 	}
 
 	private static String signed(byte[] key, String role, Instant exp, boolean withIat, UUID sessionId) {
+		return signed(key, role, exp, withIat, sessionId, UUID.randomUUID().toString());
+	}
+
+	private static String signed(byte[] key, String role, Instant exp, boolean withIat, UUID sessionId,
+			String subject) {
 		try {
-			SignedJWT jwt = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claims(role, exp, withIat, sessionId));
+			SignedJWT jwt = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256),
+					claims(role, exp, withIat, sessionId, subject));
 			jwt.sign(new MACSigner(key));
 			return jwt.serialize();
 		}
@@ -54,9 +66,9 @@ public final class TestJwtIssuer {
 		}
 	}
 
-	private static JWTClaimsSet claims(String role, Instant exp, boolean withIat, UUID sessionId) {
+	private static JWTClaimsSet claims(String role, Instant exp, boolean withIat, UUID sessionId, String subject) {
 		JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
-				.subject(UUID.randomUUID().toString())
+				.subject(subject)
 				.claim("role", role)
 				.claim("sid", sessionId.toString());
 		if (exp != null) {

@@ -4,13 +4,19 @@ import static damso.support.ErrorResponseAssertions.assertSafeErrorResponse;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
+import java.time.Duration;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import damso.account.domain.AuthSession;
+import damso.account.domain.Role;
+import damso.account.domain.UserAccount;
 import damso.support.IntegrationTestSupport;
 import damso.support.TestJwtIssuer;
 
@@ -62,6 +68,20 @@ class AccessControlTest extends IntegrationTestSupport {
 	@Test
 	void tokenWithoutExpIsRejected() throws Exception {
 		expectError(call(get("/test/auth/any"), TestJwtIssuer.withoutExp("TEACHER")), 401, "UNAUTHORIZED");
+	}
+
+	/** 서명·세션이 유효해도 sub가 없거나 UUID가 아니면 사용자를 정할 수 없으므로 401이다(500으로 새지 않는다). */
+	@ParameterizedTest
+	@NullSource
+	@ValueSource(strings = { "not-a-uuid", "" })
+	void tokenWithoutAUuidSubjectIsRejected(String subject) throws Exception {
+		UserAccount account = createAccount(Role.PARENT);
+		AuthSession session = sessionPort.saveSession(
+				new AuthSession(account.getId(), clock.instant(), Duration.ofDays(14)));
+
+		String token = TestJwtIssuer.withSubject("PARENT", session.getId(), subject);
+
+		expectError(call(get("/api/v1/me"), token), 401, "UNAUTHORIZED");
 	}
 
 	@Test

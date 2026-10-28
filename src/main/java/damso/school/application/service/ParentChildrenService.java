@@ -88,6 +88,10 @@ public class ParentChildrenService implements ParentChildrenUseCase {
 
 		return children.stream().map(student -> {
 			Classroom classroom = classroomsById.get(student.getClassroomId());
+			if (classroom == null) {
+				// 학급은 지우는 경로가 없다. 없으면 데이터가 깨진 것이므로 null 역참조 대신 고정 오류로 끝낸다
+				throw new BusinessException(ErrorCode.INTERNAL_ERROR);
+			}
 			TeacherProfile profile = classroom.getHomeroomTeacherId() == null ? null
 					: profilesByTeacher.get(classroom.getHomeroomTeacherId());
 			return new ChildView(student.getId(), student.getName().reveal(),
