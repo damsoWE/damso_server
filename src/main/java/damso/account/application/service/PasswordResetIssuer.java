@@ -53,8 +53,9 @@ class PasswordResetIssuer {
 	@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
 	void onPasswordResetRequested(PasswordResetRequested event) {
 		try {
-			// 가입된 활성 계정일 때만 코드를 만든다
-			UserAccount account = accounts.findByEmail(event.email()).filter(UserAccount::isActive).orElse(null);
+			// 가입된 활성 계정일 때만 코드를 만든다. 계정 행을 잠가 같은 계정의 발급을 한 번에 하나로 묶는다 —
+			// 동시에 돌면 서로의 저장 전 행을 못 보고 둘 다 지운 뒤 저장해 재설정 건이 2개가 된다
+			UserAccount account = accounts.findByEmailForUpdate(event.email()).filter(UserAccount::isActive).orElse(null);
 			if (account == null) {
 				return;
 			}
