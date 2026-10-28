@@ -47,6 +47,8 @@ class InquiryPersistenceAdapter implements InquiryPort, InquiryStageHistoryPort 
 
 	@Override
 	public Optional<Inquiry> findInquiryByIdForUpdate(UUID id) {
+		// 다른 트랜잭션이 이 행을 오래 쥐고 있어도 커넥션을 쥔 채 무한정 기다리지 않는다. 시간이 지나면 락 획득 실패 예외가 난다.
+		inquiries.limitLockWait(LOCK_WAIT_MILLIS);
 		return inquiries.findByIdForUpdate(id);
 	}
 
@@ -99,11 +101,18 @@ class InquiryPersistenceAdapter implements InquiryPort, InquiryStageHistoryPort 
 	@Override
 	public List<ThreadStageCount> countThreadsByClassroomAndStage() {
 		List<ThreadStageCount> counts = new ArrayList<>();
-		for (Object[] row : inquiries.countUnansweredThreadsByClassroomAndStage()) {
-			counts.add(new ThreadStageCount((UUID) row[0], (InquiryStage) row[1], false, (Long) row[2]));
-		}
-		for (Object[] row : inquiries.countAnsweredThreadsByClassroomAndStage()) {
-			counts.add(new ThreadStageCount((UUID) row[0], (InquiryStage) row[1], true, (Long) row[2]));
+		for (Object[] row : inquiries.countThreadsByClassroomAndStage()) {
+			UUID classroomId = (UUID) row[0];
+			InquiryStage stage = (InquiryStage) row[1];
+			long total = ((Number) row[2]).longValue();
+			long answered = ((Number) row[3]).longValue();
+			// 문의가 없는 조합은 결과에 넣지 않는다(포트 계약)
+			if (total > answered) {
+				counts.add(new ThreadStageCount(classroomId, stage, false, total - answered));
+			}
+			if (answered > 0) {
+				counts.add(new ThreadStageCount(classroomId, stage, true, answered));
+			}
 		}
 		return counts;
 	}

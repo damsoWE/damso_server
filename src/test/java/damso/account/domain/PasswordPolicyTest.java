@@ -24,6 +24,16 @@ class PasswordPolicyTest {
 		assertThat(PasswordPolicy.isValid("a1".repeat(32))).isTrue();
 	}
 
+	/** BCrypt는 72바이트까지만 받는다. 64자 안이라도 한글처럼 여러 바이트인 글자로 72바이트를 넘으면 정책에서 거부한다. */
+	@Test
+	void rejectsPasswordsOverSeventyTwoBytesEvenWithinSixtyFourCharacters() {
+		String seventyFourBytes = "가".repeat(24) + "a1";
+		assertThat(seventyFourBytes.length()).isLessThanOrEqualTo(PasswordPolicy.MAX_LENGTH);
+
+		assertThat(PasswordPolicy.isValid(seventyFourBytes)).isFalse();
+		assertThat(PasswordPolicy.isValid("가".repeat(23) + "a1")).isTrue();
+	}
+
 	@Test
 	void acceptsLettersAndDigits() {
 		assertThat(PasswordPolicy.isValid("abcd1234")).isTrue();

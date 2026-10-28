@@ -13,7 +13,7 @@ import damso.gateway.application.port.out.SchoolTermsSource;
  * 용어가 하나도 없으면 기동을 거부한다 — 학교 이름이 가려지지 않은 채 외부로 나가지 않게 (원칙 II·VIII).
  */
 @Component
-class ClasspathSchoolTermsSource implements SchoolTermsSource {
+final class ClasspathSchoolTermsSource implements SchoolTermsSource {
 
 	private final List<String> terms;
 
@@ -27,7 +27,7 @@ class ClasspathSchoolTermsSource implements SchoolTermsSource {
 		if (loaded.isEmpty()) {
 			throw new IllegalStateException("학교 용어 목록이(가) 비어 있습니다");
 		}
-		this.terms = loaded;
+		this.terms = List.copyOf(loaded);
 	}
 
 	@Override

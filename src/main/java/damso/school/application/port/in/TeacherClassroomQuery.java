@@ -13,6 +13,12 @@ public interface TeacherClassroomQuery {
 	TeacherClassroomView myClassroom(UUID teacherId);
 
 	record TeacherClassroomView(ClassroomRef classroom, List<StudentLinkView> students) {
+
+		/** 받은 목록을 복사해 둔다(불변) — 만든 쪽이 나중에 목록을 바꿔도 이 값은 바뀌지 않는다. */
+		public TeacherClassroomView {
+			students = students == null ? null : List.copyOf(students);
+		}
+
 	}
 
 	record ClassroomRef(UUID classroomId, int grade, int classNumber) {

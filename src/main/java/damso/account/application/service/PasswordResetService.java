@@ -6,6 +6,7 @@ import java.time.Instant;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import damso.account.application.port.in.PasswordResetUseCase;
@@ -55,7 +56,12 @@ public class PasswordResetService implements PasswordResetUseCase {
 		this.clock = clock;
 	}
 
+	/**
+	 * DB를 쓰지 않으므로 트랜잭션을 열지 않는다 — 인증 없는 공개 경로라 429로 끝나는 요청까지 커넥션을 잡지 않게 한다.
+	 * 트랜잭션이 없어도 발급기는 fallbackExecution으로 바로 실행된다.
+	 */
 	@Override
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	public void request(String email, String clientIp) {
 		String normalized = UserAccount.normalizeEmail(email);
 		// 발송 제한은 계정 조회 전에 판단한다 — 걸리면 가입 여부와 관계없이 같은 429(이슈 #22).

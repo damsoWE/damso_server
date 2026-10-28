@@ -30,6 +30,11 @@ public final class RefinementResult {
 	/** 검증·복원이 끝난 값. 문의 내용이므로 toString은 가린다. */
 	public record Valid(String title, String facts, String requests, EmotionLevel level, List<EmotionLabel> labels) {
 
+		/** 받은 목록을 복사해 둔다(불변) — 만든 쪽이 나중에 목록을 바꿔도 이 값은 바뀌지 않는다. */
+		public Valid {
+			labels = labels == null ? null : List.copyOf(labels);
+		}
+
 		@Override
 		public String toString() {
 			return "Valid[level=" + level + ", labels=" + labels + "]";

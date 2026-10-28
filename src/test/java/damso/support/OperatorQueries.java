@@ -21,7 +21,8 @@ public final class OperatorQueries {
 
 	private static final Path DOCUMENT = Path.of("specs/006-audit-log-history/contracts/operator-queries.md");
 
-	private static final Pattern SQL_BLOCK = Pattern.compile("```sql\\n(.*?)```", Pattern.DOTALL);
+	/** Windows에서 core.autocrlf로 체크아웃하면 문서 줄바꿈이 CRLF가 되므로 둘 다 받는다. */
+	private static final Pattern SQL_BLOCK = Pattern.compile("```sql\\r?\\n(.*?)```", Pattern.DOTALL);
 
 	private OperatorQueries() {
 	}

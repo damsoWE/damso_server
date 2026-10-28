@@ -32,6 +32,9 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 
 	static final int MAX_PAGE_SIZE = 50;
 
+	/** 쪽 번호 상한. 크기 50이어도 건너뛰는 행 수(offset)가 int 범위 안에 머물러, 큰 값이 500으로 새지 않는다. */
+	static final int MAX_PAGE = 10_000;
+
 	static final String URGENT_TITLE = "긴급 문의";
 
 	static final String PENDING_TITLE = "정리 중";
@@ -59,7 +62,7 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 
 	@Override
 	public InquiryPage list(UUID teacherId, int page, int size) {
-		if (page < 0) {
+		if (page < 0 || page > MAX_PAGE) {
 			throw new InvalidInputException("page", "허용 범위를 벗어났습니다");
 		}
 		if (size < 1 || size > MAX_PAGE_SIZE) {

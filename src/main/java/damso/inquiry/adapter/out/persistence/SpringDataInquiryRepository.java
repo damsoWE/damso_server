@@ -48,14 +48,13 @@ interface SpringDataInquiryRepository extends JpaRepository<Inquiry, UUID> {
 	@Query("select distinct i.threadRootId from Inquiry i where i.threadRootId in :rootIds and i.threatFlagged = true")
 	List<UUID> findThreadRootIdsWithThreatFlaggedFollowUp(@Param("rootIds") Collection<UUID> rootIds);
 
-	/** 답변을 보내지 않은 스레드 루트 수, (학급, 단계)별. 행: classroomId, stage, count. */
-	@Query("select i.classroomId, i.stage, count(i) from Inquiry i where i.threadRootId is null "
-			+ "and not exists (select 1 from Answer a where a.threadRootId = i.id) group by i.classroomId, i.stage")
-	List<Object[]> countUnansweredThreadsByClassroomAndStage();
-
-	/** 답변을 1건 이상 보낸 스레드 루트 수, (학급, 단계)별. 행: classroomId, stage, count. */
-	@Query("select i.classroomId, i.stage, count(i) from Inquiry i where i.threadRootId is null "
-			+ "and exists (select 1 from Answer a where a.threadRootId = i.id) group by i.classroomId, i.stage")
-	List<Object[]> countAnsweredThreadsByClassroomAndStage();
+	/**
+	 * 스레드 루트 수와 그중 답변을 1건 이상 보낸 수, (학급, 단계)별. 행: classroomId, stage, 전체 수, 답변 보낸 수.
+	 * 한 쿼리로 세므로 두 수가 같은 시점 기준이다 — 따로 세면 사이에 온 답변 때문에 한 스레드가 겹치거나 빠진다.
+	 */
+	@Query("select i.classroomId, i.stage, count(i), "
+			+ "sum(case when exists (select 1 from Answer a where a.threadRootId = i.id) then 1 else 0 end) "
+			+ "from Inquiry i where i.threadRootId is null group by i.classroomId, i.stage")
+	List<Object[]> countThreadsByClassroomAndStage();
 
 }

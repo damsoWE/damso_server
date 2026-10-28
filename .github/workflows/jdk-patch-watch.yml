@@ -26,7 +26,14 @@ jobs:
       - name: Base image JDK version
         id: version
         run: |
-          VERSION=$(docker run --rm --pull always "$BASE_IMAGE" java -version 2>&1 | head -1 | sed -E 's/.*"([^"]+)".*/\1/')
+          # pull 진행 출력이 java -version 출력에 섞이지 않게 먼저 따로 받는다
+          docker pull -q "$BASE_IMAGE" > /dev/null
+          VERSION=$(docker run --rm "$BASE_IMAGE" java -version 2>&1 | sed -nE 's/.* version "([^"]+)".*/\1/p' | head -1)
+          # 버전을 못 읽으면 조용히 patched=false로 남지 않게 실패시킨다
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+(\.[0-9]+)*$'; then
+            echo "::error::$BASE_IMAGE의 JDK 버전을 읽지 못했다: '$VERSION'"
+            exit 1
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           if [ "$VERSION" != "$AFFECTED_UP_TO" ] \
             && [ "$(printf '%s\n' "$AFFECTED_UP_TO" "$VERSION" | sort -V | tail -1)" = "$VERSION" ]; then

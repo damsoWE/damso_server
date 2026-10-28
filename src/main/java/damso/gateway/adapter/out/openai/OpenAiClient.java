@@ -6,6 +6,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.annotation.PreDestroy;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,25 +48,44 @@ class OpenAiClient implements ExternalAiPort {
 
 	private final String model;
 
+	/** 이 빈이 만든 HTTP 클라이언트. 종료 때 닫는다. 테스트가 빌더를 넘겨 만든 경우에는 null이다. */
+	private final HttpClient httpClient;
+
 	@Autowired
 	OpenAiClient(@Value("${damso.openai.api-key}") String apiKey, @Value("${damso.openai.model}") String model,
 			@Value("${damso.openai.timeout.connect:3s}") Duration connectTimeout,
 			@Value("${damso.openai.timeout.read:15s}") Duration readTimeout) {
-		this(RestClient.builder().requestFactory(requestFactory(connectTimeout, readTimeout)), apiKey, model);
+		this(HttpClient.newBuilder().connectTimeout(connectTimeout).build(), readTimeout, apiKey, model);
+	}
+
+	private OpenAiClient(HttpClient httpClient, Duration readTimeout, String apiKey, String model) {
+		this(RestClient.builder().requestFactory(requestFactory(httpClient, readTimeout)), apiKey, model, httpClient);
 	}
 
 	OpenAiClient(RestClient.Builder builder, String apiKey, String model) {
+		this(builder, apiKey, model, null);
+	}
+
+	private OpenAiClient(RestClient.Builder builder, String apiKey, String model, HttpClient httpClient) {
 		this.client = builder.baseUrl(BASE_URL)
 				.defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
 				.build();
 		this.model = model;
+		this.httpClient = httpClient;
 	}
 
-	private static JdkClientHttpRequestFactory requestFactory(Duration connectTimeout, Duration readTimeout) {
-		JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(
-				HttpClient.newBuilder().connectTimeout(connectTimeout).build());
+	private static JdkClientHttpRequestFactory requestFactory(HttpClient httpClient, Duration readTimeout) {
+		JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
 		factory.setReadTimeout(readTimeout);
 		return factory;
+	}
+
+	/** 앱이 내려갈 때 HTTP 클라이언트의 연결·스레드를 놓는다. 진행 중인 호출은 읽기 시간 제한 안에서 끝난다. */
+	@PreDestroy
+	void close() {
+		if (httpClient != null) {
+			httpClient.close();
+		}
 	}
 
 	@Override

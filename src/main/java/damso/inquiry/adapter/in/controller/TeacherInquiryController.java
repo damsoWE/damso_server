@@ -50,7 +50,8 @@ class TeacherInquiryController {
 	}
 
 	@GetMapping
-	TeacherInquiryPageResponseDTO list(CurrentUser teacher, @RequestParam(defaultValue = "0") @Min(0) int page,
+	TeacherInquiryPageResponseDTO list(CurrentUser teacher,
+			@RequestParam(defaultValue = "0") @Min(0) @Max(10000) int page,
 			@RequestParam(defaultValue = "20") @Min(1) @Max(50) int size) {
 		return TeacherInquiryPageResponseDTO.from(query.list(teacher.userId(), page, size));
 	}

@@ -19,6 +19,12 @@ public interface UserAccountPort {
 	/** 이메일은 소문자로 정규화해서 넘긴다. */
 	Optional<UserAccount> findByEmail(String email);
 
+	/**
+	 * findByEmail과 같고, 찾은 계정 행을 트랜잭션이 끝날 때까지 잠근다(SELECT ... FOR UPDATE).
+	 * 같은 계정에 대한 작업을 한 번에 하나로 묶어야 하는 경로에서만 쓴다(재설정 코드 발급).
+	 */
+	Optional<UserAccount> findByEmailForUpdate(String email);
+
 	boolean existsByEmail(String email);
 
 }

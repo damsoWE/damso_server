@@ -1,6 +1,7 @@
 package damso.school.application.service;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -63,6 +64,11 @@ public class InquiryTargetService implements InquiryTargetQuery {
 	@Override
 	public Optional<UUID> homeroomClassroomOf(UUID teacherId) {
 		return classrooms.findClassroomByHomeroomTeacher(teacherId).map(Classroom::getId);
+	}
+
+	@Override
+	public List<UUID> classroomIdsInOrder() {
+		return classrooms.findAllClassrooms().stream().map(Classroom::getId).toList();
 	}
 
 }

@@ -66,6 +66,11 @@ class AccountPersistenceAdapter implements UserAccountPort, SessionPort, Pending
 	}
 
 	@Override
+	public Optional<UserAccount> findByEmailForUpdate(String email) {
+		return accounts.findByEmailForUpdate(email);
+	}
+
+	@Override
 	public boolean existsByEmail(String email) {
 		return accounts.existsByEmail(email);
 	}

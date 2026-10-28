@@ -17,6 +17,9 @@ public class FakeVerificationMailPort implements VerificationMailPort {
 
 	private final Map<String, Integer> sendCounts = new ConcurrentHashMap<>();
 
+	private volatile Runnable beforeResetSend = () -> {
+	};
+
 	@Override
 	public void sendSignupCode(String email, String code) {
 		signupCodes.put(email, code);
@@ -31,6 +34,7 @@ public class FakeVerificationMailPort implements VerificationMailPort {
 
 	@Override
 	public void sendPasswordResetCode(String email, String code) {
+		beforeResetSend.run();
 		resetCodes.put(email, code);
 		sendCounts.merge(email, 1, Integer::sum);
 	}
@@ -55,7 +59,14 @@ public class FakeVerificationMailPort implements VerificationMailPort {
 		return sendCounts.values().stream().mapToInt(Integer::intValue).sum();
 	}
 
+	/** 재설정 메일을 기록하기 전에 실행할 동작(동시 발급 테스트용). clear()가 지운다. */
+	public void beforeResetSend(Runnable hook) {
+		this.beforeResetSend = hook;
+	}
+
 	public void clear() {
+		beforeResetSend = () -> {
+		};
 		signupCodes.clear();
 		resetCodes.clear();
 		alreadyRegistered.clear();

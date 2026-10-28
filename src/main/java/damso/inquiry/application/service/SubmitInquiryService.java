@@ -16,6 +16,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import damso.attempt.application.port.in.AttemptLimitUseCase;
 import damso.common.crypto.CodeHasher;
+import damso.common.crypto.Digests;
 import damso.common.error.BusinessException;
 import damso.common.error.ErrorCode;
 import damso.common.error.TooManyAttemptsException;
@@ -180,7 +181,7 @@ public class SubmitInquiryService implements SubmitInquiryUseCase {
 	}
 
 	private InquirySubmittedResult replay(Inquiry inquiry, String requestHash) {
-		if (!inquiry.getRequestHash().equals(requestHash)) {
+		if (!Digests.constantTimeEquals(inquiry.getRequestHash(), requestHash)) {
 			throw new BusinessException(ErrorCode.CONFLICT);
 		}
 		return resultOf(inquiry);

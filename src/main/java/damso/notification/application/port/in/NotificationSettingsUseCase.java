@@ -15,6 +15,12 @@ public interface NotificationSettingsUseCase {
 	}
 
 	record Settings(boolean generalEnabled, List<AvailabilityWindow> availability) {
+
+		/** 받은 목록을 복사해 둔다(불변) — 만든 쪽이 나중에 목록을 바꿔도 이 값은 바뀌지 않는다. */
+		public Settings {
+			availability = availability == null ? null : List.copyOf(availability);
+		}
+
 	}
 
 	/** 설정 행이 없으면 일반 알림 켜짐 + 구간 없음(항상 응답 가능). */

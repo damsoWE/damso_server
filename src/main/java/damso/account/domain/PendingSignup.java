@@ -9,6 +9,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
+import damso.common.crypto.Digests;
 import damso.common.crypto.SensitiveText;
 import damso.common.entity.BaseEntity;
 
@@ -59,7 +60,7 @@ public class PendingSignup extends BaseEntity {
 
 	/** 아직 확정되지 않았고, 코드가 일치하며, 만료 전인가. */
 	public boolean matches(String candidateCodeHash, Instant now) {
-		return completedAt == null && codeExpiresAt.isAfter(now) && codeHash.equals(candidateCodeHash);
+		return completedAt == null && codeExpiresAt.isAfter(now) && Digests.constantTimeEquals(codeHash, candidateCodeHash);
 	}
 
 	/** 인증 코드를 다시 발급한다. 이전 코드는 즉시 무효가 된다. */

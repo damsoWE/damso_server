@@ -31,6 +31,7 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
  * 헤더 Bearer 토큰 검증. 발급은 F1 범위.
  * - 서명 알고리즘을 HS256 하나로 고정 → alg=none·알고리즘 혼동 차단 (research R1)
  * - exp·iat 필수
+ * - sub(사용자 UUID) 필수 — 없거나 UUID가 아니면 401
  * - sid(세션 UUID) 필수, 그 세션이 살아 있어야 함 (F1, research R4)
  * - role 클레임은 허용 목록에 있을 때만 ROLE_{role} 권한으로 변환
  */
@@ -51,17 +52,24 @@ public class JwtDecoderConfig {
 				new JwtTimestampValidator(),
 				new JwtClaimValidator<Instant>(JwtClaimNames.EXP, Objects::nonNull),
 				new JwtClaimValidator<Instant>(JwtClaimNames.IAT, Objects::nonNull),
+				new JwtClaimValidator<String>(JwtClaimNames.SUB, JwtDecoderConfig::isUuid),
 				new JwtClaimValidator<String>(SESSION_CLAIM, sid -> isActiveSession(sessionStatusChecker, sid)));
 		decoder.setJwtValidator(validator);
 		return decoder;
 	}
 
 	private static boolean isActiveSession(SessionStatusChecker checker, String sid) {
-		if (sid == null) {
+		return isUuid(sid) && checker.isActive(UUID.fromString(sid));
+	}
+
+	/** CurrentUser가 sub·sid를 UUID로 바꾸므로, 둘 다 여기서 걸러 null·형식 오류가 500으로 새지 않게 한다. */
+	private static boolean isUuid(String value) {
+		if (value == null) {
 			return false;
 		}
 		try {
-			return checker.isActive(UUID.fromString(sid));
+			UUID.fromString(value);
+			return true;
 		}
 		catch (IllegalArgumentException notAUuid) {
 			return false;

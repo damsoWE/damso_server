@@ -36,6 +36,12 @@ public interface TeacherInquiryQuery {
 	}
 
 	record InquiryPage(List<InquirySummary> items, int page, int size, long totalElements) {
+
+		/** 받은 목록을 복사해 둔다(불변) — 만든 쪽이 나중에 목록을 바꿔도 이 값은 바뀌지 않는다. */
+		public InquiryPage {
+			items = items == null ? null : List.copyOf(items);
+		}
+
 	}
 
 	/**
@@ -54,6 +60,13 @@ public interface TeacherInquiryQuery {
 			InquiryStage stage, RefinementStatus refinementStatus, boolean retryAvailable, boolean threatFlagged,
 			Instant submittedAt, List<StageEventView> timeline, List<FollowUpView> followUps,
 			List<AnswerView> answers) {
+
+		/** 받은 목록을 복사해 둔다(불변) — 만든 쪽이 나중에 목록을 바꿔도 이 값은 바뀌지 않는다. */
+		public InquiryDetail {
+			timeline = timeline == null ? null : List.copyOf(timeline);
+			followUps = followUps == null ? null : List.copyOf(followUps);
+			answers = answers == null ? null : List.copyOf(answers);
+		}
 
 		@Override
 		public String toString() {

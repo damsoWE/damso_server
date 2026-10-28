@@ -278,6 +278,29 @@ class PasswordResetApiTest extends IntegrationTestSupport {
 		assertThat(mail.sendCount(email)).isEqualTo(10);
 	}
 
+	/**
+	 * 이슈 #26: 거부된 요청은 어느 칸도 소모하지 않는다. 이메일 상한에 걸린 동안 내 요청 위치에서 다시 시도해도
+	 * 이메일+요청 위치 칸(1시간 5회)이 차지 않아, 이메일 칸이 풀리면 바로 받는다.
+	 */
+	@Test
+	void rejectedRequestsDoNotUseUpTheOtherLimits() throws Exception {
+		String email = createAccount(Role.PARENT).getEmail();
+		for (int i = 1; i <= 10; i++) {
+			assertThat(requestFrom(email, "198.51.100." + i).getStatus()).isEqualTo(202);
+		}
+		clock.advance(Duration.ofMinutes(30));
+		for (int i = 0; i < 5; i++) {
+			assertThat(requestFrom(email, "203.0.113.7").getStatus()).isEqualTo(429);
+			clock.advance(Duration.ofSeconds(61));
+		}
+
+		clock.advance(Duration.ofMinutes(30));
+		MockHttpServletResponse afterEmailLimit = requestFrom(email, "203.0.113.7");
+
+		assertThat(afterEmailLimit.getStatus()).isEqualTo(202);
+		assertThat(mail.sendCount(email)).isEqualTo(11);
+	}
+
 	/** 이슈 #22 리뷰: 요청 위치 하나는 여러 이메일을 합쳐 1시간 20회까지만 — 대량 요청 상한. */
 	@Test
 	void oneClientCanRequestAtMostTwentyResetsAnHour() throws Exception {
@@ -289,6 +312,21 @@ class PasswordResetApiTest extends IntegrationTestSupport {
 
 		assertThat(twentyFirst.getStatus()).isEqualTo(429);
 		assertThat(requestFrom(uniqueEmail(), "198.51.100.201").getStatus()).isEqualTo(202);
+	}
+
+	/** BCrypt 입력 한계(72바이트)를 넘는 비밀번호는 500이 아니라 정책 위반 400이다. 코드는 그대로 쓸 수 있다. */
+	@Test
+	void newPasswordOverSeventyTwoBytesIsRejectedAsInvalidInput() throws Exception {
+		UserAccount parent = createAccount(Role.PARENT);
+		String email = parent.getEmail();
+		request(email);
+		String code = mail.lastResetCode(email);
+
+		MockHttpServletResponse tooLong = confirm(email, code, "가".repeat(30) + "a1");
+
+		assertThat(tooLong.getStatus()).isEqualTo(400);
+		assertSafeErrorResponse(tooLong.getContentAsString(), "INVALID_INPUT");
+		assertThat(confirm(email, code, NEW_PASSWORD).getStatus()).isEqualTo(204);
 	}
 
 	@Test

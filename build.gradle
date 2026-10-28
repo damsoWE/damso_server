@@ -1,7 +1,8 @@
 plugins {
 	id 'java'
-	id 'org.springframework.boot' version '4.1.1'
+	id 'org.springframework.boot' version '4.1.2'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'com.github.spotbugs' version '6.5.13'
 }
 
 group = 'damso'
@@ -15,6 +16,21 @@ java {
 
 repositories {
 	mavenCentral()
+}
+
+dependencyManagement {
+	dependencies {
+		// firebase-admin이 끌고 오는 Guava는 Spring Boot가 관리하지 않는다. 서비스 거부 취약점(CVE-2026-102554)이
+		// 고쳐진 버전으로 올린다(CI Trivy 검출, 이슈 #26)
+		dependency 'com.google.guava:guava:33.7.2-jre'
+	}
+}
+
+configurations.configureEach {
+	// firebase-admin(google-cloud-storage)이 끌고 오는 XML 데이터 포맷. 있으면 Spring MVC가 XML 변환기를 켜서 XML 본문을 받고
+	// XML로 응답한다. API는 JSON만 주고받으므로 뺀다(보안약점 체크리스트 입력데이터 4·8·9, JsonOnlyApiTest)
+	exclude group: 'com.fasterxml.jackson.dataformat', module: 'jackson-dataformat-xml'
+	exclude group: 'tools.jackson.dataformat', module: 'jackson-dataformat-xml'
 }
 
 dependencies {
@@ -40,6 +56,28 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
+	// 보안약점 정적분석 규칙(find-sec-bugs). 체크리스트 코드오류·입력데이터 항목을 CI에서 검사한다
+	spotbugsPlugins 'com.h3xstream.findsecbugs:findsecbugs-plugin:1.14.0'
+}
+
+// 정적분석(SpotBugs + find-sec-bugs). 운영 코드만 검사하고 하나라도 걸리면 빌드가 실패한다.
+// 예외는 config/spotbugs/exclude.xml에 사유와 함께만 둔다
+spotbugs {
+	toolVersion = '4.10.5'
+	effort = com.github.spotbugs.snom.Effort.valueOf('MAX')
+	reportLevel = com.github.spotbugs.snom.Confidence.valueOf('LOW')
+	excludeFilter = file('config/spotbugs/exclude.xml')
+}
+
+tasks.named('spotbugsTest') {
+	enabled = false
+}
+
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
+	reports {
+		html.required = true
+		xml.required = true
+	}
 }
 
 tasks.named('test') {

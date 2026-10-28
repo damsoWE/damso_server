@@ -19,8 +19,9 @@ interface SpringDataInviteCodeRepository extends JpaRepository<InviteCode, UUID>
 
 	boolean existsByCodeHash(String codeHash);
 
+	/** version도 올린다 — 폐기 전에 코드를 읽어 둔 사용 처리가 저장하면서 REVOKED를 USED로 덮지 못하고 버전 충돌로 실패한다. */
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
-	@Query("update InviteCode c set c.status = :revoked, c.activeTargetKey = null "
+	@Query("update InviteCode c set c.status = :revoked, c.activeTargetKey = null, c.version = c.version + 1 "
 			+ "where c.activeTargetKey = :key")
 	int revokeActive(@Param("key") String activeTargetKey, @Param("revoked") InviteStatus revoked);
 

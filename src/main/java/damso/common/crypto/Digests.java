@@ -21,4 +21,16 @@ public final class Digests {
 		}
 	}
 
+	/**
+	 * 해시 문자열을 상수 시간으로 비교한다 — 앞에서부터 몇 글자가 맞았는지가 처리 시간에 드러나지 않는다.
+	 * 저장된 해시와 요청에서 만든 해시를 비교할 때는 String.equals 대신 이것을 쓴다.
+	 */
+	public static boolean constantTimeEquals(String expected, String actual) {
+		if (expected == null || actual == null) {
+			return false;
+		}
+		return MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8),
+				actual.getBytes(StandardCharsets.UTF_8));
+	}
+
 }

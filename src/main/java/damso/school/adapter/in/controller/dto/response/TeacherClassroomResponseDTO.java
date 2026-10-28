@@ -8,6 +8,11 @@ import damso.school.application.port.in.TeacherClassroomQuery.TeacherClassroomVi
 public record TeacherClassroomResponseDTO(ClassroomRefResponseDTO classroom,
 		List<StudentSummaryResponseDTO> students) {
 
+	/** 받은 목록을 복사해 둔다(불변) — 만든 쪽이 나중에 목록을 바꿔도 이 값은 바뀌지 않는다. */
+	public TeacherClassroomResponseDTO {
+		students = students == null ? null : List.copyOf(students);
+	}
+
 	public static TeacherClassroomResponseDTO from(TeacherClassroomView view) {
 		return new TeacherClassroomResponseDTO(
 				new ClassroomRefResponseDTO(view.classroom().classroomId(), view.classroom().grade(),

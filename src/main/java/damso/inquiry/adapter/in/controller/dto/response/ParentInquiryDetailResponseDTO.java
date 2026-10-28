@@ -18,6 +18,15 @@ public record ParentInquiryDetailResponseDTO(UUID inquiryId, UUID studentId, Str
 		List<NoticeCode> notices, List<HotlineCode> hotlines, List<ParentFollowUpViewResponseDTO> followUps,
 		List<AnswerViewResponseDTO> answers) {
 
+	/** 받은 목록을 복사해 둔다(불변) — 만든 쪽이 나중에 목록을 바꿔도 이 값은 바뀌지 않는다. */
+	public ParentInquiryDetailResponseDTO {
+		timeline = timeline == null ? null : List.copyOf(timeline);
+		notices = notices == null ? null : List.copyOf(notices);
+		hotlines = hotlines == null ? null : List.copyOf(hotlines);
+		followUps = followUps == null ? null : List.copyOf(followUps);
+		answers = answers == null ? null : List.copyOf(answers);
+	}
+
 	public static ParentInquiryDetailResponseDTO from(InquiryDetail detail) {
 		return new ParentInquiryDetailResponseDTO(detail.inquiryId(), detail.studentId(), detail.studentName(),
 				detail.content(), detail.urgent(), detail.stage(), detail.submittedAt(),

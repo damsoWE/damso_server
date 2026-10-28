@@ -18,13 +18,13 @@ import damso.inquiry.domain.ThreatRule;
  * 파일을 못 읽거나 표현이 하나도 없으면 기동을 거부한다 — 목록이 없는 채로 뜨면 표시가 조용히 꺼진다 (원칙 VIII).
  */
 @Component
-public class ClasspathThreatExpressionSource implements ThreatExpressionSource {
+public final class ClasspathThreatExpressionSource implements ThreatExpressionSource {
 
 	private final List<String> expressions;
 
 	public ClasspathThreatExpressionSource(
 			@Value("${damso.inquiry.threat-expressions:classpath:threat/expressions.txt}") Resource resource) {
-		this.expressions = load(resource);
+		this.expressions = List.copyOf(load(resource));
 	}
 
 	@Override

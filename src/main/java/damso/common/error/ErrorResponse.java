@@ -13,6 +13,11 @@ public record ErrorResponse(
 		String message,
 		@JsonInclude(JsonInclude.Include.NON_EMPTY) List<FieldError> fieldErrors) {
 
+	/** 받은 목록을 복사해 둔다(불변) — 만든 쪽이 나중에 목록을 바꿔도 이 값은 바뀌지 않는다. */
+	public ErrorResponse {
+		fieldErrors = fieldErrors == null ? null : List.copyOf(fieldErrors);
+	}
+
 	public static ErrorResponse of(ErrorCode code) {
 		return new ErrorResponse(code, code.message(), List.of());
 	}

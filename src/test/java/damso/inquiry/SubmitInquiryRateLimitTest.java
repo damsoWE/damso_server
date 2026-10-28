@@ -82,6 +82,11 @@ class SubmitInquiryRateLimitTest extends IntegrationTestSupport {
 					return real.reserveRate(kind, subjectHash, now, minGap, window, max);
 				}
 
+				@Override
+				public long reserveRates(Instant now, List<RateLimit> limits) {
+					return real.reserveRates(now, limits);
+				}
+
 			};
 		}
 

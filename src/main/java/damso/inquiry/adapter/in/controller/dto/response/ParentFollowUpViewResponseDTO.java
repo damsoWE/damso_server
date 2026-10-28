@@ -13,6 +13,12 @@ import damso.inquiry.domain.NoticeCode;
 public record ParentFollowUpViewResponseDTO(UUID inquiryId, String content, boolean urgent, InquiryStage stage,
 		Instant submittedAt, List<NoticeCode> notices, List<HotlineCode> hotlines) {
 
+	/** 받은 목록을 복사해 둔다(불변) — 만든 쪽이 나중에 목록을 바꿔도 이 값은 바뀌지 않는다. */
+	public ParentFollowUpViewResponseDTO {
+		notices = notices == null ? null : List.copyOf(notices);
+		hotlines = hotlines == null ? null : List.copyOf(hotlines);
+	}
+
 	public static ParentFollowUpViewResponseDTO from(FollowUpView view) {
 		return new ParentFollowUpViewResponseDTO(view.inquiryId(), view.content(), view.urgent(), view.stage(),
 				view.submittedAt(), view.notices(), view.hotlines());

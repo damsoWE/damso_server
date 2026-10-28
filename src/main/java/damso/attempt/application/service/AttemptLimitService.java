@@ -3,6 +3,7 @@ package damso.attempt.application.service;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import damso.attempt.application.port.in.AttemptLimitUseCase;
 import damso.attempt.application.port.out.AttemptLimitPort;
+import damso.attempt.application.port.out.AttemptLimitPort.RateLimit;
 import damso.attempt.domain.AttemptKind;
 import damso.attempt.domain.AttemptPolicy;
 import damso.attempt.domain.AttemptState;
@@ -70,20 +72,21 @@ public class AttemptLimitService implements AttemptLimitUseCase {
 
 	@Override
 	public void ensureResetMailAllowed(String email, String clientIp) {
-		Instant now = clock.instant();
-		requireReserved(AttemptKind.RESET_MAIL_CLIENT, clientIp, now, Duration.ZERO,
-				AttemptPolicy.RESET_MAIL_MAX_PER_CLIENT);
-		requireReserved(AttemptKind.RESET_MAIL_PAIR, email + "|" + clientIp, now, AttemptPolicy.MAIL_MIN_GAP,
-				AttemptPolicy.MAIL_MAX_PER_WINDOW);
-		requireReserved(AttemptKind.RESET_MAIL_EMAIL, email, now, Duration.ZERO,
-				AttemptPolicy.RESET_MAIL_MAX_PER_EMAIL);
-	}
-
-	private void requireReserved(AttemptKind kind, String subject, Instant now, Duration minGap, int max) {
-		long waitMillis = port.reserveRate(kind, hasher.hash(subject), now, minGap, AttemptPolicy.MAIL_WINDOW, max);
+		// 세 칸을 한꺼번에 예약한다 — 한 칸에서 거부된 요청이 다른 칸을 소모하지 않는다(이슈 #26)
+		long waitMillis = port.reserveRates(clock.instant(), List.of(
+				resetMailLimit(AttemptKind.RESET_MAIL_CLIENT, clientIp, Duration.ZERO,
+						AttemptPolicy.RESET_MAIL_MAX_PER_CLIENT),
+				resetMailLimit(AttemptKind.RESET_MAIL_PAIR, email + "|" + clientIp, AttemptPolicy.MAIL_MIN_GAP,
+						AttemptPolicy.MAIL_MAX_PER_WINDOW),
+				resetMailLimit(AttemptKind.RESET_MAIL_EMAIL, email, Duration.ZERO,
+						AttemptPolicy.RESET_MAIL_MAX_PER_EMAIL)));
 		if (waitMillis > 0) {
 			throw new TooManyAttemptsException(ceilSeconds(waitMillis));
 		}
+	}
+
+	private RateLimit resetMailLimit(AttemptKind kind, String subject, Duration minGap, int max) {
+		return new RateLimit(kind, hasher.hash(subject), minGap, AttemptPolicy.MAIL_WINDOW, max);
 	}
 
 	@Override

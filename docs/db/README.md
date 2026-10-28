@@ -14,3 +14,4 @@
 | 파일 | 내용 | 실행 시점 |
 |---|---|---|
 | `2026-10-27-f5-audit-action-check.sql` | `audit_log.action` CHECK 제약을 `AuditAction` 9개 값으로 다시 만든다(F5) | F5 배포 전 |
+| `2026-10-28-password-reset-unique-user.sql` | `password_reset.user_id` 중복 행을 정리하고 인덱스를 유니크로 다시 만든다(이슈 #26) | 이슈 #26 배포 전 |

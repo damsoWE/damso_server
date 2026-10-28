@@ -1,6 +1,7 @@
 package damso.school.application.port.in;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -39,5 +40,8 @@ public interface InquiryTargetQuery {
 
 	/** 교사가 담임인 학급. 담임이 아니면 비어 있다. */
 	Optional<UUID> homeroomClassroomOf(UUID teacherId);
+
+	/** 모든 학급 id, 학년·반 순(관리자 학급 목록과 같은 순서). */
+	List<UUID> classroomIdsInOrder();
 
 }
