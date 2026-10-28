@@ -23,6 +23,14 @@ class PasswordResetApiTest extends IntegrationTestSupport {
 		return send(json(post("/api/v1/auth/password-reset"), "{\"email\":\"" + email + "\"}"), null);
 	}
 
+	/** 요청 위치(IP)를 지정한 재설정 요청. 운영에서는 Caddy의 X-Forwarded-For가 remoteAddr로 반영된다. */
+	private MockHttpServletResponse requestFrom(String email, String clientIp) throws Exception {
+		return send(json(post("/api/v1/auth/password-reset"), "{\"email\":\"" + email + "\"}").with(request -> {
+			request.setRemoteAddr(clientIp);
+			return request;
+		}), null);
+	}
+
 	private MockHttpServletResponse verify(String email, String code) throws Exception {
 		return send(json(post("/api/v1/auth/password-reset/verify"),
 				"{\"email\":\"" + email + "\",\"code\":\"" + code + "\"}"), null);
@@ -182,8 +190,8 @@ class PasswordResetApiTest extends IntegrationTestSupport {
 	}
 
 	/**
-	 * 이슈 #22: 발송 대기 중이면 조용히 202로 끝내지 않고 429 + Retry-After로 알린다. 대기는 계정 조회 전에 이메일 기준으로
-	 * 판단하므로 가입된 이메일과 가입 안 된 이메일의 응답이 같다(가입 여부 비노출).
+	 * 이슈 #22: 발송 대기 중이면 조용히 202로 끝내지 않고 429 + Retry-After로 알린다. 대기는 계정 조회 전에 이메일+요청 위치
+	 * 기준으로 판단하므로 가입된 이메일과 가입 안 된 이메일의 응답이 같다(가입 여부 비노출).
 	 */
 	@Test
 	void requestingAgainWithinAMinuteIsTooManyAttemptsForRegisteredAndUnregisteredAlike() throws Exception {
@@ -226,18 +234,61 @@ class PasswordResetApiTest extends IntegrationTestSupport {
 		assertThat(mail.sendCount(email)).isEqualTo(5);
 	}
 
-	/** 이슈 #22 재현: 이미 가입된 이메일로 가입을 시도해 안내 메일이 나간 직후 재설정을 요청하면 같은 발송 대기에 걸린다. */
+	/**
+	 * 이슈 #22 재현 상황: 이미 가입된 이메일로 가입을 시도해 안내 메일이 나간 직후 재설정을 요청한다. 재설정 메일은 가입 인증
+	 * 메일과 따로 세므로 막히지 않고 바로 발송된다.
+	 */
 	@Test
-	void resetRightAfterASignupMailSharesTheSameWait() throws Exception {
+	void resetRightAfterASignupMailIsNotBlockedBySignupMailWait() throws Exception {
 		UserAccount parent = createAccount(Role.PARENT);
 		startSignup(issueParentCode(newStudent(newClassroom(), "김하나")), "박부모", parent.getEmail());
 
 		MockHttpServletResponse reset = request(parent.getEmail());
 
-		assertThat(reset.getStatus()).isEqualTo(429);
-		assertSafeErrorResponse(reset.getContentAsString(), "TOO_MANY_ATTEMPTS");
-		assertThat(Long.parseLong(reset.getHeader("Retry-After"))).isBetween(1L, 60L);
-		assertThat(mail.lastResetCode(parent.getEmail())).isNull();
+		assertThat(reset.getStatus()).isEqualTo(202);
+		assertThat(mail.lastResetCode(parent.getEmail())).matches("[0-9]{6}");
+	}
+
+	/** 이슈 #22 리뷰: 남이 내 이메일로 재설정을 요청해도 그 사람의 요청 위치 칸만 차고, 내 요청 위치에서는 바로 받을 수 있다. */
+	@Test
+	void anotherClientCannotBlockMyReset() throws Exception {
+		String victim = createAccount(Role.PARENT).getEmail();
+		assertThat(requestFrom(victim, "198.51.100.66").getStatus()).isEqualTo(202);
+		assertThat(requestFrom(victim, "198.51.100.66").getStatus()).isEqualTo(429);
+
+		MockHttpServletResponse mine = requestFrom(victim, "203.0.113.7");
+
+		assertThat(mine.getStatus()).isEqualTo(202);
+		assertThat(mail.sendCount(victim)).isEqualTo(2);
+	}
+
+	/** 이슈 #22 리뷰: 여러 요청 위치를 써도 이메일 하나에는 1시간 10통까지만 — 메일 폭탄 상한. */
+	@Test
+	void oneEmailGetsAtMostTenResetMailsAnHourFromAnyClients() throws Exception {
+		String email = createAccount(Role.PARENT).getEmail();
+		for (int i = 1; i <= 10; i++) {
+			assertThat(requestFrom(email, "198.51.100." + i).getStatus()).isEqualTo(202);
+		}
+
+		MockHttpServletResponse eleventh = requestFrom(email, "198.51.100.11");
+
+		assertThat(eleventh.getStatus()).isEqualTo(429);
+		assertSafeErrorResponse(eleventh.getContentAsString(), "TOO_MANY_ATTEMPTS");
+		assertThat(Long.parseLong(eleventh.getHeader("Retry-After"))).isBetween(1L, 3600L);
+		assertThat(mail.sendCount(email)).isEqualTo(10);
+	}
+
+	/** 이슈 #22 리뷰: 요청 위치 하나는 여러 이메일을 합쳐 1시간 20회까지만 — 대량 요청 상한. */
+	@Test
+	void oneClientCanRequestAtMostTwentyResetsAnHour() throws Exception {
+		for (int i = 0; i < 20; i++) {
+			assertThat(requestFrom(uniqueEmail(), "198.51.100.200").getStatus()).isEqualTo(202);
+		}
+
+		MockHttpServletResponse twentyFirst = requestFrom(uniqueEmail(), "198.51.100.200");
+
+		assertThat(twentyFirst.getStatus()).isEqualTo(429);
+		assertThat(requestFrom(uniqueEmail(), "198.51.100.201").getStatus()).isEqualTo(202);
 	}
 
 	@Test

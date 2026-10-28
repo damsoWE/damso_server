@@ -3,6 +3,7 @@ package damso.account.application.service;
 import java.time.Clock;
 import java.time.Instant;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,7 +12,6 @@ import damso.account.application.port.in.PasswordResetUseCase;
 import damso.account.application.port.out.PasswordResetPort;
 import damso.account.application.port.out.SessionPort;
 import damso.account.application.port.out.UserAccountPort;
-import damso.account.application.port.out.VerificationMailPort;
 import damso.account.domain.AuthSession;
 import damso.account.domain.PasswordPolicy;
 import damso.account.domain.PasswordReset;
@@ -19,7 +19,6 @@ import damso.account.domain.UserAccount;
 import damso.attempt.application.port.in.AttemptLimitUseCase;
 import damso.attempt.domain.AttemptKind;
 import damso.common.crypto.CodeHasher;
-import damso.common.crypto.SecureCodes;
 import damso.common.error.BusinessException;
 import damso.common.error.ErrorCode;
 
@@ -35,7 +34,7 @@ public class PasswordResetService implements PasswordResetUseCase {
 
 	private final AttemptLimitUseCase attempts;
 
-	private final VerificationMailPort mail;
+	private final ApplicationEventPublisher events;
 
 	private final PasswordEncoder passwordEncoder;
 
@@ -44,32 +43,26 @@ public class PasswordResetService implements PasswordResetUseCase {
 	private final Clock clock;
 
 	public PasswordResetService(UserAccountPort accounts, PasswordResetPort resets, SessionPort sessions,
-			AttemptLimitUseCase attempts, VerificationMailPort mail, PasswordEncoder passwordEncoder,
+			AttemptLimitUseCase attempts, ApplicationEventPublisher events, PasswordEncoder passwordEncoder,
 			CodeHasher hasher, Clock clock) {
 		this.accounts = accounts;
 		this.resets = resets;
 		this.sessions = sessions;
 		this.attempts = attempts;
-		this.mail = mail;
+		this.events = events;
 		this.passwordEncoder = passwordEncoder;
 		this.hasher = hasher;
 		this.clock = clock;
 	}
 
 	@Override
-	public void request(String email) {
+	public void request(String email, String clientIp) {
 		String normalized = UserAccount.normalizeEmail(email);
-		// 발송 대기는 계정 조회 전에 이메일 기준으로 판단한다 — 대기 중이면 가입 여부와 관계없이 같은 429(이슈 #22)
-		attempts.ensureMailSendAllowed(normalized);
-		// 가입된 활성 계정일 때만 코드를 만든다
-		UserAccount account = accounts.findByEmail(normalized).filter(UserAccount::isActive).orElse(null);
-		if (account == null) {
-			return;
-		}
-		String code = SecureCodes.sixDigits();
-		resets.deleteByUserId(account.getId());
-		resets.save(new PasswordReset(account.getId(), hasher.hash(code), clock.instant()));
-		mail.sendPasswordResetCode(normalized, code);
+		// 발송 제한은 계정 조회 전에 판단한다 — 걸리면 가입 여부와 관계없이 같은 429(이슈 #22).
+		// 이메일만이 아니라 요청 위치까지 묶어 세므로 남이 내 이메일로 요청해도 내 재설정이 막히지 않는다
+		attempts.ensureResetMailAllowed(normalized, clientIp);
+		// 계정 조회·코드 발급은 응답 뒤에 한다(PasswordResetIssuer) — 가입 여부가 응답 시간에 드러나지 않는다
+		events.publishEvent(new PasswordResetRequested(normalized));
 	}
 
 	@Override

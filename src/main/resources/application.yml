@@ -75,6 +75,9 @@ damso:
     password: ${DAMSO_SUPER_ADMIN_PASSWORD:}
 
 server:
+  # Caddy가 넘기는 X-Forwarded-For로 실제 요청 위치를 읽는다(재설정 메일 제한, 이슈 #22).
+  # Tomcat은 내부 대역(사설 IP)에서 온 연결의 헤더만 믿는다 — 앱 포트를 외부에 열지 않는다(운영 확인 2026-10-28)
+  forward-headers-strategy: native
   error:
     include-stacktrace: never
     include-message: never

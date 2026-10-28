@@ -1,5 +1,6 @@
 package damso.account.adapter.in.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
@@ -100,11 +101,14 @@ class AuthController {
 		logout.logout(user.sessionId());
 	}
 
-	/** 가입 여부와 관계없이 같은 202를 돌려준다. 메일 발송 대기 중이면 가입 여부와 관계없이 같은 429다. */
+	/**
+	 * 가입 여부와 관계없이 같은 202를 돌려준다. 발송 제한에 걸리면 가입 여부와 관계없이 같은 429다.
+	 * 요청 위치는 Caddy가 넘긴 X-Forwarded-For를 Tomcat이 반영한 remoteAddr이다(server.forward-headers-strategy: native).
+	 */
 	@PostMapping("/password-reset")
 	@ResponseStatus(HttpStatus.ACCEPTED)
-	void requestPasswordReset(@Valid @RequestBody PasswordResetRequestDTO request) {
-		passwordReset.request(request.email());
+	void requestPasswordReset(@Valid @RequestBody PasswordResetRequestDTO request, HttpServletRequest http) {
+		passwordReset.request(request.email(), http.getRemoteAddr());
 	}
 
 	@PostMapping("/password-reset/verify")

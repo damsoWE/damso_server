@@ -69,6 +69,24 @@ public class AttemptLimitService implements AttemptLimitUseCase {
 	}
 
 	@Override
+	public void ensureResetMailAllowed(String email, String clientIp) {
+		Instant now = clock.instant();
+		requireReserved(AttemptKind.RESET_MAIL_CLIENT, clientIp, now, Duration.ZERO,
+				AttemptPolicy.RESET_MAIL_MAX_PER_CLIENT);
+		requireReserved(AttemptKind.RESET_MAIL_PAIR, email + "|" + clientIp, now, AttemptPolicy.MAIL_MIN_GAP,
+				AttemptPolicy.MAIL_MAX_PER_WINDOW);
+		requireReserved(AttemptKind.RESET_MAIL_EMAIL, email, now, Duration.ZERO,
+				AttemptPolicy.RESET_MAIL_MAX_PER_EMAIL);
+	}
+
+	private void requireReserved(AttemptKind kind, String subject, Instant now, Duration minGap, int max) {
+		long waitMillis = port.reserveRate(kind, hasher.hash(subject), now, minGap, AttemptPolicy.MAIL_WINDOW, max);
+		if (waitMillis > 0) {
+			throw new TooManyAttemptsException(ceilSeconds(waitMillis));
+		}
+	}
+
+	@Override
 	public long reserveInquirySubmit(UUID parentId) {
 		long waitMillis = port.reserveRate(AttemptKind.INQUIRY_SUBMIT, hasher.hash(parentId.toString()),
 				clock.instant(), inquirySubmitInterval, inquirySubmitInterval, AttemptPolicy.INQUIRY_MAX_PER_WINDOW);
