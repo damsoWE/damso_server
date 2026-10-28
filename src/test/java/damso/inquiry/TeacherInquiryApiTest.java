@@ -84,7 +84,10 @@ class TeacherInquiryApiTest extends IntegrationTestSupport {
 		assertThat((List<?>) read(secondPage, "$.items")).hasSize(1);
 		assertThat(((Number) read(secondPage, "$.totalElements")).longValue()).isEqualTo(3);
 		assertThat(list(s.teacher().accessToken(), "?size=50").getStatus()).isEqualTo(200);
-		for (String bad : List.of("?size=51", "?size=0", "?page=-1", "?size=abc", "?page=x")) {
+		assertThat(list(s.teacher().accessToken(), "?page=10000&size=50").getStatus()).isEqualTo(200);
+		// 이슈 #26: 상한이 없으면 page=107374183처럼 offset이 int를 넘는 값이 500이 됐다
+		for (String bad : List.of("?size=51", "?size=0", "?page=-1", "?size=abc", "?page=x", "?page=10001",
+				"?page=107374183")) {
 			MockHttpServletResponse response = list(s.teacher().accessToken(), bad);
 			assertThat(response.getStatus()).as(bad).isEqualTo(400);
 			assertSafeErrorResponse(response.getContentAsString(), "INVALID_INPUT");
