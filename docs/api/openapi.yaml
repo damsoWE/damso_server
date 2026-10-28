@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: DAMSO API
-  version: 0.6.0
+  version: 0.7.0
   description: |
     담소 통합 API 명세 (원본). 변경 시 이 파일을 먼저 수정하고 api-vX.Y 태그를 찍는다.
     - 인증: Authorization 헤더의 Bearer 토큰(HS256). 쿠키·세션 없음.
@@ -713,7 +713,7 @@ paths:
         최초 문의와 같은 파이프라인(멱등키 → 중복 확인 → 대상 재확인 → 긴급 판정 → 1분 제한 → 저장)을 거친다.
         담임은 스레드 시작 시점으로 고정하지 않고 매번 다시 조회한다 — 담임이 바뀌었으면 새 담임에게, 담임이 해제·공석이면 409 NO_HOMEROOM_TEACHER로 거부한다.
         긴급으로 판정되면 1분 제한 없이 즉시 접수되고 F2의 즉시 전달 경로를 그대로 따른다.
-        "답변 완료"로 종료된 문의에는 재문의할 수 없다(409 THREAD_CLOSED).
+        "답변 완료"로 종료된 문의에는 재문의할 수 없다(409 THREAD_CLOSED). 종료 경로가 운영에서 꺼져 있어 지금은 생기지 않는다.
       parameters:
         - name: Idempotency-Key
           in: header
@@ -736,7 +736,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409':
-          description: THREAD_CLOSED(이미 종료됨) · NO_HOMEROOM_TEACHER(담임 해제·공석) · CONFLICT(같은 키로 다른 내용)
+          description: THREAD_CLOSED(이미 종료됨 — 종료 경로가 운영에서 꺼져 있어 지금은 생기지 않는다) · NO_HOMEROOM_TEACHER(담임 해제·공석) · CONFLICT(같은 키로 다른 내용)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
@@ -909,7 +909,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409':
-          description: THREAD_CLOSED(이미 "답변 완료"로 종료된 문의)
+          description: THREAD_CLOSED(이미 "답변 완료"로 종료된 문의 — 종료 경로가 운영에서 꺼져 있어 지금은 생기지 않는다)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
@@ -921,21 +921,29 @@ paths:
     post:
       tags: [teacher-answer]
       operationId: closeInquiry
-      summary: '"답변 완료"로 종료'
+      deprecated: true
+      summary: '"답변 완료"로 종료 — 앱에서 쓰지 않음, 운영에서 꺼져 있음'
       description: |
-        교사의 명시적 동작으로만 종료된다 — 답변을 보낸다고 자동으로 종료되지 않는다.
-        종료 후 학부모는 이 문의에서 재문의할 수 없고 새 문의를 작성해야 한다.
+        앱에서는 종료를 호출하지 않는다(decisions.md 2026-10-27). 운영 설정에서 이 경로는 꺼져 있다(damso.inquiry.close-enabled=false).
+        꺼져 있으면 교사가 호출해도 담당 여부를 보기 전에 404 NOT_FOUND를 돌려주고 스레드는 열린 채로 남는다.
+        교사가 아닌 사용자는 지금처럼 경로 단위 역할 검사에서 403이다.
+        아래 200·409는 설정을 켰을 때의 동작이다(서버 검증 확인용). 교사의 명시적 동작으로만 종료되며(답변을 보낸다고 자동으로 종료되지 않는다), 종료 후에는 재문의·답변이 409 THREAD_CLOSED로 거부된다.
       responses:
         '200':
-          description: 종료됨
+          description: 종료됨 (설정을 켰을 때만)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/InquiryClosed' }
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
-        '404': { $ref: '#/components/responses/NotFound' }
+        '404':
+          description: NOT_FOUND — 종료 경로가 꺼져 있음(운영 기본값), 또는 (켰을 때) 문의가 없거나 담당 학급 문의가 아님
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example: { code: NOT_FOUND, message: 요청한 대상을 찾을 수 없습니다. }
         '409':
-          description: INQUIRY_NOT_READY_TO_CLOSE(아직 TEACHER_CONFIRMED에 닿지 않은 문의 — F3 전의 일반 문의 등) 또는 THREAD_CLOSED(이미 종료됨)
+          description: (설정을 켰을 때만) INQUIRY_NOT_READY_TO_CLOSE(아직 TEACHER_CONFIRMED에 닿지 않은 문의 — F3 전의 일반 문의 등) 또는 THREAD_CLOSED(이미 종료됨)
           content:
             application/json:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
@@ -1296,6 +1304,7 @@ components:
         REFINING은 "정제 중"이 아니라 "정제 완료"다 — 검증을 통과한 정리 결과(번역본)가 생긴 시점에 기록된다. 이름은 F2 계약이라 유지한다.
         일반: RECEIVED → REFINING → TEACHER_CONFIRMED → ANSWERED. 자동 정리에 실패한 문의는 원문 첫 열람 때 RECEIVED → TEACHER_CONFIRMED.
         긴급: RECEIVED → DELIVERED → TEACHER_CONFIRMED → ANSWERED
+        앱에서는 종료를 호출하지 않아 ANSWERED가 생기지 않는다(decisions.md 2026-10-27). 답변 여부는 목록의 hasAnswer로 판단한다.
       enum: [RECEIVED, DELIVERED, REFINING, TEACHER_CONFIRMED, ANSWERED]
 
     NoticeCode:
@@ -1364,7 +1373,17 @@ components:
         urgent: { type: boolean }
         stage: { $ref: '#/components/schemas/InquiryStage' }
         submittedAt: { type: string, format: date-time }
-      required: [inquiryId, studentId, studentName, urgent, stage, submittedAt]
+        hasAnswer:
+          type: boolean
+          description: |
+            이 스레드(최초 문의 + 모든 재문의)에 답변이 1건 이상 있으면 true. 문의 처리 단계(stage)나 종료 여부와 무관하다.
+            앱은 이 값으로 "답변한 문의는 스레드로"를 판단한다(stage로 판단하지 않음).
+        lastAnsweredAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 이 스레드의 마지막 답변 전송 시각. 답변이 없으면 null. 추가 답변이 오면 새 시각으로 바뀐다. 답변 본문은 목록에 담지 않는다
+      required: [inquiryId, studentId, studentName, urgent, stage, submittedAt, hasAnswer, lastAnsweredAt]
       additionalProperties: false
 
     ParentInquiryDetail:
@@ -1420,7 +1439,15 @@ components:
             스레드 단위 위협·폭언 표시. 최초 문의(threatFlagged)나 재문의(TeacherFollowUpView.threatFlagged) 가운데
             하나라도 표시됐으면 true. 재문의에만 위협 표현이 있어도 교사가 목록에서 알아볼 수 있게 한다. 교사에게만 보인다.
         submittedAt: { type: string, format: date-time }
-      required: [inquiryId, studentId, studentName, urgent, title, stage, refinementStatus, threatFlagged, threadThreatFlagged, submittedAt]
+        hasAnswer:
+          type: boolean
+          description: 이 스레드(최초 문의 + 모든 재문의)에 답변이 1건 이상 있으면 true. stage나 종료 여부와 무관하다
+        lastAnsweredAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 이 스레드의 마지막 답변 전송 시각. 답변이 없으면 null. 이전 담임이 보낸 답변도 포함한다
+      required: [inquiryId, studentId, studentName, urgent, title, stage, refinementStatus, threatFlagged, threadThreatFlagged, submittedAt, hasAnswer, lastAnsweredAt]
       additionalProperties: false
 
     TeacherInquiryPage:

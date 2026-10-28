@@ -17,10 +17,11 @@ public interface TeacherInquiryQuery {
 	 * refinementStatus는 일반 문의의 정리 상태, 긴급 문의는 null(F3).
 	 * threatFlagged는 접수 때 정한 위협·폭언 표현 표시, 긴급은 항상 false(spec 005).
 	 * threadThreatFlagged는 최초 문의나 재문의 가운데 하나라도 표시됐는지 — 재문의에만 위협 표현이 있어도 목록에서 보인다.
+	 * hasAnswer·lastAnsweredAt은 스레드 전체의 답변 기준, 답변이 없으면 lastAnsweredAt은 null(F4 US6).
 	 */
 	record InquirySummary(UUID inquiryId, UUID studentId, String studentName, boolean urgent, String title,
 			InquiryStage stage, RefinementStatus refinementStatus, boolean threatFlagged, boolean threadThreatFlagged,
-			Instant submittedAt) {
+			Instant submittedAt, boolean hasAnswer, Instant lastAnsweredAt) {
 
 		/** 학생 이름이 로그·예외에 섞이지 않도록 가린다. */
 		@Override
