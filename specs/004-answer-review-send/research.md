@@ -67,6 +67,7 @@
 - **Alternatives considered**:
   - `inquiry`에 `last_answered_at` 컬럼 추가(비정규화) — 답변 저장 때 루트 row를 함께 갱신해야 하고, 그러면 루트 `@Version`이 올라가 동시 재문의·종료와 낙관적 락 충돌이 늘어난다. 스키마 변경도 생긴다. 기각.
   - 목록 행마다 `findByThreadRootId` 호출 — 페이지당 최대 50번 쿼리(N+1)에 본문까지 읽는다(복호화 비용, 원칙 VI 노출면 증가). 기각.
+- **Update (2026-10-28, 코드 리뷰 반영)**: 학부모 목록은 페이지가 없어 루트 id 묶음(`IN`)의 크기가 문의 수만큼 커진다. 학부모 목록만 `answer`와 `inquiry`를 `parent_id`로 조인해 파라미터 하나로 집계한다(`findLastSentAtByParentId`). 교사 목록은 페이지당 최대 50개라 루트 id 묶음을 그대로 쓴다. 또 `hasAnswer`는 따로 담지 않고 `lastAnsweredAt != null`로만 얻는다(조회 결과 record의 `hasAnswer()`) — 두 값이 어긋날 수 없게 한다.
 
 ## R11. 응답 필드 이름과 모양
 

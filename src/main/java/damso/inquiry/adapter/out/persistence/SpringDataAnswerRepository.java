@@ -35,4 +35,12 @@ public interface SpringDataAnswerRepository extends Repository<Answer, UUID> {
 			+ "where a.threadRootId in :rootIds group by a.threadRootId")
 	List<LastSentAt> findLastSentAtByThreadRootIds(@Param("rootIds") Collection<UUID> rootIds);
 
+	/**
+	 * 학부모 목록용 — 학부모 목록은 페이지가 없어 루트 id 묶음 대신 학부모 기준으로 조인한다(문의 수와 무관하게 파라미터 1개).
+	 * 답변은 항상 스레드 루트를 가리키므로 학부모 본인 스레드의 답변만 잡힌다.
+	 */
+	@Query("select a.threadRootId as threadRootId, max(a.sentAt) as lastSentAt from Answer a, Inquiry i "
+			+ "where i.id = a.threadRootId and i.parentId = :parentId group by a.threadRootId")
+	List<LastSentAt> findLastSentAtByParentId(@Param("parentId") UUID parentId);
+
 }

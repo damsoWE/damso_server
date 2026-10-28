@@ -123,11 +123,10 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 	 */
 	private static InquirySummary summaryOf(Inquiry inquiry, Map<UUID, String> names, Set<UUID> flaggedThreads,
 			Map<UUID, Instant> lastAnswered) {
-		Instant lastAnsweredAt = lastAnswered.get(inquiry.getId());
 		return new InquirySummary(inquiry.getId(), inquiry.getStudentId(), names.getOrDefault(inquiry.getStudentId(), ""),
 				inquiry.isUrgent(), displayTitle(inquiry), inquiry.getStage(), inquiry.getRefinementStatus(),
 				inquiry.isThreatFlagged(), inquiry.isThreatFlagged() || flaggedThreads.contains(inquiry.getId()),
-				inquiry.getSubmittedAt(), lastAnsweredAt != null, lastAnsweredAt);
+				inquiry.getSubmittedAt(), lastAnswered.get(inquiry.getId()));
 	}
 
 	/**

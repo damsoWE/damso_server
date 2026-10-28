@@ -36,7 +36,16 @@ class AnswerPersistenceAdapter implements AnswerPort {
 		if (rootIds.isEmpty()) {
 			return Map.of();
 		}
-		return answers.findLastSentAtByThreadRootIds(rootIds).stream()
+		return toMap(answers.findLastSentAtByThreadRootIds(rootIds));
+	}
+
+	@Override
+	public Map<UUID, Instant> findLastAnsweredAtByParent(UUID parentId) {
+		return toMap(answers.findLastSentAtByParentId(parentId));
+	}
+
+	private static Map<UUID, Instant> toMap(List<SpringDataAnswerRepository.LastSentAt> rows) {
+		return rows.stream()
 				.collect(Collectors.toUnmodifiableMap(SpringDataAnswerRepository.LastSentAt::getThreadRootId,
 						SpringDataAnswerRepository.LastSentAt::getLastSentAt));
 	}

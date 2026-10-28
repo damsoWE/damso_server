@@ -44,14 +44,11 @@ public class ParentInquiryService implements ParentInquiryQuery {
 	public List<InquirySummary> list(UUID parentId) {
 		List<Inquiry> found = inquiries.findByParent(parentId);
 		Map<UUID, String> names = targets.studentNames(found.stream().map(Inquiry::getStudentId).distinct().toList());
-		Map<UUID, Instant> lastAnswered = answers.findLastAnsweredAt(found.stream().map(Inquiry::getId).toList());
+		Map<UUID, Instant> lastAnswered = answers.findLastAnsweredAtByParent(parentId);
 		return found.stream()
-				.map(inquiry -> {
-					Instant lastAnsweredAt = lastAnswered.get(inquiry.getId());
-					return new InquirySummary(inquiry.getId(), inquiry.getStudentId(),
-							names.getOrDefault(inquiry.getStudentId(), ""), inquiry.isUrgent(), inquiry.getStage(),
-							inquiry.getSubmittedAt(), lastAnsweredAt != null, lastAnsweredAt);
-				})
+				.map(inquiry -> new InquirySummary(inquiry.getId(), inquiry.getStudentId(),
+						names.getOrDefault(inquiry.getStudentId(), ""), inquiry.isUrgent(), inquiry.getStage(),
+						inquiry.getSubmittedAt(), lastAnswered.get(inquiry.getId())))
 				.toList();
 	}
 

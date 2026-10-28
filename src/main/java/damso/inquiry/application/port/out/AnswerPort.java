@@ -18,4 +18,7 @@ public interface AnswerPort {
 	/** 루트 id별 마지막 답변 전송 시각. 답변이 없는 루트는 Map에 없다(F4 US6). */
 	Map<UUID, Instant> findLastAnsweredAt(Collection<UUID> rootIds);
 
+	/** 학부모 본인 스레드의 루트 id별 마지막 답변 전송 시각. 답변이 없는 루트는 Map에 없다(F4 US6). */
+	Map<UUID, Instant> findLastAnsweredAtByParent(UUID parentId);
+
 }

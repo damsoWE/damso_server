@@ -392,4 +392,5 @@ T049 ─ T050 ─ T051 (사람, 공지) ─┬─ US6: T052·T053 ─ T054 ─ T
   - T059는 ④를 "꺼진 경로와 없는 문의의 응답 본문이 같다"로 확인했다.
 - **T065 전체 테스트**: `./gradlew test` — **650개 모두 통과**(실패·오류 0, 건너뜀 0, `build/test-results/test/*.xml` 기준).
 - **docs 갱신**: `docs/security-checklist.md` 보안기능 2(종료 경로 차단·목록 답변 여부 근거), `docs/decisions.md` 2026-10-27 행 미결 ①② → 2026-10-28 해결.
+- **코드 리뷰 반영(2026-10-28)**: ① 학부모 목록은 페이지가 없어 루트 id `IN` 묶음이 문의 수만큼 커지므로, 학부모 기준 조인 쿼리(`SpringDataAnswerRepository.findLastSentAtByParentId`, `AnswerPort.findLastAnsweredAtByParent`)로 바꿨다. 교사 목록(페이지당 최대 50)은 그대로 ② `hasAnswer`를 조회 결과 record의 필드에서 빼고 `hasAnswer()`(= `lastAnsweredAt != null`)로 얻는다. 응답 JSON 모양은 바뀌지 않는다(research R10 Update).
 - **남은 일**: T067 `api-v0.7` 태그는 PR #19 merge 후 main에서 사람이 찍는다.
