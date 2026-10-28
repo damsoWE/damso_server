@@ -59,10 +59,11 @@ public class PasswordResetService implements PasswordResetUseCase {
 	@Override
 	public void request(String email) {
 		String normalized = UserAccount.normalizeEmail(email);
-		// 가입 여부와 관계없이 같은 호출을 하고(발송 제한 확인), 가입된 활성 계정일 때만 코드를 만든다
-		long waitSeconds = attempts.reserveMailSend(normalized);
+		// 발송 대기는 계정 조회 전에 이메일 기준으로 판단한다 — 대기 중이면 가입 여부와 관계없이 같은 429(이슈 #22)
+		attempts.ensureMailSendAllowed(normalized);
+		// 가입된 활성 계정일 때만 코드를 만든다
 		UserAccount account = accounts.findByEmail(normalized).filter(UserAccount::isActive).orElse(null);
-		if (account == null || waitSeconds > 0) {
+		if (account == null) {
 			return;
 		}
 		String code = SecureCodes.sixDigits();

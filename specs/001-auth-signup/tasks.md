@@ -377,4 +377,10 @@ Phase 2 ─┬─ US1 ── US2 ── US3 ─┬─ US6
   - [X] T091 `InviteCodeCheckApiTest`: 역할만 응답, 코드 미소모 후 가입 성공, 쓸 수 없는 코드 응답 통일(가입과 동일), 확인·가입 실패 합산 잠금, 형식 오류는 횟수 미포함
   - [X] T092 `docs/api/openapi.yaml`·`contracts/auth.openapi.yaml` 경로·스키마 추가
   - [ ] T093 프론트 공지와 `api-vX.Y` 태그(머지 후)
+- **이슈 #22 비밀번호 재설정 발송 대기 429 (2026-10-28)**: 재설정 요청이 메일 발송 대기에 걸리면 조용히 202로 끝나 메일이 오지 않는데 앱은 "보냈습니다"를 보여 줬다(배포 서버 재현, damsoWE/damso_app#13 Q1-7). FR-029에 대기 중 동작을 추가했다. speckit 전체 단계 대신 간소화해 진행했다(사용자 결정).
+  - [X] T094 `docs/api/openapi.yaml`·`contracts/auth.openapi.yaml` — `/auth/password-reset`에 `'429': TooManyAttempts`와 설명 추가, 공통 `TooManyAttempts`의 `Retry-After` 최대값 600 → 3600(메일 발송 시간당 5회 제한에 걸리면 최대 1시간 — 가입 인증 재발송도 같은 문제였다), `info.version` 0.7.0 → 0.8.0
+  - [X] T095 프론트 공지: 2026-10-28 Slack(사용자). 코드 수정은 공지 뒤에 했다
+  - [X] T096 `PasswordResetService.request()` — `reserveMailSend` 결과를 버리던 것을 `ensureMailSendAllowed`로 바꿔 계정 조회 **전에** 대기를 확인하고 대기 중이면 `TooManyAttemptsException`(429 + `Retry-After`). 대기가 없으면 지금처럼 가입된 활성 계정일 때만 코드 생성·발송, 아니면 202
+  - [X] T097 `PasswordResetApiTest` — `requestingAgainWithinAMinuteSendsNoSecondMailButStillLooksTheSame`(202 기대)를 `requestingAgainWithinAMinuteIsTooManyAttemptsForRegisteredAndUnregisteredAlike`로 바꿈(가입·미가입 모두 429·같은 본문·`Retry-After` 1~60, 61초 뒤 정상 발송), 재현 테스트 `resetRightAfterASignupMailSharesTheSameWait` 추가
+  - [ ] T098 `api-v0.8` 태그(머지 후)
 - **T088 전체 테스트**: `./gradlew test` — 37개 클래스, **246개 테스트 모두 통과**(실패·건너뜀 0).

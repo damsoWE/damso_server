@@ -181,16 +181,47 @@ class PasswordResetApiTest extends IntegrationTestSupport {
 		assertThat(verify(email, newCode).getStatus()).isEqualTo(204);
 	}
 
+	/**
+	 * 이슈 #22: 발송 대기 중이면 조용히 202로 끝내지 않고 429 + Retry-After로 알린다. 대기는 계정 조회 전에 이메일 기준으로
+	 * 판단하므로 가입된 이메일과 가입 안 된 이메일의 응답이 같다(가입 여부 비노출).
+	 */
 	@Test
-	void requestingAgainWithinAMinuteSendsNoSecondMailButStillLooksTheSame() throws Exception {
+	void requestingAgainWithinAMinuteIsTooManyAttemptsForRegisteredAndUnregisteredAlike() throws Exception {
 		UserAccount parent = createAccount(Role.PARENT);
-		String email = parent.getEmail();
-		MockHttpServletResponse first = request(email);
-		MockHttpServletResponse second = request(email);
+		String registered = parent.getEmail();
+		String unregistered = uniqueEmail();
+		assertThat(request(registered).getStatus()).isEqualTo(202);
+		assertThat(request(unregistered).getStatus()).isEqualTo(202);
 
-		assertThat(second.getStatus()).isEqualTo(202);
-		assertThat(second.getContentAsString()).isEqualTo(first.getContentAsString());
-		assertThat(mail.sendCount(email)).isEqualTo(1);
+		MockHttpServletResponse registeredAgain = request(registered);
+		MockHttpServletResponse unregisteredAgain = request(unregistered);
+
+		for (MockHttpServletResponse again : new MockHttpServletResponse[] { registeredAgain, unregisteredAgain }) {
+			assertThat(again.getStatus()).isEqualTo(429);
+			assertSafeErrorResponse(again.getContentAsString(), "TOO_MANY_ATTEMPTS");
+			assertThat(Long.parseLong(again.getHeader("Retry-After"))).isBetween(1L, 60L);
+		}
+		assertThat(unregisteredAgain.getContentAsString()).isEqualTo(registeredAgain.getContentAsString());
+		assertThat(mail.sendCount(registered)).isEqualTo(1);
+		assertThat(mail.sendCount(unregistered)).isZero();
+
+		clock.advance(Duration.ofSeconds(61));
+		assertThat(request(registered).getStatus()).isEqualTo(202);
+		assertThat(mail.sendCount(registered)).isEqualTo(2);
+	}
+
+	/** 이슈 #22 재현: 이미 가입된 이메일로 가입을 시도해 안내 메일이 나간 직후 재설정을 요청하면 같은 발송 대기에 걸린다. */
+	@Test
+	void resetRightAfterASignupMailSharesTheSameWait() throws Exception {
+		UserAccount parent = createAccount(Role.PARENT);
+		startSignup(issueParentCode(newStudent(newClassroom(), "김하나")), "박부모", parent.getEmail());
+
+		MockHttpServletResponse reset = request(parent.getEmail());
+
+		assertThat(reset.getStatus()).isEqualTo(429);
+		assertSafeErrorResponse(reset.getContentAsString(), "TOO_MANY_ATTEMPTS");
+		assertThat(Long.parseLong(reset.getHeader("Retry-After"))).isBetween(1L, 60L);
+		assertThat(mail.lastResetCode(parent.getEmail())).isNull();
 	}
 
 	@Test
