@@ -17,6 +17,7 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.TestPropertySource;
 
 import damso.inquiry.application.port.out.AnswerReviewPort;
 import damso.inquiry.domain.AnswerReviewResult;
@@ -27,7 +28,9 @@ import damso.support.IntegrationTestSupport;
 /**
  * F4 Polish / SC-009, 원칙 VI: 답변 전송·점검(성공·실패 둘 다)·재문의·종료·알림 발송 전체에서 답변 본문·점검
  * 하이라이트(이유·대체 표현 포함)·재문의 본문·FCM 토큰이 로그에 남지 않는다.
+ * 운영에서는 종료 경로가 꺼져 있다(FR-031). 종료 경로를 다시 열 때를 대비해 FR-021·022 서버 검증을 계속 확인한다(PR #19 리뷰 P0).
  */
+@TestPropertySource(properties = "damso.inquiry.close-enabled=true")
 @ExtendWith(OutputCaptureExtension.class)
 class AnswerSensitiveLoggingTest extends IntegrationTestSupport {
 

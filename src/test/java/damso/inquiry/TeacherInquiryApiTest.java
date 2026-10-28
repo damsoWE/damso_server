@@ -274,7 +274,9 @@ class TeacherInquiryApiTest extends IntegrationTestSupport {
 		List<Map<String, Object>> items = read(listed, "$.items");
 		for (Map<String, Object> item : items) {
 			assertThat(item.keySet()).containsExactlyInAnyOrder("inquiryId", "studentId", "studentName", "urgent", "title",
-					"stage", "refinementStatus", "threatFlagged", "threadThreatFlagged", "submittedAt");
+					"stage", "refinementStatus", "threatFlagged", "threadThreatFlagged", "submittedAt", "hasAnswer",
+					"lastAnsweredAt");
+			assertThat(item.get("hasAnswer")).isInstanceOf(Boolean.class);
 			assertThat(item.get("threatFlagged")).isInstanceOf(Boolean.class);
 			assertThat(item.get("threadThreatFlagged")).isInstanceOf(Boolean.class);
 		}

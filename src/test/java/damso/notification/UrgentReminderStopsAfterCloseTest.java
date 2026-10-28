@@ -10,6 +10,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.TestPropertySource;
 
 import damso.notification.application.service.NotificationDispatcher;
 import damso.notification.domain.NotificationKind;
@@ -19,7 +20,9 @@ import damso.support.IntegrationTestSupport;
  * F4 PR #10 리뷰: 종료(CloseInquiryService)는 스레드 루트만 ANSWERED로 바꾸고, 아직 교사가 원문을 열람하지
  * 않은 긴급 재문의는 자기 자신의 단계가 DELIVERED에 머문다. UrgentReminderPolicy(F2)가 스레드가 닫힌 것도
  * 함께 보지 않으면, 종료 뒤에도 그 재문의의 재알림이 계속 나간다.
+ * 운영에서는 종료 경로가 꺼져 있다(FR-031). 종료 경로를 다시 열 때를 대비해 FR-021·022 서버 검증을 계속 확인한다(PR #19 리뷰 P0).
  */
+@TestPropertySource(properties = "damso.inquiry.close-enabled=true")
 class UrgentReminderStopsAfterCloseTest extends IntegrationTestSupport {
 
 	private static final String TOKEN = "teacher-device-token-reminder";
