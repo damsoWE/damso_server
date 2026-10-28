@@ -1,5 +1,6 @@
 package damso.inquiry.application.service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -70,9 +71,12 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 		}
 		List<Inquiry> found = inquiries.findByClassroom(classroomId.get(), page, size);
 		Map<UUID, String> names = targets.studentNames(found.stream().map(Inquiry::getStudentId).distinct().toList());
-		Set<UUID> flaggedThreads = inquiries
-				.findThreadsWithThreatFlaggedFollowUp(found.stream().map(Inquiry::getId).toList());
-		List<InquirySummary> items = found.stream().map(inquiry -> summaryOf(inquiry, names, flaggedThreads)).toList();
+		List<UUID> rootIds = found.stream().map(Inquiry::getId).toList();
+		Set<UUID> flaggedThreads = inquiries.findThreadsWithThreatFlaggedFollowUp(rootIds);
+		Map<UUID, Instant> lastAnswered = answers.findLastAnsweredAt(rootIds);
+		List<InquirySummary> items = found.stream()
+				.map(inquiry -> summaryOf(inquiry, names, flaggedThreads, lastAnswered))
+				.toList();
 		return new InquiryPage(items, page, size, inquiries.countByClassroom(classroomId.get()));
 	}
 
@@ -113,12 +117,16 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 				.toList();
 	}
 
-	/** flaggedThreads: 위협·폭언 표시가 붙은 재문의가 있는 스레드 루트. 루트 자신의 표시와 OR해 스레드 단위 표시를 만든다. */
-	private static InquirySummary summaryOf(Inquiry inquiry, Map<UUID, String> names, Set<UUID> flaggedThreads) {
+	/**
+	 * flaggedThreads: 위협·폭언 표시가 붙은 재문의가 있는 스레드 루트. 루트 자신의 표시와 OR해 스레드 단위 표시를 만든다.
+	 * lastAnswered: 스레드 루트별 마지막 답변 전송 시각, 답변이 없는 루트는 없다(F4 US6).
+	 */
+	private static InquirySummary summaryOf(Inquiry inquiry, Map<UUID, String> names, Set<UUID> flaggedThreads,
+			Map<UUID, Instant> lastAnswered) {
 		return new InquirySummary(inquiry.getId(), inquiry.getStudentId(), names.getOrDefault(inquiry.getStudentId(), ""),
 				inquiry.isUrgent(), displayTitle(inquiry), inquiry.getStage(), inquiry.getRefinementStatus(),
 				inquiry.isThreatFlagged(), inquiry.isThreatFlagged() || flaggedThreads.contains(inquiry.getId()),
-				inquiry.getSubmittedAt());
+				inquiry.getSubmittedAt(), lastAnswered.get(inquiry.getId()));
 	}
 
 	/**

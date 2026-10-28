@@ -11,8 +11,16 @@ import damso.inquiry.domain.NoticeCode;
 /** 학부모가 본인이 쓴 문의를 보는 조회. 남의 문의는 존재 여부를 드러내지 않고 NOT_FOUND다. */
 public interface ParentInquiryQuery {
 
+	/**
+	 * {@code lastAnsweredAt}은 스레드 전체(최초 문의 + 재문의)의 마지막 답변 전송 시각, 답변이 없으면 null이다
+	 * (F4 US6, FR-026~029). 답변 여부는 따로 담지 않고 {@link #hasAnswer()}로 이 값에서 얻는다.
+	 */
 	record InquirySummary(UUID inquiryId, UUID studentId, String studentName, boolean urgent, InquiryStage stage,
-			Instant submittedAt) {
+			Instant submittedAt, Instant lastAnsweredAt) {
+
+		public boolean hasAnswer() {
+			return lastAnsweredAt != null;
+		}
 
 		/** 학생 이름이 로그·예외에 섞이지 않도록 가린다. */
 		@Override

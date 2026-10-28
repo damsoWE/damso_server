@@ -53,7 +53,7 @@ F2가 만든 뼈대(`audit_log` 원문 열람 기록, `inquiry_stage_history` �
 | 백엔드: SQL | 앱 쿼리는 파생 쿼리·JPQL 바인딩. 운영자 조회문은 `psql` 변수(`:'var'`)로만 값 전달 | ✅ |
 | 백엔드: 동시성 | 새 상태 전이 없음. 기존 확인 전이의 낙관적 락 처리 그대로 | ✅ |
 | 아키텍처 | 관리자 현황은 `inquiry` 도메인 `port.in`에 두고, 학급 목록은 school의 `ClassroomAdminUseCase`(port.in)로 받는다. 감사는 `AuditLogUseCase`(port.in)로만 | ✅ |
-| contracts 사람 리뷰 | `contracts/audit.openapi.yaml`·`operator-queries.md` 리뷰 후 `docs/api/openapi.yaml` 통합(0.7.0) | ⏳ 이 plan 리뷰에서 진행 |
+| contracts 사람 리뷰 | `contracts/audit.openapi.yaml`·`operator-queries.md` 리뷰 후 `docs/api/openapi.yaml` 통합(0.9.0) | ⏳ 이 plan 리뷰에서 진행 |
 | 큰 영향 결정 확인(CLAUDE.md) | 새 테이블·컬럼 없음. **enum CHECK 제약 배포 조치 가능성**은 R8에서 확인 후 사용자 확인 | ⏳ 확인 대상 |
 
 **설계 후 재점검(Phase 1 이후)**: 위반 없음. Complexity Tracking 해당 없음.
@@ -72,7 +72,7 @@ F2가 만든 뼈대(`audit_log` 원문 열람 기록, `inquiry_stage_history` �
 | `inquiry/adapter/in/controller/dto/response/InquiryStatusSummaryResponseDTO.java`, `ClassroomInquiryStatusResponseDTO.java` | 신규 DTO (별도 파일, 헌법 DTO 규칙) |
 | `specs/006-audit-log-history/contracts/operator-queries.md` | 운영자 조회문 (문서) |
 | 테스트 | `OperatorQueriesTest`(조회문 실행·본문 컬럼 부재), `UrgentRecordUnderOutageTest`(FR-006·SC-006, 외부 장애 중 긴급 기록·단계 이력 실패 시 롤백), `ActionAuditFailureTest`(재시도·종료의 감사 실패 시 정상 완료·로그), `AdminInquiryStatusApiTest`(묶음·0건 학급·긴급 은닉·403), `AuditEnumConstraintTest`(R8) |
-| `docs/api/openapi.yaml` | 0.7.0: 관리자 현황 경로·스키마 추가, 아래 B·C 경로 설명 갱신 |
+| `docs/api/openapi.yaml` | 0.9.0: 관리자 현황 경로·스키마 추가, 아래 B·C 경로 설명 갱신 |
 
 ### B. F3 코드 변경 (가명화·정제 파이프라인 담당 공유)
 
@@ -82,7 +82,7 @@ F2가 만든 뼈대(`audit_log` 원문 열람 기록, `inquiry_stage_history` �
 | `inquiry/application/service/RetryRefinementService.java` | 작업 재개·`teacher_retry_used` 설정. 누가 요청했는지 기록 없음 | 재시도가 커밋된 뒤 `REFINEMENT_RETRY_REQUESTED`(교사, 대상 문의, 시각=요청 시각). 409로 거부된 요청은 기록하지 않음. 기록이 실패해도 재시도는 202이고 로그만 남김(R9, 팀 결정 2026-10-28) |
 | 바뀌지 않는 F3 코드 | `RefinementRunner`·`RefinementAttempt`·`InquiryRefinement`·가명화 게이트웨이 | 그대로. 정리 시도 기록은 운영자 조회문이 읽기만 한다 |
 | 영향받는 F3 테스트 | `TeacherRefinementApiTest.firstTranslationViewConfirmsOnceAndIsNotAudited` — 지금 `audit_log` 0건을 단언(120행) | **이 단언이 F5와 정면으로 충돌한다.** 이름·단언을 "첫 열람에 ATTEMPTED·VIEWED 2건"으로 바꾼다. 재시도 테스트에 `REFINEMENT_RETRY_REQUESTED` 단언 추가(`TransactionTemplate` 안에서 기록하므로 동시 요청 409 쪽은 롤백되어 기록 없음) |
-| 문서 | `specs/003-…`·openapi `/refinement` 설명의 "번역본 열람은 감사 기록 대상이 아니다" | openapi는 0.7.0에서 갱신. `specs/003`은 고치지 않고 F5 spec이 대체한다고 이 plan에 남긴다 |
+| 문서 | `specs/003-…`·openapi `/refinement` 설명의 "번역본 열람은 감사 기록 대상이 아니다" | openapi는 0.9.0에서 갱신. `specs/003`은 고치지 않고 F5 spec이 대체한다고 이 plan에 남긴다 |
 
 ### C. F4 코드 변경 (답변 작성·점검·전송 담당 공유)
 

@@ -11,6 +11,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.TestPropertySource;
 
 import damso.school.domain.Classroom;
 import damso.school.domain.Student;
@@ -23,6 +24,7 @@ import damso.support.OperatorQueries;
  * 시각은 MutableClock으로 고정한다. 한 요청 안의 기록은 같은 시각이 되고(research R5의 seq가 순서를 정한다),
  * 서로 다른 요청 사이에는 1초씩 진행한다.
  */
+@TestPropertySource(properties = "damso.inquiry.close-enabled=true")
 class OperatorQueriesTest extends IntegrationTestSupport {
 
 	private static final String ANSWER_BODY = "조회문검사답변본문ZXQ" + "9101";

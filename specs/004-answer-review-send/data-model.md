@@ -92,3 +92,30 @@ F2가 만든 테이블에 컬럼 1개만 추가한다. 기존 컬럼·제약·�
 |---|---|---|
 | `THREAD_CLOSED` | 409 | 이미 "답변 완료"로 종료된 스레드에 재문의·답변을 추가하려는 시도(FR-021) |
 | `INQUIRY_NOT_READY_TO_CLOSE` | 409 | 아직 `TEACHER_CONFIRMED`에 닿지 않은 문의를 "답변 완료"로 종료하려는 시도(FR-020, 일반 문의는 F3 전까지 해당) |
+
+---
+
+## 2026-10-28 추가 — 목록의 답변 여부(US6)·종료 경로 차단(US7)
+
+**스키마 변경 없음.** 새 테이블·컬럼·인덱스가 없다(research R10).
+
+### 목록 항목의 답변 여부 (파생 값, 저장하지 않음)
+
+| 필드 | 타입 | 출처 | 규칙 |
+|---|---|---|---|
+| `hasAnswer` | boolean | `lastAnsweredAt != null` | 스레드(루트 + 모든 재문의)에 답변이 1건 이상이면 true (FR-026~028) |
+| `lastAnsweredAt` | timestamptz, nullable | `max(answer.sent_at) where answer.thread_root_id = 루트 id` | 답변이 없으면 null. 추가 답변이 오면 새 전송 시각으로 바뀜 (FR-029, US6 시나리오 6) |
+
+- 집계 대상은 목록에 이미 나온 루트 id뿐이다. 목록 노출 범위(학부모 본인 문의, 교사 현재 담임 학급)는 그대로이고(FR-030), 답변 본문은 읽지 않는다(FR-029, SC-013).
+- 쿼리: `answer`에서 `thread_root_id in (:rootIds)` → `group by thread_root_id` → `max(sent_at)`. 기존 인덱스 `idx_answer_thread(thread_root_id, sent_at)`를 쓴다.
+- `SpringDataAnswerRepository`에 읽기 메서드 하나만 더한다. 이름은 `find…`로 시작하고 `@Modifying`이 없어야 `AnswerAppendOnlyTest`를 통과한다.
+- 담임이 바뀌거나 답변한 교사가 탈퇴해도 `answer` row는 남으므로 `hasAnswer`는 true로 유지된다(Edge Cases).
+
+### 종료 경로 차단 설정
+
+| 키 | 기본값 | 의미 |
+|---|---|---|
+| `damso.inquiry.close-enabled` | `false` (코드 기본값과 `application.yml` 모두) | false면 `POST .../close`가 교사에게 404 `NOT_FOUND`. stage·`inquiry_stage_history` 변경 없음 (FR-031) |
+
+- 상태 전이표(`InquiryStage.canMoveTo`)는 바꾸지 않는다. `TEACHER_CONFIRMED → ANSWERED` 전이는 남아 있고, 설정이 꺼져 있으면 이 전이를 일으키는 경로가 없을 뿐이다.
+- 닫힌 스레드 거부(`SendAnswerService`·`SubmitFollowUpService`의 `THREAD_CLOSED`)와 담당 교사 검증은 그대로 둔다(FR-032).

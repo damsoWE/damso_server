@@ -14,6 +14,7 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.TestPropertySource;
 
 import damso.audit.adapter.out.persistence.AuditLogRepository;
 import damso.audit.application.port.out.AuditLogPort;
@@ -26,6 +27,7 @@ import damso.support.IntegrationTestSupport;
  * 재시도는 202, 종료는 200이고 상태는 정상으로 바뀌며, 실패는 문의 식별자·행위 종류·오류 종류만 로그에 남는다.
  */
 @ExtendWith(OutputCaptureExtension.class)
+@TestPropertySource(properties = "damso.inquiry.close-enabled=true")
 class ActionAuditFailureTest extends IntegrationTestSupport {
 
 	private static final String BODY = "처리감사검사본문ZXQ" + "9401";

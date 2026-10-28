@@ -19,6 +19,7 @@ import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.TestPropertySource;
 
 import damso.audit.adapter.out.persistence.AuditLogRepository;
 import damso.audit.application.port.out.AuditLogPort;
@@ -35,6 +36,7 @@ import damso.support.IntegrationTestSupport;
  * 감사 실패) 전체에서 문의 본문·제목, FCM 토큰, 학생 이름이 로그에 남지 않는다.
  */
 @ExtendWith(OutputCaptureExtension.class)
+@TestPropertySource(properties = "damso.inquiry.close-enabled=true")
 class InquirySensitiveLoggingTest extends IntegrationTestSupport {
 
 	private static final String GENERAL_BODY = "로그검사일반본문ZXQ" + "7391";

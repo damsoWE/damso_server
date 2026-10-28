@@ -24,6 +24,13 @@ public interface AttemptLimitUseCase {
 	void ensureMailSendAllowed(String subject);
 
 	/**
+	 * 비밀번호 재설정 메일 한 건을 예약한다. 요청 위치 → 이메일+요청 위치 → 이메일 순으로 확인해, 하나라도 거부되면
+	 * TooManyAttemptsException(가장 먼저 거부된 제한의 대기 시간). 앞 순서의 칸은 요청자 자신의 것이라, 거부된 요청이
+	 * 피해자의 이메일 칸을 소모하지 않는다. clientIp도 해시만 저장소에 넘어간다.
+	 */
+	void ensureResetMailAllowed(String email, String clientIp);
+
+	/**
 	 * 일반 문의 제출 한 건을 예약한다(학부모 UUID 기준 60초 1건). 허용되면 0, 거부되면 기다려야 하는 초(올림).
 	 * 거부는 예외가 아니라 반환값이다. 저장소 장애는 BusinessException(INTERNAL_ERROR)로 전파되며 호출자가 정책을 정한다.
 	 */

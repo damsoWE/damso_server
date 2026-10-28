@@ -10,14 +10,17 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.TestPropertySource;
 
 import damso.account.domain.Role;
 import damso.support.IntegrationTestSupport;
 
 /**
  * F4 US5 시나리오 1~4 / FR-020·022: 교사가 "답변 완료"로 문의를 종료한다 — 명시적 동작만, 자동 전이 없음.
- * 앱은 이 경로를 쓰지 않는다(docs/decisions.md 2026-10-27). 호출되면 누가 닫았는지 감사 기록을 남긴다(F5 T011).
+ * 운영에서는 종료 경로가 꺼져 있다(FR-031). 종료 경로를 다시 열 때를 대비해 FR-021·022 서버 검증을 계속 확인한다(PR #19 리뷰 P0).
+ * 설정을 켜고 호출하면 누가 닫았는지 감사 기록을 남긴다(F5 T011).
  */
+@TestPropertySource(properties = "damso.inquiry.close-enabled=true")
 class CloseInquiryApiTest extends IntegrationTestSupport {
 
 	private MockHttpServletResponse close(String token, UUID inquiryId) throws Exception {

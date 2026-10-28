@@ -13,6 +13,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.TestPropertySource;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -25,6 +26,7 @@ import damso.support.IntegrationTestSupport;
  * F5 T019 / US3, FR-014~016, SC-003·007, research R6: 슈퍼 관리자는 학급 × 처리 상태(waiting·confirmed·answered)
  * 건수만 본다. 긴급 여부·학생 단위 정보·본문·제목·연락처는 없고, 슈퍼 관리자가 아닌 계정은 403이다.
  */
+@TestPropertySource(properties = "damso.inquiry.close-enabled=true")
 class AdminInquiryStatusApiTest extends IntegrationTestSupport {
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();

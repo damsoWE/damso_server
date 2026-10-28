@@ -6,8 +6,12 @@ package damso.account.application.port.in;
  */
 public interface PasswordResetUseCase {
 
-	/** 가입된 활성 계정일 때만 코드를 보낸다. 발송 제한에 걸려도, 미가입이어도 예외 없이 끝난다. */
-	void request(String email);
+	/**
+	 * 가입된 활성 계정일 때만 코드를 보내고, 미가입이면 예외 없이 끝난다. 발송 제한(요청 위치 → 이메일+요청 위치 → 이메일)에
+	 * 걸리면 가입 여부와 관계없이 TooManyAttemptsException(429 + Retry-After) — 제한은 계정 조회 전에 판단하고, 계정 조회·코드
+	 * 발급은 응답 뒤에 해 가입 여부가 응답 내용·시간에 드러나지 않는다(이슈 #22). clientIp는 제한을 세는 데만 쓴다.
+	 */
+	void request(String email, String clientIp);
 
 	/**
 	 * 코드가 맞는지만 확인한다(코드를 소모하지 않는다). 없음·만료·사용됨·미가입은 모두

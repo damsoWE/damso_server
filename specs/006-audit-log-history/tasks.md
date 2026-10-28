@@ -36,7 +36,7 @@ description: "Task list for 006-audit-log-history"
 **Purpose**: 브랜치 확인과 API 명세 선반영(Contract-first). 새 외부 의존성·시크릿 없음
 
 - [X] T001 작업 브랜치 확인: `git branch --show-current`가 `features/f5-audit-log`(이슈 #20 연결)인지 확인한다. 아니면 `git switch features/f5-audit-log`
-- [X] T002 **Contract-first — 구현 전에** `docs/api/openapi.yaml`에 `specs/006-audit-log-history/contracts/audit.openapi.yaml`을 통합한다: ① 경로 `GET /api/v1/admin/inquiry-status`(tag `admin-inquiry`) + 스키마 `InquiryStatusSummary`·`ClassroomInquiryStatus`(`classroomId` UUID, `waiting`·`confirmed`·`answered` `integer, minimum: 0`, `additionalProperties: false`) 추가 ② `/api/v1/teacher/inquiries/{inquiryId}/refinement` 설명의 "번역본 열람은 감사 기록 대상이 아니다(원문 열람만 기록)"를 contract의 새 설명으로 교체하고 `'500'` 응답 추가 ③ `POST …/refinement/retry`·`POST …/answer-reviews`·`POST …/close`에 contract의 같은 경로 정의대로 감사 기록 설명(기록 실패 시 500 INTERNAL_ERROR이고 처리도 일어나지 않음, 거부된 요청은 기록 없음)을 더하고 `'500': { $ref: '#/components/responses/InternalError' }` 응답 추가(close에는 "앱은 이 경로를 쓰지 않는다 — docs/decisions.md 2026-10-27"도 적는다) ④ 공통 `responses`에 `InternalError`가 없으면 추가 ⑤ `info.description` 출처에 `specs/006-audit-log-history` 추가 ⑥ `info.version` `0.6.0` → `0.7.0`. 새 ErrorCode는 없다. `npx -y @redocly/cli@1.34.5 lint docs/api/openapi.yaml`이 valid여야 한다. 태그 `api-v0.7`은 PR merge 후 main에서 `/api-release api-v0.7`로 찍는다
+- [X] T002 **Contract-first — 구현 전에** `docs/api/openapi.yaml`에 `specs/006-audit-log-history/contracts/audit.openapi.yaml`을 통합한다: ① 경로 `GET /api/v1/admin/inquiry-status`(tag `admin-inquiry`) + 스키마 `InquiryStatusSummary`·`ClassroomInquiryStatus`(`classroomId` UUID, `waiting`·`confirmed`·`answered` `integer, minimum: 0`, `additionalProperties: false`) 추가 ② `/api/v1/teacher/inquiries/{inquiryId}/refinement` 설명의 "번역본 열람은 감사 기록 대상이 아니다(원문 열람만 기록)"를 contract의 새 설명으로 교체하고 `'500'` 응답 추가 ③ `POST …/refinement/retry`·`POST …/answer-reviews`·`POST …/close`에 contract의 같은 경로 정의대로 감사 기록 설명(기록 실패 시 500 INTERNAL_ERROR이고 처리도 일어나지 않음, 거부된 요청은 기록 없음)을 더하고 `'500': { $ref: '#/components/responses/InternalError' }` 응답 추가(close에는 "앱은 이 경로를 쓰지 않는다 — docs/decisions.md 2026-10-27"도 적는다) ④ 공통 `responses`에 `InternalError`가 없으면 추가 ⑤ `info.description` 출처에 `specs/006-audit-log-history` 추가 ⑥ `info.version` `0.8.0` → `0.9.0`(main이 0.7·0.8을 먼저 써서 main 병합 때 0.9.0으로 올림). 새 ErrorCode는 없다. `npx -y @redocly/cli@1.34.5 lint docs/api/openapi.yaml`이 valid여야 한다. 태그 `api-v0.9`는 PR merge 후 main에서 `/api-release api-v0.9`로 찍는다
 
 ---
 
@@ -214,7 +214,7 @@ Task: "T020 InquiryStatusQuery (port.in)"
 
 ### T002 openapi 통합 (2026-10-27)
 
-- `docs/api/openapi.yaml` 0.6.0 → 0.7.0. 관리자 현황 경로·스키마, `/refinement` 설명 교체, retry·answer-reviews·close 설명과 `'500'` 응답, 태그 `admin-inquiry`를 더했다. `InternalError`는 이미 있었다.
+- `docs/api/openapi.yaml` 0.8.0 → 0.9.0(main이 0.7·0.8을 먼저 써서 main 병합 때 0.9.0으로 올림). 관리자 현황 경로·스키마, `/refinement` 설명 교체, retry·answer-reviews·close 설명과 `'500'` 응답, 태그 `admin-inquiry`를 더했다. `InternalError`는 이미 있었다.
 - `npx -y @redocly/cli@1.34.5 lint docs/api/openapi.yaml` valid. 경고는 통합 전 4건에서 3건으로 줄었다(새 경고 없음).
 
 ### T004 enum CHECK 제약 확인 결과 (2026-10-27) — **재현됨, 배포 조치 필요**
@@ -268,7 +268,7 @@ Task: "T020 InquiryStatusQuery (port.in)"
 
   "운영자 조회 실습"(psql로 운영·스테이징 DB에 직접 실행)은 이 환경에 운영 DB 접근이 없어 하지 않았다. 같은 SQL을 `OperatorQueriesTest`가 실행한다.
 - **T031** `./gradlew test` 전체 662개 통과(실패 0, 건너뜀 0).
-- **남은 배포 작업**: PR #19 merge → main 반영 → F5 PR. PR 설명에 "배포 전 실행: docs/db/2026-10-27-f5-audit-action-check.sql". merge 뒤 main에서 `/api-release api-v0.7`.
+- **남은 배포 작업**: PR #19 merge → main 반영 → F5 PR. PR 설명에 "배포 전 실행: docs/db/2026-10-27-f5-audit-action-check.sql". merge 뒤 main에서 `/api-release api-v0.9`.
 
 ## Phase 8: Convergence
 
