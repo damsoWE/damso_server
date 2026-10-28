@@ -1,10 +1,10 @@
 openapi: 3.0.3
 info:
   title: DAMSO F5 Contract — 감사 로그·이력 보존
-  version: 0.7.0
+  version: 0.9.0
   description: |
     F5가 추가·변경하는 API. 공통 규칙(Bearer 헤더 인증, ErrorResponse, UUID만 노출)은 docs/api/openapi.yaml을 따른다.
-    - 이 파일의 추가·변경분은 사람 리뷰(소유권 검증·에러 형식·UUID 노출) 뒤 docs/api/openapi.yaml에 통합하고 api-v0.7 태그를 찍는다.
+    - 이 파일의 추가·변경분은 사람 리뷰(소유권 검증·에러 형식·UUID 노출) 뒤 docs/api/openapi.yaml에 통합하고 api-v0.9 태그를 찍는다.
     - **감사 기록 조회 API는 없다.** 운영자는 contracts/operator-queries.md의 조회문으로 저장소를 직접 조회한다(spec FR-010).
     - 신규: `GET /api/v1/admin/inquiry-status` (슈퍼 관리자 현황).
     - 변경(설명만, 스키마 동일): `GET /api/v1/teacher/inquiries/{inquiryId}/refinement` — 번역본 열람이 감사 기록 대상이 된다(F3 → F5). 감사 기록이 실패해도 번역본은 정상 반환한다[팀 결정 2026-10-27].
