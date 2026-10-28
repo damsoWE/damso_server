@@ -9,6 +9,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 
+import damso.common.crypto.Digests;
 import damso.common.entity.BaseEntity;
 
 /**
@@ -45,7 +46,7 @@ public class PasswordReset extends BaseEntity {
 	}
 
 	public boolean matches(String candidateCodeHash, Instant now) {
-		return usedAt == null && expiresAt.isAfter(now) && codeHash.equals(candidateCodeHash);
+		return usedAt == null && expiresAt.isAfter(now) && Digests.constantTimeEquals(codeHash, candidateCodeHash);
 	}
 
 	public void markUsed(Instant now) {
