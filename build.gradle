@@ -17,6 +17,13 @@ repositories {
 	mavenCentral()
 }
 
+configurations.configureEach {
+	// firebase-admin(google-cloud-storage)이 끌고 오는 XML 데이터 포맷. 있으면 Spring MVC가 XML 변환기를 켜서 XML 본문을 받고
+	// XML로 응답한다. API는 JSON만 주고받으므로 뺀다(보안약점 체크리스트 입력데이터 4·8·9, JsonOnlyApiTest)
+	exclude group: 'com.fasterxml.jackson.dataformat', module: 'jackson-dataformat-xml'
+	exclude group: 'tools.jackson.dataformat', module: 'jackson-dataformat-xml'
+}
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
