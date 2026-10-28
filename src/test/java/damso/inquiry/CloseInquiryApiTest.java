@@ -18,6 +18,7 @@ import damso.support.IntegrationTestSupport;
 /**
  * F4 US5 시나리오 1~4 / FR-020·022: 교사가 "답변 완료"로 문의를 종료한다 — 명시적 동작만, 자동 전이 없음.
  * 운영에서는 종료 경로가 꺼져 있다(FR-031). 종료 경로를 다시 열 때를 대비해 FR-021·022 서버 검증을 계속 확인한다(PR #19 리뷰 P0).
+ * 설정을 켜고 호출하면 누가 닫았는지 감사 기록을 남긴다(F5 T011).
  */
 @TestPropertySource(properties = "damso.inquiry.close-enabled=true")
 class CloseInquiryApiTest extends IntegrationTestSupport {
@@ -29,6 +30,11 @@ class CloseInquiryApiTest extends IntegrationTestSupport {
 	private MockHttpServletResponse sendAnswer(String token, UUID inquiryId, String content) throws Exception {
 		String body = "{\"content\":\"" + content + "\",\"reviewed\":false}";
 		return send(json(post("/api/v1/teacher/inquiries/" + inquiryId + "/answers"), body), token);
+	}
+
+	private List<String> closeRecords() {
+		return jdbc.queryForList("select actor_id || ':' || target_id from audit_log where action = 'INQUIRY_CLOSED'",
+				String.class);
 	}
 
 	private String stageOf(UUID inquiryId) {
@@ -49,6 +55,8 @@ class CloseInquiryApiTest extends IntegrationTestSupport {
 				"select stage from inquiry_stage_history where inquiry_id = ? and stage = 'ANSWERED'",
 				confirmed.inquiryId());
 		assertThat(history).hasSize(1);
+		assertThat(closeRecords())
+				.containsExactly(confirmed.scenario().teacher().userId() + ":" + confirmed.inquiryId());
 	}
 
 	@Test
@@ -77,6 +85,7 @@ class CloseInquiryApiTest extends IntegrationTestSupport {
 		assertThat(response.getStatus()).isEqualTo(409);
 		assertSafeErrorResponse(response.getContentAsString(), "INQUIRY_NOT_READY_TO_CLOSE");
 		assertThat(stageOf(inquiryId)).isEqualTo(stageBeforeClose);
+		assertThat(closeRecords()).isEmpty();
 	}
 
 	@Test
@@ -92,6 +101,7 @@ class CloseInquiryApiTest extends IntegrationTestSupport {
 		assertThat(byParent.getStatus()).isEqualTo(403);
 		assertThat(byAdmin.getStatus()).isEqualTo(403);
 		assertThat(stageOf(confirmed.inquiryId())).isEqualTo("TEACHER_CONFIRMED");
+		assertThat(closeRecords()).isEmpty();
 	}
 
 	@Test
@@ -108,6 +118,7 @@ class CloseInquiryApiTest extends IntegrationTestSupport {
 				"select stage from inquiry_stage_history where inquiry_id = ? and stage = 'ANSWERED'",
 				confirmed.inquiryId());
 		assertThat(history).hasSize(1);
+		assertThat(closeRecords()).hasSize(1);
 	}
 
 }

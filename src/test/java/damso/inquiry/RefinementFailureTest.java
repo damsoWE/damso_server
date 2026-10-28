@@ -51,6 +51,12 @@ class RefinementFailureTest extends IntegrationTestSupport {
 		return send(post("/api/v1/teacher/inquiries/" + id + "/refinement/retry"), token);
 	}
 
+	/** F5 T009: 받아들여진 재시도만 누가 요청했는지 감사 기록에 남는다. (actor_id, target_id) 목록. */
+	private List<String> retryRecords() {
+		return jdbc.queryForList("select actor_id || ':' || target_id from audit_log "
+				+ "where action = 'REFINEMENT_RETRY_REQUESTED'", String.class);
+	}
+
 	private MockHttpServletResponse detail(String token, UUID id) throws Exception {
 		return send(get("/api/v1/teacher/inquiries/" + id), token);
 	}
@@ -151,6 +157,7 @@ class RefinementFailureTest extends IntegrationTestSupport {
 		assertThat((String) read(accepted, "$.refinementStatus")).isEqualTo("PENDING");
 		assertThat(status(id)).isEqualTo("REFINED");
 		assertThat(attempts(id)).containsExactly("AUTO:NO_RESPONSE", "AUTO_RETRY:NO_RESPONSE", "TEACHER:SUCCESS");
+		assertThat(retryRecords()).containsExactly(s.teacher().userId() + ":" + id);
 		assertThat((Boolean) read(detail(s.teacher().accessToken(), id), "$.retryAvailable")).isFalse();
 		assertThat(send(get("/api/v1/teacher/inquiries/" + id + "/refinement"), s.teacher().accessToken())
 				.getStatus()).isEqualTo(200);
@@ -175,6 +182,8 @@ class RefinementFailureTest extends IntegrationTestSupport {
 		MockHttpServletResponse again = retry(s.teacher().accessToken(), id);
 		assertThat(again.getStatus()).isEqualTo(409);
 		assertSafeErrorResponse(again.getContentAsString(), "REFINEMENT_RETRY_UNAVAILABLE");
+		// 거부된 두 번째 요청은 기록하지 않는다
+		assertThat(retryRecords()).hasSize(1);
 	}
 
 	@Test
@@ -209,6 +218,8 @@ class RefinementFailureTest extends IntegrationTestSupport {
 		runRefinement();
 		assertThat(attempts(id)).filteredOn(attempt -> attempt.startsWith("TEACHER:")).hasSize(1);
 		assertThat(attempts(id)).hasSizeLessThanOrEqualTo(3);
+		// 진 요청은 같은 트랜잭션이 롤백되므로 기록도 남지 않는다
+		assertThat(retryRecords()).hasSize(1);
 	}
 
 	@Test
@@ -223,6 +234,7 @@ class RefinementFailureTest extends IntegrationTestSupport {
 			assertThat(response.getStatus()).isEqualTo(409);
 			assertSafeErrorResponse(response.getContentAsString(), "REFINEMENT_RETRY_UNAVAILABLE");
 		}
+		assertThat(retryRecords()).isEmpty();
 	}
 
 	@Test
@@ -237,6 +249,7 @@ class RefinementFailureTest extends IntegrationTestSupport {
 		assertThat(retry(otherTeacher.accessToken(), id).getStatus()).isEqualTo(404);
 		assertThat(retry(s.parent().accessToken(), id).getStatus()).isEqualTo(403);
 		assertThat(status(id)).isEqualTo("NEEDS_ORIGINAL");
+		assertThat(retryRecords()).isEmpty();
 	}
 
 }

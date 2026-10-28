@@ -83,4 +83,16 @@ class CloseDisabledApiTest extends IntegrationTestSupport {
 		assertThat(disabled.getContentAsString()).isEqualTo(missing.getContentAsString());
 	}
 
+	/** F5: 꺼진 경로의 404는 거부된 요청이므로 종료 감사 기록을 남기지 않는다. */
+	@Test
+	void disabledCloseLeavesNoAuditRecord() throws Exception {
+		ConfirmedInquiry confirmed = urgentInquiryConfirmedByTeacher();
+
+		MockHttpServletResponse response = close(confirmed.scenario().teacher().accessToken(), confirmed.inquiryId());
+
+		assertThat(response.getStatus()).isEqualTo(404);
+		assertThat(jdbc.queryForObject("select count(*) from audit_log where action = 'INQUIRY_CLOSED'", Integer.class))
+			.isZero();
+	}
+
 }

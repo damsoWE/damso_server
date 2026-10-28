@@ -21,7 +21,8 @@ import damso.support.IntegrationTestSupport;
 
 /**
  * F3 T029 / US2 시나리오 1~9, FR-011·012·021·025~027, SC-008·012: 정리에 성공한 일반 문의를 교사가 번역본으로 본다.
- * 원래 이름으로 보이고 토큰은 없다. 첫 열람이 "교사 확인"이고, 번역본 열람은 감사 기록 대상이 아니다.
+ * 원래 이름으로 보이고 토큰은 없다. 첫 열람이 "교사 확인"이다.
+ * F5(specs/006 research R3)부터 번역본 열람도 시도·완료를 감사 기록에 남긴다. 번역본이 없거나(409) 거부된(404) 요청은 기록하지 않는다.
  */
 class TeacherRefinementApiTest extends IntegrationTestSupport {
 
@@ -104,8 +105,12 @@ class TeacherRefinementApiTest extends IntegrationTestSupport {
 		assertThat(detail.getContentAsString()).doesNotContain("준비물을 묻는다");
 	}
 
+	private List<String> auditActions() {
+		return jdbc.queryForList("select action from audit_log", String.class);
+	}
+
 	@Test
-	void firstTranslationViewConfirmsOnceAndIsNotAudited() throws Exception {
+	void firstTranslationViewConfirmsOnceAndIsAudited() throws Exception {
 		Scenario s = teacherWithClassroom();
 		UUID id = submitGeneral(s);
 		assertThat(jdbc.queryForObject("select stage from inquiry where id = ?", String.class, id)).isEqualTo("REFINING");
@@ -117,7 +122,11 @@ class TeacherRefinementApiTest extends IntegrationTestSupport {
 				.isEqualTo("TEACHER_CONFIRMED");
 		assertThat(historyCount(id, "REFINING")).isEqualTo(1);
 		assertThat(historyCount(id, "TEACHER_CONFIRMED")).isEqualTo(1);
-		assertThat(jdbc.queryForObject("select count(*) from audit_log", Integer.class)).isZero();
+		assertThat(auditActions()).containsExactlyInAnyOrder("INQUIRY_REFINEMENT_VIEW_ATTEMPTED",
+				"INQUIRY_REFINEMENT_VIEW_ATTEMPTED", "INQUIRY_REFINEMENT_VIEWED", "INQUIRY_REFINEMENT_VIEWED");
+		assertThat(jdbc.queryForList("select distinct actor_id from audit_log", UUID.class))
+				.containsExactly(s.teacher().userId());
+		assertThat(jdbc.queryForList("select distinct target_id from audit_log", UUID.class)).containsExactly(id);
 	}
 
 	@Test
@@ -160,6 +169,8 @@ class TeacherRefinementApiTest extends IntegrationTestSupport {
 			assertThat(response.getStatus()).isEqualTo(409);
 			assertSafeErrorResponse(response.getContentAsString(), "REFINEMENT_NOT_READY");
 		}
+		// 내보낸 번역본이 없으므로 열람 기록도 없다(F5 spec US2-7)
+		assertThat(auditActions()).isEmpty();
 	}
 
 	@Test
@@ -179,6 +190,31 @@ class TeacherRefinementApiTest extends IntegrationTestSupport {
 		assertThat(admin.getStatus()).isEqualTo(403);
 		assertThat(foreign.getContentAsString() + parent.getContentAsString() + admin.getContentAsString())
 				.doesNotContain(STUDENT_NAME);
+		assertThat(auditActions()).isEmpty();
+	}
+
+	@Test
+	void refusedRequestsLookTheSameAndLeaveNoAuditRecord() throws Exception {
+		// F5 spec FR-002, research R3: 다른 학급·없는 문의·담임 해제 뒤 요청은 같은 404이고 기록하지 않는다
+		Scenario s = teacherWithClassroom(1, 1);
+		UUID id = submitGeneral(s);
+		Classroom other = newClassroom(2, 1);
+		SignedUp otherTeacher = signUpWith(issueTeacherCode(other), "정선생");
+
+		MockHttpServletResponse foreign = refinement(otherTeacher.accessToken(), id);
+		MockHttpServletResponse missing = refinement(s.teacher().accessToken(), UUID.randomUUID());
+		Classroom stored = classroomPort.findClassroomById(s.classroom().getId()).orElseThrow();
+		stored.releaseTeacher();
+		classroomPort.saveClassroom(stored);
+		MockHttpServletResponse released = refinement(s.teacher().accessToken(), id);
+
+		for (MockHttpServletResponse response : List.of(foreign, missing, released)) {
+			assertThat(response.getStatus()).isEqualTo(404);
+			assertSafeErrorResponse(response.getContentAsString(), "NOT_FOUND");
+		}
+		assertThat(missing.getContentAsString()).isEqualTo(foreign.getContentAsString())
+				.isEqualTo(released.getContentAsString());
+		assertThat(auditActions()).isEmpty();
 	}
 
 }

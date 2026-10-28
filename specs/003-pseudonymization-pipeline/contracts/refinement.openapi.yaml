@@ -40,6 +40,7 @@ paths:
         일반 문의의 정리 결과(번역본)를 돌려준다. 이름·학급은 원래 값으로 되돌려져 있다.
         처음 열람하면 처리 단계가 TEACHER_CONFIRMED로 바뀐다(REFINING일 때). 두 번째부터는 단계가 바뀌지 않는다.
         번역본 열람은 감사 기록 대상이 아니다(원문 열람만 기록).
+        F5에서 변경(2026-10-28): 지금 기준은 docs/api/openapi.yaml 0.7.0이다. 번역본 열람도 감사 기록을 남기며, 기록이 실패해도 번역본은 반환한다(specs/006-audit-log-history research R3).
         번역본이 없으면(정리 전·원문 확인 필요·긴급 문의) 409 REFINEMENT_NOT_READY.
       responses:
         '200':
@@ -68,6 +69,7 @@ paths:
         refinementStatus가 NEEDS_ORIGINAL이고 아직 재시도를 쓰지 않은 일반 문의만 받는다. 정리는 뒤에서 진행되고 결과는 상세의 refinementStatus로 확인한다.
         동시에 여러 번 요청해도 한 번만 실행되고 나머지는 409.
         재시도가 성공해도 교사에게 추가 알림은 가지 않는다.
+        F5에서 변경(2026-10-28): 받아들여진 재시도는 누가 요청했는지 기록한다. 기록은 재시도가 커밋된 뒤 요청 시각으로 남기며, 기록이 실패해도 재시도는 정상 진행(202)되고 서버 로그만 남는다(specs/006-audit-log-history research R9).
       responses:
         '202':
           description: 재시도를 시작했다

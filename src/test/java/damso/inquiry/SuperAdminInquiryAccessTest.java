@@ -68,7 +68,8 @@ class SuperAdminInquiryAccessTest extends IntegrationTestSupport {
 		}
 
 		assertThat(adminPaths).as("관리자 경로가 있어야 검사가 의미 있다").isNotEmpty();
-		assertThat(adminPaths).noneMatch(path -> path.contains("inquir"));
+		// 예외: F5 FR-014·015의 문의 현황은 학급별 건수(waiting·confirmed·answered)만 돌려준다. 아래 필드 검사는 이 경로에도 적용된다
+		assertThat(adminPaths).noneMatch(path -> path.contains("inquir") && !path.equals("/api/v1/admin/inquiry-status"));
 		assertThat(properties).as("관리자 경로가 돌려주는 필드").doesNotContainAnyElementsOf(CONTENT_PROPERTIES);
 	}
 

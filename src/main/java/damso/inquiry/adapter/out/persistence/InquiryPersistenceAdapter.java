@@ -1,5 +1,6 @@
 package damso.inquiry.adapter.out.persistence;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Component;
 import damso.inquiry.application.port.out.InquiryPort;
 import damso.inquiry.application.port.out.InquiryStageHistoryPort;
 import damso.inquiry.domain.Inquiry;
+import damso.inquiry.domain.InquiryStage;
 import damso.inquiry.domain.InquiryStageHistory;
 
 /** inquiry 도메인의 출력 포트를 Spring Data JPA로 구현한다. */
@@ -92,6 +94,18 @@ class InquiryPersistenceAdapter implements InquiryPort, InquiryStageHistoryPort 
 			return Set.of();
 		}
 		return Set.copyOf(inquiries.findThreadRootIdsWithThreatFlaggedFollowUp(rootIds));
+	}
+
+	@Override
+	public List<ThreadStageCount> countThreadsByClassroomAndStage() {
+		List<ThreadStageCount> counts = new ArrayList<>();
+		for (Object[] row : inquiries.countUnansweredThreadsByClassroomAndStage()) {
+			counts.add(new ThreadStageCount((UUID) row[0], (InquiryStage) row[1], false, (Long) row[2]));
+		}
+		for (Object[] row : inquiries.countAnsweredThreadsByClassroomAndStage()) {
+			counts.add(new ThreadStageCount((UUID) row[0], (InquiryStage) row[1], true, (Long) row[2]));
+		}
+		return counts;
 	}
 
 	// InquiryStageHistoryPort

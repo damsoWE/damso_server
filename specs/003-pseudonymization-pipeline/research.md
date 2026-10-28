@@ -120,7 +120,7 @@
   ```
 
   - `RECEIVED → TEACHER_CONFIRMED`는 문의의 `refinement_status = NEEDS_ORIGINAL`일 때만 허용한다(도메인 메서드가 상태를 확인).
-  - 번역본 열람(`GET …/refinement`)은 감사 기록 대상이 아니다(spec FR-026). 첫 열람이 단계 이력에 `TEACHER_CONFIRMED`로 남는다.
+  - 번역본 열람(`GET …/refinement`)은 감사 기록 대상이 아니다(spec FR-026). 첫 열람이 단계 이력에 `TEACHER_CONFIRMED`로 남는다. **F5에서 변경(2026-10-28)**: 번역본 열람도 시도·완료·실패를 감사 기록에 남긴다(`INQUIRY_REFINEMENT_VIEW_*`). 기록이 실패해도 번역본은 반환하고 서버 로그(문의 ID·행위 종류·오류 종류)만 남긴다. 원문 열람 규칙은 그대로다 (`specs/006-audit-log-history` FR-003·005, research R3).
   - 원문 열람(`GET …/content`)은 일반 문의에도 열린다. 감사 기록은 F2 방식(시도 → 완료/실패 3단계, 시도 기록 선커밋) 그대로다. 번역본이 있는 문의는 원문을 열람해도 단계가 바뀌지 않는다.
   - 교사 재시도가 `TEACHER_CONFIRMED` 이후에 성공하면 결과는 저장되지만 `REFINING` 단계는 남기지 않는다(단계는 앞으로만).
   - 동시 첫 열람은 F2의 `InquiryConfirmationStep`과 같은 방식(낙관적 락 충돌은 이미 확인된 것으로 보고 열람을 계속)으로 한 번만 기록된다.

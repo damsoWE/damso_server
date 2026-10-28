@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import damso.inquiry.domain.Inquiry;
+import damso.inquiry.domain.InquiryStage;
 
 public interface InquiryPort {
 
@@ -51,5 +52,14 @@ public interface InquiryPort {
 
 	/** 주어진 스레드 루트 가운데 위협·폭언 표시가 붙은 재문의가 있는 루트의 id(spec 005, 교사 목록의 스레드 단위 표시). */
 	Set<UUID> findThreadsWithThreatFlaggedFollowUp(Collection<UUID> rootIds);
+
+	/**
+	 * 스레드 루트 수를 (학급, 루트 단계, 답변을 보냈는지)별로 센다(F5 슈퍼 관리자 현황). 본문·제목은 읽지 않는다.
+	 * 문의가 없는 조합은 결과에 없다.
+	 */
+	List<ThreadStageCount> countThreadsByClassroomAndStage();
+
+	record ThreadStageCount(UUID classroomId, InquiryStage stage, boolean answerSent, long count) {
+	}
 
 }

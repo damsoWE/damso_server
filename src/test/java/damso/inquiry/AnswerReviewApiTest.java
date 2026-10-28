@@ -61,6 +61,12 @@ class AnswerReviewApiTest extends IntegrationTestSupport {
 		return send(json(post("/api/v1/teacher/inquiries/" + inquiryId + "/answer-reviews"), body), token);
 	}
 
+	/** F5 T010: 점검 요청 감사 기록의 (actor_id, target_id) 목록. */
+	private List<String> reviewRecords() {
+		return jdbc.queryForList("select actor_id || ':' || target_id from audit_log "
+				+ "where action = 'ANSWER_REVIEW_REQUESTED'", String.class);
+	}
+
 	@Test
 	void reviewAlwaysReturnsUnavailableBeforeF3() throws Exception {
 		ConfirmedInquiry confirmed = urgentInquiryConfirmedByTeacher();
@@ -72,6 +78,9 @@ class AnswerReviewApiTest extends IntegrationTestSupport {
 		assertThat((Boolean) read(response, "$.available")).isFalse();
 		List<Object> highlights = read(response, "$.highlights");
 		assertThat(highlights).isEmpty();
+		// F5: 점검 요청마다 누가 어느 스레드에 요청했는지 남는다
+		assertThat(reviewRecords())
+				.containsExactly(confirmed.scenario().teacher().userId() + ":" + confirmed.inquiryId());
 	}
 
 	@Test
@@ -81,6 +90,7 @@ class AnswerReviewApiTest extends IntegrationTestSupport {
 
 		assertThat(requestReview(teacherToken, confirmed.inquiryId(), "   ").getStatus()).isEqualTo(400);
 		assertThat(requestReview(teacherToken, confirmed.inquiryId(), "가".repeat(2001)).getStatus()).isEqualTo(400);
+		assertThat(reviewRecords()).isEmpty();
 	}
 
 	@Test
@@ -92,6 +102,7 @@ class AnswerReviewApiTest extends IntegrationTestSupport {
 				confirmed.inquiryId(), "안녕하세요.");
 
 		assertThat(response.getStatus()).isEqualTo(404);
+		assertThat(reviewRecords()).isEmpty();
 	}
 
 	@Test
