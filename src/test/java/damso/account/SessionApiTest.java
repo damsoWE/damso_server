@@ -1,14 +1,19 @@
 package damso.account;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import java.time.Duration;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import damso.account.domain.AuthSession;
 import damso.account.domain.Role;
 import damso.account.domain.UserAccount;
 import damso.support.IntegrationTestSupport;
@@ -150,6 +155,29 @@ class SessionApiTest extends IntegrationTestSupport {
 
 		assertThat(refresh(device.refresh()).getStatus()).isEqualTo(401);
 		assertThat(protectedStatus(device.access())).isEqualTo(401);
+	}
+
+	/**
+	 * 이슈 #26: 일괄 폐기(비밀번호 재설정)가 version을 올려, 폐기 전에 세션을 읽어 둔 갱신이 세션을 저장해도 폐기가 되살아나지
+	 * 않는다. 갱신 쪽 저장은 버전 충돌로 실패한다.
+	 */
+	@Autowired
+	private TransactionTemplate transaction;
+
+	@Test
+	void bulkRevokeIsNotUndoneByASessionReadBeforeIt() {
+		UserAccount parent = createAccount(Role.PARENT);
+		AuthSession created = sessionPort.saveSession(
+				new AuthSession(parent.getId(), clock.instant(), Duration.ofDays(14)));
+		AuthSession readBeforeRevoke = sessionPort.findSession(created.getId()).orElseThrow();
+
+		transaction.executeWithoutResult(status -> sessionPort.revokeAllByUser(parent.getId(),
+				AuthSession.RevokeReason.PASSWORD_RESET, clock.instant()));
+		readBeforeRevoke.extend(clock.instant(), Duration.ofDays(14));
+
+		assertThatThrownBy(() -> sessionPort.saveSession(readBeforeRevoke))
+				.isInstanceOf(OptimisticLockingFailureException.class);
+		assertThat(sessionPort.isSessionActive(created.getId(), clock.instant())).isFalse();
 	}
 
 }
