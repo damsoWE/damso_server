@@ -1,12 +1,15 @@
 package damso.inquiry.adapter.out.persistence;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -17,6 +20,7 @@ import damso.inquiry.application.port.out.InquiryStageHistoryPort;
 import damso.inquiry.domain.Inquiry;
 import damso.inquiry.domain.InquiryStage;
 import damso.inquiry.domain.InquiryStageHistory;
+import damso.inquiry.domain.ThreadAnswerStatus;
 
 /** inquiry 도메인의 출력 포트를 Spring Data JPA로 구현한다. */
 @Component
@@ -70,14 +74,27 @@ class InquiryPersistenceAdapter implements InquiryPort, InquiryStageHistoryPort 
 	}
 
 	@Override
-	public List<Inquiry> findByClassroom(UUID classroomId, int page, int size) {
+	public List<Inquiry> findByClassroom(UUID classroomId, ThreadAnswerStatus answerStatus, int page, int size) {
 		Sort sort = Sort.by(Sort.Order.desc("urgent"), Sort.Order.desc("submittedAt"), Sort.Order.asc("id"));
-		return inquiries.findByClassroomIdAndThreadRootIdIsNull(classroomId, PageRequest.of(page, size, sort));
+		PageRequest pageable = PageRequest.of(page, size, sort);
+		if (answerStatus == null) {
+			return inquiries.findByClassroomIdAndThreadRootIdIsNull(classroomId, pageable);
+		}
+		return switch (answerStatus) {
+			case WAITING -> inquiries.findWaitingByClassroom(classroomId, pageable);
+			case ANSWERED -> inquiries.findAnsweredByClassroom(classroomId, pageable);
+		};
 	}
 
 	@Override
-	public long countByClassroom(UUID classroomId) {
-		return inquiries.countByClassroomIdAndThreadRootIdIsNull(classroomId);
+	public long countByClassroom(UUID classroomId, ThreadAnswerStatus answerStatus) {
+		if (answerStatus == null) {
+			return inquiries.countByClassroomIdAndThreadRootIdIsNull(classroomId);
+		}
+		return switch (answerStatus) {
+			case WAITING -> inquiries.countWaitingByClassroom(classroomId);
+			case ANSWERED -> inquiries.countAnsweredByClassroom(classroomId);
+		};
 	}
 
 	@Override
@@ -96,6 +113,21 @@ class InquiryPersistenceAdapter implements InquiryPort, InquiryStageHistoryPort 
 			return Set.of();
 		}
 		return Set.copyOf(inquiries.findThreadRootIdsWithThreatFlaggedFollowUp(rootIds));
+	}
+
+	@Override
+	public Optional<UUID> findLatestFollowUpId(UUID rootId) {
+		return inquiries.findFollowUpIdsLatestFirst(rootId, PageRequest.of(0, 1)).stream().findFirst();
+	}
+
+	@Override
+	public Map<UUID, Instant> findLastFollowUpAt(Collection<UUID> rootIds) {
+		if (rootIds.isEmpty()) {
+			return Map.of();
+		}
+		return inquiries.findLastFollowUpAtByThreadRootIds(rootIds).stream()
+				.collect(Collectors.toUnmodifiableMap(SpringDataInquiryRepository.LastFollowUpAt::getThreadRootId,
+						SpringDataInquiryRepository.LastFollowUpAt::getLastFollowUpAt));
 	}
 
 	@Override

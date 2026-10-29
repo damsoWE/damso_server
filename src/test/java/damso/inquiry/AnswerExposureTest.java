@@ -24,7 +24,7 @@ class AnswerExposureTest extends IntegrationTestSupport {
 
 	private MockHttpServletResponse sendAnswer(String token, UUID inquiryId) throws Exception {
 		return send(json(post("/api/v1/teacher/inquiries/" + inquiryId + "/answers"),
-				"{\"content\":\"답변\",\"reviewed\":false}"), token);
+				"{\"content\":\"답변\",\"reviewed\":false,\"lastSeenFollowUpId\":" + lastSeenFollowUpJson(inquiryId) + "}"), token);
 	}
 
 	private MockHttpServletResponse requestReview(String token, UUID inquiryId) throws Exception {

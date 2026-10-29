@@ -50,7 +50,7 @@ class AnswerLockWaitTest extends IntegrationTestSupport {
 
 			long started = System.nanoTime();
 			MockHttpServletResponse response = send(json(post("/api/v1/teacher/inquiries/" + inquiryId + "/answers"),
-					"{\"content\":\"확인했습니다.\",\"reviewed\":false}"), s.teacher().accessToken());
+					"{\"content\":\"확인했습니다.\",\"reviewed\":false,\"lastSeenFollowUpId\":" + lastSeenFollowUpJson(inquiryId) + "}"), s.teacher().accessToken());
 			Duration waited = Duration.ofNanos(System.nanoTime() - started);
 
 			assertThat(response.getStatus()).isEqualTo(409);

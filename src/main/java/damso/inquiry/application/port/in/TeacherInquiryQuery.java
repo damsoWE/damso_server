@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import damso.inquiry.domain.InquiryStage;
 import damso.inquiry.domain.RefinementStatus;
+import damso.inquiry.domain.ThreadAnswerStatus;
 
 /**
  * 교사가 담당 학급의 문의를 보는 조회. 본문·번역본은 어디에도 없다
@@ -18,13 +19,22 @@ public interface TeacherInquiryQuery {
 	 * threatFlagged는 접수 때 정한 위협·폭언 표현 표시, 긴급은 항상 false(spec 005).
 	 * threadThreatFlagged는 최초 문의나 재문의 가운데 하나라도 표시됐는지 — 재문의에만 위협 표현이 있어도 목록에서 보인다.
 	 * lastAnsweredAt은 스레드 전체의 마지막 답변 전송 시각, 답변이 없으면 null(F4 US6). 답변 여부는 hasAnswer()로 이 값에서 얻는다.
+	 * lastFollowUpAt은 스레드의 마지막 재문의 접수 시각, 재문의가 없으면 null(이슈 #28). 답변 대기 여부는 needsAnswer()로 얻는다.
 	 */
 	record InquirySummary(UUID inquiryId, UUID studentId, String studentName, boolean urgent, String title,
 			InquiryStage stage, RefinementStatus refinementStatus, boolean threatFlagged, boolean threadThreatFlagged,
-			Instant submittedAt, Instant lastAnsweredAt) {
+			Instant submittedAt, Instant lastAnsweredAt, Instant lastFollowUpAt) {
 
 		public boolean hasAnswer() {
 			return lastAnsweredAt != null;
+		}
+
+		/**
+		 * 답변이 없거나 마지막 답변 뒤에 재문의가 왔으면 true. 목록의 answerStatus=WAITING 조건과 같은 기준이다
+		 * (SpringDataInquiryRepository.ANSWERED_THREAD의 반대).
+		 */
+		public boolean needsAnswer() {
+			return !hasAnswer() || (lastFollowUpAt != null && lastFollowUpAt.isAfter(lastAnsweredAt));
 		}
 
 		/** 학생 이름이 로그·예외에 섞이지 않도록 가린다. */
@@ -77,9 +87,10 @@ public interface TeacherInquiryQuery {
 
 	/**
 	 * 현재 담임인 학급의 문의, 긴급이 먼저 그다음 최신순. 담임이 아니면 빈 목록.
+	 * answerStatus가 null이 아니면 그 답변 상태의 스레드만 돌려주고 totalElements도 거른 결과 기준이다(이슈 #28).
 	 * page는 0 이상, size는 1~50이어야 하며 아니면 InvalidInputException.
 	 */
-	InquiryPage list(UUID teacherId, int page, int size);
+	InquiryPage list(UUID teacherId, ThreadAnswerStatus answerStatus, int page, int size);
 
 	/** 현재 담임인 학급의 문의가 아니면 NOT_FOUND(존재 여부를 드러내지 않는다). */
 	InquiryDetail get(UUID teacherId, UUID inquiryId);

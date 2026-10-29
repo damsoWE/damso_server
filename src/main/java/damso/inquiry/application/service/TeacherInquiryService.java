@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import damso.common.error.BusinessException;
@@ -24,6 +25,7 @@ import damso.inquiry.domain.Inquiry;
 import damso.inquiry.domain.RefinementJob;
 import damso.inquiry.domain.RefinementJobKind;
 import damso.inquiry.domain.RefinementStatus;
+import damso.inquiry.domain.ThreadAnswerStatus;
 import damso.school.application.port.in.InquiryTargetQuery;
 
 @Service
@@ -60,8 +62,13 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 		this.jobs = jobs;
 	}
 
+	/**
+	 * 목록·답변 시각·재문의 시각·전체 수를 따로 조회하므로 한 스냅샷에서 읽는다(REPEATABLE_READ). 기본(READ COMMITTED)이면
+	 * 조회 사이에 커밋된 답변 때문에 answerStatus=WAITING 결과에 needsAnswer=false 항목이 섞이거나 수가 어긋난다.
+	 */
 	@Override
-	public InquiryPage list(UUID teacherId, int page, int size) {
+	@Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+	public InquiryPage list(UUID teacherId, ThreadAnswerStatus answerStatus, int page, int size) {
 		if (page < 0 || page > MAX_PAGE) {
 			throw new InvalidInputException("page", "허용 범위를 벗어났습니다");
 		}
@@ -72,15 +79,16 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 		if (classroomId.isEmpty()) {
 			return new InquiryPage(List.of(), page, size, 0);
 		}
-		List<Inquiry> found = inquiries.findByClassroom(classroomId.get(), page, size);
+		List<Inquiry> found = inquiries.findByClassroom(classroomId.get(), answerStatus, page, size);
 		Map<UUID, String> names = targets.studentNames(found.stream().map(Inquiry::getStudentId).distinct().toList());
 		List<UUID> rootIds = found.stream().map(Inquiry::getId).toList();
 		Set<UUID> flaggedThreads = inquiries.findThreadsWithThreatFlaggedFollowUp(rootIds);
 		Map<UUID, Instant> lastAnswered = answers.findLastAnsweredAt(rootIds);
+		Map<UUID, Instant> lastFollowUp = inquiries.findLastFollowUpAt(rootIds);
 		List<InquirySummary> items = found.stream()
-				.map(inquiry -> summaryOf(inquiry, names, flaggedThreads, lastAnswered))
+				.map(inquiry -> summaryOf(inquiry, names, flaggedThreads, lastAnswered, lastFollowUp))
 				.toList();
-		return new InquiryPage(items, page, size, inquiries.countByClassroom(classroomId.get()));
+		return new InquiryPage(items, page, size, inquiries.countByClassroom(classroomId.get(), answerStatus));
 	}
 
 	@Override
@@ -123,13 +131,14 @@ public class TeacherInquiryService implements TeacherInquiryQuery {
 	/**
 	 * flaggedThreads: 위협·폭언 표시가 붙은 재문의가 있는 스레드 루트. 루트 자신의 표시와 OR해 스레드 단위 표시를 만든다.
 	 * lastAnswered: 스레드 루트별 마지막 답변 전송 시각, 답변이 없는 루트는 없다(F4 US6).
+	 * lastFollowUp: 스레드 루트별 마지막 재문의 접수 시각, 재문의가 없는 루트는 없다(이슈 #28).
 	 */
 	private static InquirySummary summaryOf(Inquiry inquiry, Map<UUID, String> names, Set<UUID> flaggedThreads,
-			Map<UUID, Instant> lastAnswered) {
+			Map<UUID, Instant> lastAnswered, Map<UUID, Instant> lastFollowUp) {
 		return new InquirySummary(inquiry.getId(), inquiry.getStudentId(), names.getOrDefault(inquiry.getStudentId(), ""),
 				inquiry.isUrgent(), displayTitle(inquiry), inquiry.getStage(), inquiry.getRefinementStatus(),
 				inquiry.isThreatFlagged(), inquiry.isThreatFlagged() || flaggedThreads.contains(inquiry.getId()),
-				inquiry.getSubmittedAt(), lastAnswered.get(inquiry.getId()));
+				inquiry.getSubmittedAt(), lastAnswered.get(inquiry.getId()), lastFollowUp.get(inquiry.getId()));
 	}
 
 	/**
