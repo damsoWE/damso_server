@@ -48,7 +48,8 @@ class TeacherAnswerController {
 	AnswerSentResponseDTO send(CurrentUser teacher, @PathVariable UUID inquiryId,
 			@Valid @RequestBody SendAnswerRequestDTO request) {
 		return AnswerSentResponseDTO.from(
-				sendAnswer.send(teacher.userId(), inquiryId, request.content(), request.reviewed()));
+				sendAnswer.send(teacher.userId(), inquiryId, request.content(), request.reviewed(),
+						request.lastSeenFollowUpId()));
 	}
 
 	@PostMapping("/{inquiryId}/answer-reviews")

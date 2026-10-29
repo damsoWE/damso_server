@@ -14,7 +14,9 @@ public interface ExternalAiPort {
 		/** 일반 문의 3요소 정리: title·facts·requests·emotionLevel·emotionLabels */
 		REFINE,
 		/** 긴급 문의 위기 종류: crisisType */
-		CLASSIFY_CRISIS
+		CLASSIFY_CRISIS,
+		/** 교사 답변 점검: highlights[{excerpt, reason, suggestion}] */
+		REVIEW_ANSWER
 	}
 
 	/**

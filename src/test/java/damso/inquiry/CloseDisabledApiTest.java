@@ -50,7 +50,7 @@ class CloseDisabledApiTest extends IntegrationTestSupport {
 		assertThat(submitFollowUp(s.parent().accessToken(), confirmed.inquiryId(), NORMAL_SAMPLE).getStatus())
 			.isEqualTo(201);
 		MockHttpServletResponse answered = send(json(post("/api/v1/teacher/inquiries/" + confirmed.inquiryId()
-				+ "/answers"), "{\"content\":\"확인했습니다.\",\"reviewed\":false}"), s.teacher().accessToken());
+				+ "/answers"), "{\"content\":\"확인했습니다.\",\"reviewed\":false,\"lastSeenFollowUpId\":" + lastSeenFollowUpJson(confirmed.inquiryId()) + "}"), s.teacher().accessToken());
 		assertThat(answered.getStatus()).isEqualTo(201);
 	}
 

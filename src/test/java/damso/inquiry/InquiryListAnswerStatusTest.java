@@ -32,7 +32,7 @@ class InquiryListAnswerStatusTest extends IntegrationTestSupport {
 
 	private void sendAnswer(String token, UUID inquiryId, String content) throws Exception {
 		MockHttpServletResponse response = send(json(post("/api/v1/teacher/inquiries/" + inquiryId + "/answers"),
-				"{\"content\":\"" + content + "\",\"reviewed\":false}"), token);
+				"{\"content\":\"" + content + "\",\"reviewed\":false,\"lastSeenFollowUpId\":" + lastSeenFollowUpJson(inquiryId) + "}"), token);
 		assertThat(response.getStatus()).isEqualTo(201);
 	}
 

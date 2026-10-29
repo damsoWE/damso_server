@@ -57,12 +57,12 @@ class AnswerSensitiveLoggingTest extends IntegrationTestSupport {
 		@Bean
 		@Primary
 		AnswerReviewPort toggleableAnswerReviewPort() {
-			return (draftContent, pseudonymizedContext) -> {
+			return (draftContent, context, roster) -> {
 				if (failing) {
 					throw new IllegalStateException("점검 서비스 장애 흉내");
 				}
 				return Optional
-						.of(new AnswerReviewResult(true,
+						.of(new AnswerReviewResult(true, false,
 								List.of(new Highlight(HIGHLIGHT_EXCERPT, HIGHLIGHT_REASON, HIGHLIGHT_SUGGESTION))));
 			};
 		}
@@ -79,7 +79,7 @@ class AnswerSensitiveLoggingTest extends IntegrationTestSupport {
 
 	private MockHttpServletResponse sendAnswer(String token, UUID inquiryId, String content) throws Exception {
 		return send(json(post("/api/v1/teacher/inquiries/" + inquiryId + "/answers"),
-				"{\"content\":\"" + content + "\",\"reviewed\":true}"), token);
+				"{\"content\":\"" + content + "\",\"reviewed\":true,\"lastSeenFollowUpId\":" + lastSeenFollowUpJson(inquiryId) + "}"), token);
 	}
 
 	@Test

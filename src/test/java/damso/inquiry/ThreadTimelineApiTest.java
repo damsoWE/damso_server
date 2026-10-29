@@ -20,7 +20,7 @@ import damso.support.IntegrationTestSupport;
 class ThreadTimelineApiTest extends IntegrationTestSupport {
 
 	private MockHttpServletResponse sendAnswer(String teacherToken, UUID inquiryId, String content) throws Exception {
-		String body = "{\"content\":\"" + content + "\",\"reviewed\":false}";
+		String body = "{\"content\":\"" + content + "\",\"reviewed\":false,\"lastSeenFollowUpId\":" + lastSeenFollowUpJson(inquiryId) + "}";
 		return send(json(post("/api/v1/teacher/inquiries/" + inquiryId + "/answers"), body), teacherToken);
 	}
 

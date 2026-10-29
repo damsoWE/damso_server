@@ -22,6 +22,8 @@ class GatewayResourceTest {
 
 	private static final ClassPathResource CLASSIFY = new ClassPathResource("gateway/prompts/classify-crisis.txt");
 
+	private static final ClassPathResource REVIEW = new ClassPathResource("gateway/prompts/review-answer.txt");
+
 	@Test
 	void shippedSchoolTermsAreTheFourAgreedVariants() {
 		var source = new ClasspathSchoolTermsSource(new ClassPathResource("pseudonymization/school-terms.txt"));
@@ -48,20 +50,25 @@ class GatewayResourceTest {
 
 	@Test
 	void shippedPromptsLoadPerTask() {
-		var source = new ClasspathPromptSource(REFINE, CLASSIFY);
+		var source = new ClasspathPromptSource(REFINE, CLASSIFY, REVIEW);
 
 		assertThat(source.systemPrompt(AiTask.REFINE)).contains("title").contains("emotionLabels");
 		assertThat(source.systemPrompt(AiTask.CLASSIFY_CRISIS)).contains("crisisType").contains("SELF_HARM");
+		assertThat(source.systemPrompt(AiTask.REVIEW_ANSWER)).contains("highlights").contains("excerpt")
+				.contains("근거 누락");
 	}
 
 	@Test
 	void emptyOrMissingPromptRefusesToStartWithoutPrintingContent() {
-		assertThatThrownBy(() -> new ClasspathPromptSource(text("   \n"), CLASSIFY))
+		assertThatThrownBy(() -> new ClasspathPromptSource(text("   \n"), CLASSIFY, REVIEW))
 				.isInstanceOf(IllegalStateException.class)
 				.hasMessageContaining("정리 지시 파일");
-		assertThatThrownBy(() -> new ClasspathPromptSource(REFINE, new ClassPathResource("gateway/prompts/none.txt")))
+		assertThatThrownBy(() -> new ClasspathPromptSource(REFINE, new ClassPathResource("gateway/prompts/none.txt"), REVIEW))
 				.isInstanceOf(IllegalStateException.class)
 				.hasMessageContaining("위기 분류 지시 파일");
+		assertThatThrownBy(() -> new ClasspathPromptSource(REFINE, CLASSIFY, text("")))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessageContaining("답변 점검 지시 파일");
 	}
 
 }

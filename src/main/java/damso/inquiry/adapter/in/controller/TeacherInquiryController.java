@@ -24,6 +24,7 @@ import damso.inquiry.application.port.in.RetryRefinementUseCase;
 import damso.inquiry.application.port.in.TeacherInquiryQuery;
 import damso.inquiry.application.port.in.ViewInquiryContentUseCase;
 import damso.inquiry.application.port.in.ViewRefinementUseCase;
+import damso.inquiry.domain.ThreadAnswerStatus;
 
 /**
  * 교사 문의 API (경로 단위 역할 검사는 SecurityConfig의 /api/v1/teacher/**). 사용자 ID는 토큰에서만 꺼내고,
@@ -51,9 +52,10 @@ class TeacherInquiryController {
 
 	@GetMapping
 	TeacherInquiryPageResponseDTO list(CurrentUser teacher,
+			@RequestParam(required = false) ThreadAnswerStatus answerStatus,
 			@RequestParam(defaultValue = "0") @Min(0) @Max(10000) int page,
 			@RequestParam(defaultValue = "20") @Min(1) @Max(50) int size) {
-		return TeacherInquiryPageResponseDTO.from(query.list(teacher.userId(), page, size));
+		return TeacherInquiryPageResponseDTO.from(query.list(teacher.userId(), answerStatus, page, size));
 	}
 
 	@GetMapping("/{inquiryId}")

@@ -147,6 +147,18 @@ class OpenAiClient implements ExternalAiPort {
 							Map.of("type", "string", "enum", List.of("SELF_HARM", "ABUSE", "OTHER_SAFETY"))),
 					"required", List.of("crisisType"),
 					"additionalProperties", false));
+			case REVIEW_ANSWER -> Map.of("name", "answer_review", "strict", true, "schema", Map.of(
+					"type", "object",
+					"properties", Map.of("highlights", Map.of("type", "array", "items", Map.of(
+							"type", "object",
+							"properties", Map.of(
+									"excerpt", Map.of("type", "string"),
+									"reason", Map.of("type", "string"),
+									"suggestion", Map.of("type", "string")),
+							"required", List.of("excerpt", "reason", "suggestion"),
+							"additionalProperties", false))),
+					"required", List.of("highlights"),
+					"additionalProperties", false));
 		};
 	}
 

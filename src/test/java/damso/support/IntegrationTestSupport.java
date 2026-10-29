@@ -373,6 +373,17 @@ public abstract class IntegrationTestSupport {
 				.header("Idempotency-Key", idempotencyKey.toString()), token);
 	}
 
+	/**
+	 * 답변 전송 요청의 lastSeenFollowUpId 값(JSON 리터럴): 스레드의 최신 재문의 id, 없으면 null(이슈 #28).
+	 * 재문의 확인 검사가 주제가 아닌 테스트가 "교사가 스레드를 모두 보고 보낸" 요청을 만들 때 쓴다.
+	 */
+	protected String lastSeenFollowUpJson(UUID rootId) {
+		List<UUID> latest = jdbc.queryForList(
+				"select id from inquiry where thread_root_id = ? order by submitted_at desc, id desc limit 1",
+				UUID.class, rootId);
+		return latest.isEmpty() ? "null" : "\"" + latest.get(0) + "\"";
+	}
+
 	/** 초대 코드로 1·2단계를 모두 거쳐 가입한다. 보내진 이메일 인증 코드를 가짜 메일 포트에서 읽는다. */
 	protected SignedUp signUpWith(String inviteCode, String name) throws Exception {
 		String email = uniqueEmail();

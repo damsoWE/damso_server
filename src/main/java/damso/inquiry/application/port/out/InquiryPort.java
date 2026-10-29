@@ -1,13 +1,16 @@
 package damso.inquiry.application.port.out;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 import damso.inquiry.domain.Inquiry;
 import damso.inquiry.domain.InquiryStage;
+import damso.inquiry.domain.ThreadAnswerStatus;
 
 public interface InquiryPort {
 
@@ -36,10 +39,14 @@ public interface InquiryPort {
 	/** 학부모가 작성한 문의(스레드 루트만, 재문의는 각 스레드 상세에서 보인다), 최신순. */
 	List<Inquiry> findByParent(UUID parentId);
 
-	/** 학급의 문의(스레드 루트만) 한 쪽. 긴급이 먼저, 그다음 최신순. page는 0부터. */
-	List<Inquiry> findByClassroom(UUID classroomId, int page, int size);
+	/**
+	 * 학급의 문의(스레드 루트만) 한 쪽. 긴급이 먼저, 그다음 최신순. page는 0부터.
+	 * answerStatus가 null이 아니면 그 답변 상태의 스레드만(이슈 #28).
+	 */
+	List<Inquiry> findByClassroom(UUID classroomId, ThreadAnswerStatus answerStatus, int page, int size);
 
-	long countByClassroom(UUID classroomId);
+	/** findByClassroom과 같은 조건의 전체 수. */
+	long countByClassroom(UUID classroomId, ThreadAnswerStatus answerStatus);
 
 	/** 그 교사 앞으로 알림이 미뤄졌고 아직 묶음 알림에 포함되지 않은 문의. */
 	List<Inquiry> findDeferredNotNotified(UUID teacherId);
@@ -52,6 +59,12 @@ public interface InquiryPort {
 
 	/** 주어진 스레드 루트 가운데 위협·폭언 표시가 붙은 재문의가 있는 루트의 id(교사 목록의 스레드 단위 표시). */
 	Set<UUID> findThreadsWithThreatFlaggedFollowUp(Collection<UUID> rootIds);
+
+	/** 스레드의 가장 늦게 접수된 재문의 id(접수 시각이 같으면 id가 큰 쪽). 재문의가 없으면 empty(이슈 #28). */
+	Optional<UUID> findLatestFollowUpId(UUID rootId);
+
+	/** 루트 id별 마지막 재문의 접수 시각. 재문의가 없는 루트는 Map에 없다(이슈 #28). */
+	Map<UUID, Instant> findLastFollowUpAt(Collection<UUID> rootIds);
 
 	/**
 	 * 스레드 루트 수를 (학급, 루트 단계, 답변을 보냈는지)별로 센다(F5 슈퍼 관리자 현황). 본문·제목은 읽지 않는다.
