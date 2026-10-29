@@ -1722,7 +1722,8 @@ components:
             점검은 항상 available=false만 돌려주는 임시 스텁이라, reviewed=true인 답변도
             실질적인 점검 효과는 없다.
         lastSeenFollowUpId:
-          allOf: [{ $ref: '#/components/schemas/Uuid' }]
+          type: string
+          format: uuid
           nullable: true
           description: |
             교사가 답변을 쓰며 화면에서 본 마지막 재문의 id(상세 followUps의 마지막 항목 inquiryId). 재문의가 없었으면 null.
