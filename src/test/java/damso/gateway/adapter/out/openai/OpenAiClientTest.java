@@ -109,6 +109,26 @@ class OpenAiClientTest {
 	}
 
 	@Test
+	void answerReviewSchemaIsStrictWithThreeStringFieldsPerHighlight() {
+		server.expect(requestTo(OpenAiClient.BASE_URL + OpenAiClient.PATH))
+				.andExpect(jsonPath("$.response_format.json_schema.name").value("answer_review"))
+				.andExpect(jsonPath("$.response_format.json_schema.strict").value(true))
+				.andExpect(jsonPath("$.response_format.json_schema.schema.additionalProperties").value(false))
+				.andExpect(jsonPath("$.response_format.json_schema.schema.required", Matchers.contains("highlights")))
+				.andExpect(jsonPath("$.response_format.json_schema.schema.properties.highlights.type").value("array"))
+				.andExpect(jsonPath("$.response_format.json_schema.schema.properties.highlights.items.additionalProperties")
+						.value(false))
+				.andExpect(jsonPath("$.response_format.json_schema.schema.properties.highlights.items.required",
+						Matchers.contains("excerpt", "reason", "suggestion")))
+				.andExpect(jsonPath("$.response_format.json_schema.schema.properties.highlights.items.properties.excerpt.type")
+						.value("string"))
+				.andRespond(withSuccess(completion("{\"highlights\":[]}"), MediaType.APPLICATION_JSON));
+
+		assertThat(client.call(AiTask.REVIEW_ANSWER, SYSTEM, new MaskedText(MASKED)).responded()).isTrue();
+		server.verify();
+	}
+
+	@Test
 	void timeoutIsNoResponse(CapturedOutput output) {
 		server.expect(requestTo(OpenAiClient.BASE_URL + OpenAiClient.PATH))
 				.andRespond(withException(new SocketTimeoutException("read timed out")));
