@@ -79,7 +79,7 @@ class AnswerSensitiveLoggingTest extends IntegrationTestSupport {
 
 	private MockHttpServletResponse sendAnswer(String token, UUID inquiryId, String content) throws Exception {
 		return send(json(post("/api/v1/teacher/inquiries/" + inquiryId + "/answers"),
-				"{\"content\":\"" + content + "\",\"reviewed\":true}"), token);
+				"{\"content\":\"" + content + "\",\"reviewed\":true,\"lastSeenFollowUpId\":" + lastSeenFollowUpJson(inquiryId) + "}"), token);
 	}
 
 	@Test

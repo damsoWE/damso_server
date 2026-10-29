@@ -40,7 +40,7 @@ class ThreadClosedIntegrationTest extends IntegrationTestSupport {
 	}
 
 	private MockHttpServletResponse sendAnswer(String token, UUID inquiryId, String content) throws Exception {
-		String body = "{\"content\":\"" + content + "\",\"reviewed\":false}";
+		String body = "{\"content\":\"" + content + "\",\"reviewed\":false,\"lastSeenFollowUpId\":" + lastSeenFollowUpJson(inquiryId) + "}";
 		return send(json(post("/api/v1/teacher/inquiries/" + inquiryId + "/answers"), body), token);
 	}
 

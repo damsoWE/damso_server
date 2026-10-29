@@ -24,7 +24,7 @@ class SendAnswerApiTest extends IntegrationTestSupport {
 
 	private MockHttpServletResponse sendAnswer(String token, UUID inquiryId, String content, Boolean reviewed)
 			throws Exception {
-		String body = "{\"content\":\"" + content + "\",\"reviewed\":" + reviewed + "}";
+		String body = "{\"content\":\"" + content + "\",\"reviewed\":" + reviewed + ",\"lastSeenFollowUpId\":" + lastSeenFollowUpJson(inquiryId) + "}";
 		return send(json(post("/api/v1/teacher/inquiries/" + inquiryId + "/answers"), body), token);
 	}
 

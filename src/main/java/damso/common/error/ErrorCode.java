@@ -39,7 +39,10 @@ public enum ErrorCode {
 
 	// F4 (specs/004-answer-review-send). 역시 기존 코드 뒤에 둔다.
 	THREAD_CLOSED(HttpStatus.CONFLICT, "이미 종료된 문의입니다."),
-	INQUIRY_NOT_READY_TO_CLOSE(HttpStatus.CONFLICT, "아직 종료할 수 없는 문의입니다.");
+	INQUIRY_NOT_READY_TO_CLOSE(HttpStatus.CONFLICT, "아직 종료할 수 없는 문의입니다."),
+
+	// 이슈 #28. 역시 기존 코드 뒤에 둔다.
+	NEW_FOLLOW_UP(HttpStatus.CONFLICT, "확인하지 않은 재문의가 있습니다. 스레드를 다시 불러온 뒤 보내 주세요.");
 
 	private final HttpStatus status;
 	private final String message;

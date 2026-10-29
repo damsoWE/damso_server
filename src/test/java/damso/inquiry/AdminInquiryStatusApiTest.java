@@ -58,7 +58,7 @@ class AdminInquiryStatusApiTest extends IntegrationTestSupport {
 
 	private void answer(Scenario s, UUID id) throws Exception {
 		assertThat(send(json(post("/api/v1/teacher/inquiries/" + id + "/answers"),
-				"{\"content\":\"" + ANSWER_BODY + "\",\"reviewed\":false}"), s.teacher().accessToken()).getStatus())
+				"{\"content\":\"" + ANSWER_BODY + "\",\"reviewed\":false,\"lastSeenFollowUpId\":" + lastSeenFollowUpJson(id) + "}"), s.teacher().accessToken()).getStatus())
 				.isEqualTo(201);
 	}
 
