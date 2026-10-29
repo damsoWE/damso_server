@@ -193,3 +193,56 @@ src/test/java/damso/
 
 docs/api/openapi.yaml                        # (수정) 0.7.0
 ```
+
+---
+
+## 2026-10-29 추가 — 답변 점검 실제 연동 (US2, 이슈 #33)
+
+**Branch**: `features/f4-answer-review-gateway` (이슈 #33) | **Date**: 2026-10-29 | **근거**: spec Clarifications Session 2026-10-29, FR-008b·008c·012a·012b, research R4 Update·R16~R19, [contracts/answer-review-context.openapi.yaml](./contracts/answer-review-context.openapi.yaml)
+
+### Summary
+
+임시 스텁(`UnavailableAnswerReviewAdapter`)을 F3 가명화 게이트웨이를 거치는 실제 점검으로 바꾼다. inquiry는 맥락 대상 문의(가장 최근 재문의, 없으면 루트)의 정리 결과와 명단을 모으고, 게이트웨이의 새 입구 `ReviewAnswerGateway`가 초안+맥락을 한 번에 가명화 → 자기 점검 → 외부 AI(strict JSON) → 서버 재검증 → 복원한다. 어댑터는 8초 상한을 건다. 응답에 `contextUsed`를 더한다(API 0.12.0).
+
+### Technical Context (변경분)
+
+- **Primary Dependencies**: 새 의존성 없음. F3의 `OpenAiClient`(RestClient)·`MaskedAiCall`·`Pseudonymizer`·`MaskingVerifier`·`PseudonymMap` 재사용. 상한은 JDK 가상 스레드 + `Future.get(timeout)`.
+- **Storage**: 변경 없음(점검 결과 비저장, FR-013).
+- **Configuration**: `damso.answer-review.timeout`(기본 8s, 새 설정 — 시크릿 아님). 새 시크릿 없음(F3의 `DAMSO_OPENAI_*` 재사용).
+- **Testing**: `FakeExternalAi`에 `REVIEW_ANSWER` 기본 응답(응답 없음)·지연 응답을 더한다. 통합 테스트는 가짜 포트 대신 실제 어댑터 + 가짜 외부 AI로 끝까지 검증한다.
+- **Performance Goals**: SC-002 — 상한 8s + DB·감사 기록으로 10초 안에 응답.
+
+### Constitution Check (변경분)
+
+| 원칙 | 대응 | 결과 |
+|---|---|---|
+| II. 가명화 게이트웨이 경유 | 외부 호출은 `gateway.application.service`의 `ReviewAnswerGatewayService`만(`GatewayStructureTest`). 초안과 맥락 모두 가린 뒤 자기 점검을 통과해야 외부로 나간다. 원문(`inquiry.content`)은 읽지 않는다 — 맥락은 정리 결과뿐. 대응표는 메서드 안에서만 쓰고 버린다 | ✅ |
+| IV/V. fail-open·제안만 | 장애·형식 오류·검증 실패·상한 초과는 `available=false`, 전송은 막지 않는다. 결과는 제안으로만 돌려주고 저장하지 않는다 | ✅ |
+| VI. 민감정보 비노출 | 새 값 객체(`ReviewContext`·`Context`·`Finding`·`ReviewOutcome`)와 `AnswerReviewResult`·`Highlight`·응답 DTO의 toString을 가린다. 로그에는 문의 id·작업 종류·실패 종류만 | ✅ |
+| VII. 건별 소유권 | 기존 검증(현재 담임 아니면 404, 재문의 id 404)을 외부 호출보다 먼저 한다 | ✅ |
+| VIII. 안전한 기본값 | 프롬프트 파일이 비면 기동 거부(F3 `ClasspathPromptSource` 규칙 그대로) | ✅ |
+| 백엔드: LLM 출력 검증 | strict 스키마 + 서버 재검증(R17), 하나라도 실패하면 전체 폐기 | ✅ (2026-10-25 이월 항목 해소) |
+| 큰 영향 결정 | API 응답 필드 추가(0.12.0)는 2026-10-29 사용자·팀 승인. DB 변경 없음 | ✅ |
+
+### Source Code (변경분)
+
+```text
+src/main/java/damso/
+├── gateway/
+│   ├── application/port/in/ReviewAnswerGateway.java          # (신규) 입구 + Context·Finding·ReviewOutcome
+│   ├── application/port/out/ExternalAiPort.java              # (수정) AiTask.REVIEW_ANSWER
+│   ├── application/service/MaskedAiCall.java                 # (수정) 세그먼트 입력(한 사전·한 번의 가명화) 추가
+│   ├── application/service/ReviewAnswerGatewayService.java   # (신규) 조립·파싱·검증·복원
+│   ├── domain/AnswerReviewFindings.java                      # (신규) 검증·복원 규칙(R17)
+│   ├── adapter/out/openai/OpenAiClient.java                  # (수정) answer_review 스키마
+│   └── adapter/out/resource/ClasspathPromptSource.java       # (수정) review-answer.txt
+├── inquiry/
+│   ├── domain/AnswerReviewResult.java                        # (수정) contextUsed, toString 가림
+│   ├── application/port/out/AnswerReviewPort.java            # (수정) review(draft, ReviewContext, Roster)
+│   ├── application/service/RequestAnswerReviewService.java   # (수정) 맥락·명단 수집
+│   ├── adapter/in/controller/dto/response/AnswerReviewResultResponseDTO.java  # (수정) contextUsed, toString 가림
+│   └── adapter/out/review/
+│       ├── GatewayAnswerReviewAdapter.java                   # (신규) 게이트웨이 호출 + 상한
+│       └── UnavailableAnswerReviewAdapter.java               # (삭제, 2026-10-29 사용자 승인 범위)
+└── resources/gateway/prompts/review-answer.txt               # (신규)
+```

@@ -1,0 +1,93 @@
+openapi: 3.0.3
+info:
+  title: DAMSO F4 Contract — 답변 점검 실제 연동 (2026-10-29 추가)
+  version: 0.12.0
+  description: |
+    docs/api/openapi.yaml(0.11.0)에 대한 변경분만 적는다. 공통 규칙(Bearer 헤더 인증, ErrorResponse, UUID만 노출)은 docs/api/openapi.yaml을 따른다.
+    docs/api/openapi.yaml에 반영하고 info.version을 0.12.0으로 올린다.
+    1. AnswerReviewResult에 contextUsed(boolean, required) 추가 (FR-008c)
+    2. 답변 점검 설명에서 "F3 전에는 항상 available=false" 문구를 지우고 실제 동작(맥락 범위·실패 조건·10초 상한)으로 바꾼다 (FR-008b·012a·012b)
+    3. SendAnswerRequest.reviewed 설명에서 "임시 스텁" 문구를 지운다
+    새 경로·새 ErrorCode 없음. 출처: specs/004-answer-review-send (2026-10-29 추가분, 이슈 #33)
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: http://localhost:8080
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/v1/teacher/inquiries/{inquiryId}/answer-reviews:
+    parameters:
+      - { name: inquiryId, in: path, required: true, schema: { $ref: '#/components/schemas/Uuid' } }
+    post:
+      tags: [teacher-answer]
+      operationId: requestAnswerReview
+      summary: 전송 전 답변 점검 (선택)
+      description: |
+        답변 초안을 가명화 게이트웨이로 가린 뒤 외부 AI로 점검하고, 서버가 결과를 검증·복원해 오해 소지 표현·근거 누락을 짚어준다.
+        - 맥락: 교사가 지금 답하려는 문의 하나(가장 최근 재문의, 없으면 스레드 루트)의 정리 결과만 쓴다. 이전 답변·다른 문의는 쓰지 않는다.
+        - 정리 결과가 없는 문의(긴급 문의·정리 실패)는 답변만 점검하고 근거 누락은 판단하지 않는다(contextUsed=false).
+        - 외부 AI 장애·형식 오류·지적한 표현이 초안에 없음·10초 상한 초과는 모두 available=false다. 점검 실패는 에러가 아니다 — 교사는 이 응답과 무관하게 바로 전송할 수 있다(원칙 V, fail-open).
+        - 결과는 저장하지 않는다. 점검 요청은 감사 기록을 남기며, 기록이 실패해도 점검 요청은 정상 처리된다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AnswerReviewRequest' }
+      responses:
+        '200':
+          description: 점검 결과(또는 실패 안내)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AnswerReviewResult' }
+        '400': { description: INVALID_INPUT }
+        '401': { description: UNAUTHORIZED }
+        '403': { description: FORBIDDEN }
+        '404': { description: NOT_FOUND (다른 학급 교사·없는 문의·재문의 id) }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  schemas:
+    Uuid: { type: string, format: uuid }
+    Content:
+      type: string
+      minLength: 1
+      maxLength: 2000
+    AnswerReviewRequest:
+      type: object
+      properties:
+        content: { $ref: '#/components/schemas/Content' }
+      required: [content]
+      additionalProperties: false
+    Highlight:
+      type: object
+      description: 점검이 짚어준 문제 표현 한 곳
+      properties:
+        excerpt: { type: string, description: 답변 초안에서 문제로 지적된 부분. 초안 안에 그대로 있는 문자열이다 }
+        reason: { type: string, description: 오해 소지·근거 누락 이유 }
+        suggestion: { type: string, description: 대체 표현 제안 }
+      required: [excerpt, reason, suggestion]
+      additionalProperties: false
+    AnswerReviewResult:
+      type: object
+      properties:
+        available:
+          type: boolean
+          description: 점검이 결과를 냈는지. false면 점검 실패 안내만 보여주고 전송은 그대로 가능하다
+        contextUsed:
+          type: boolean
+          description: >-
+            문의 정리 결과를 맥락으로 넣어 점검했는지. false면 답변만 점검했고 근거 누락은 판단하지 않았다.
+            available=false면 항상 false다.
+        highlights:
+          type: array
+          maxItems: 5
+          description: available=true인데 비어 있으면 짚을 곳이 없다는 뜻이다. available=false면 항상 비어 있다
+          items: { $ref: '#/components/schemas/Highlight' }
+      required: [available, contextUsed, highlights]
+      additionalProperties: false

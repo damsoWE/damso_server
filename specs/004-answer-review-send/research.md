@@ -25,6 +25,7 @@
 - **Decision**: `application.port.out.AnswerReviewPort`에 `Optional<AnswerReviewResult> review(String draftContent, String pseudonymizedContext)` 하나만 둔다. `adapter.out.review.UnavailableAnswerReviewAdapter`는 항상 `Optional.empty()`를 반환하는 스텁이다. F3가 완성되면 이 어댑터만 실제 가명화 게이트웨이 호출로 교체한다.
 - **Rationale**: 사용자 확인(2026-10-25): 포트+스텁만 지금 만들고 실제 LLM·가명화 연동은 F3로 이월. `pseudonymizedContext`는 F3의 3요소 분해 결과(가명화된 문자열)를 그대로 받는 자리만 만들어 둔다 — 지금은 호출하는 곳이 `null`을 넘긴다.
 - **Alternatives considered**: F4에서 직접 가명화·LLM 호출까지 구현 — 사용자가 기각(새 외부 연동·범위 확대, F3→F4 순서와 충돌).
+- **Update (2026-10-29, 이슈 #33)**: F3가 완성돼 스텁을 실제 어댑터로 바꾼다. 다만 "어댑터만 교체"는 그대로 되지 않는다 — F3는 가명화된 정리 결과를 저장하지 않고(복원한 값을 암호화해 저장, F3 research R6), 가명화는 게이트웨이 안에서만 할 수 있다(원칙 II, `GatewayStructureTest`). 그래서 포트는 `Optional<AnswerReviewResult> review(String draftContent, ReviewContext context, Roster roster)`로 바꾼다. inquiry는 복원된 정리 결과와 명단만 넘기고, 가명화·외부 호출·검증·복원은 게이트웨이의 새 입구(`ReviewAnswerGateway`)가 한다(R16~R19).
 
 ## R5. 재문의 제출은 어떤 코드로 처리하나
 
@@ -116,3 +117,36 @@
   - 재문의·답변의 `THREAD_CLOSED` 설명에 "종료 경로가 꺼져 있어 지금은 생기지 않음" 메모
   - `info.version` `0.6.0` → `0.7.0`, merge 후 main에서 `/api-release api-v0.7`
 - **Rationale**: 필드 추가는 응답 쪽 추가라 MINOR. 프론트는 이 파일을 기준으로 본다(PR #19 리뷰 P1). F2·F3 spec FR-021과 `InquiryStage.java` 주석은 decisions.md 영향 범위에 기록돼 있어 이번에는 바꾸지 않는다.
+
+---
+
+# 2026-10-29 추가 — 답변 점검 실제 연동 (이슈 #33)
+
+## R16. 점검 맥락을 어떻게 만들고 가명화하나
+
+- **Decision**: inquiry가 맥락 대상 문의(가장 최근 재문의, 없으면 루트 — `InquiryPort.findLatestFollowUpId`)의 `InquiryRefinement`를 읽어 사실관계·요청사항·정서강도·라벨을 넘긴다. 없으면 `null`(맥락 없음). 게이트웨이는 답변 초안과 맥락 문장들을 **한 사전·한 번의 가명화**로 가린다 — 세그먼트를 가명화 패턴이 넘을 수 없는 구분 문자(U+E000, 사설 영역)로 이어 붙여 가린 뒤 다시 나눈다. 같은 이름은 초안과 맥락에서 같은 토큰이 된다. 입력에 구분 문자가 있으면 공백으로 바꾼다.
+- **Rationale**: 세그먼트를 따로 가리면 토큰 번호가 각자 1부터 매겨져 `[STUDENT_1]`이 서로 다른 사람을 가리킬 수 있다. `Pseudonymizer` 내부를 고치지 않고 공통 흐름(`MaskedAiCall`)에 세그먼트 입력만 더해 F3 검증 코드를 그대로 쓴다. 가린 뒤 자기 점검(`MaskingVerifier`)도 이어 붙인 전체에 그대로 건다.
+- **외부로 보내는 글**: 가린 세그먼트를 JSON(`{"inquiry": {...} | 없음, "answer": "..."}`)으로 묶어 user 역할로 보낸다. 지시(system)와 본문은 섞지 않는다(F3 L1).
+- **명단**: `RosterAssembler.assemble(루트 학급, {학부모, 접수 시점 담임, 점검을 요청한 교사})`.
+- **Alternatives considered**: ① 머리말 줄로 구획 — 초안이나 정리 결과 안에 같은 머리말이 있으면 나누기가 깨진다. 기각 ② `Pseudonymizer`에 다중 입력 API 추가 — 보안 핵심 클래스를 고쳐야 한다. 기각.
+
+## R17. 점검 결과 검증과 복원
+
+- **Decision**: 외부 AI 출력은 strict JSON 스키마 `{"highlights":[{"excerpt","reason","suggestion"}]}`로 강제하고, 서버가 다시 검증한다(`AnswerReviewFindings`). 하나라도 어긋나면 결과 전체를 버린다(FR-012a).
+  - 최상위 필드는 `highlights` 하나, 배열 길이 0~5, 항목마다 세 필드가 모두 문자열이고 다른 필드 없음
+  - 세 값 모두 공백만은 안 됨, excerpt 200자·reason/suggestion 300자 이하(코드 포인트)
+  - 세 값 모두 이번 대응표에 있는 토큰만 쓴다(`RefinementResult.onlyKnownTokens`와 같은 규칙)
+  - excerpt는 가린 답변 초안에 그대로 있어야 하고, 복원한 excerpt도 원래 답변 초안에 그대로 있어야 한다(프론트가 하이라이트 위치를 찾을 수 있게)
+  - 복원은 `PseudonymMap.restore`(연락처까지 원래 값)로 한다 — 교사 본인의 초안이고 결과를 저장하지 않는다(FR-013). 맥락(정리 결과)의 연락처는 이미 고정 문구라 되돌릴 값이 없다.
+- 지적이 0개면 `available=true`, `highlights=[]`(짚을 곳 없음)다.
+
+## R18. 10초 상한(SC-002)을 어떻게 지키나
+
+- **Decision**: 어댑터(`GatewayAnswerReviewAdapter`)가 게이트웨이 호출 전체를 별도 가상 스레드에서 실행하고 `damso.answer-review.timeout`(기본 8s) 안에 끝나지 않으면 취소하고 `Optional.empty()`를 돌려준다. DB 조회·감사 기록을 더해도 10초 안에 응답하도록 여유를 둔다. 외부 AI 클라이언트의 읽기 제한(15s)은 정리 작업(비동기)용이라 그대로 둔다.
+- **Rationale**: `OpenAiClient`의 HTTP 클라이언트는 작업 공통이라 요청별 읽기 제한을 따로 걸 수 없다. 상한을 어댑터에 두면 가명화·검증 시간까지 함께 묶인다.
+- **Alternatives considered**: 점검 전용 `OpenAiClient` 빈 — 클라이언트·설정이 둘로 늘고 `GatewayStructureTest`의 "운영 외부 AI는 하나" 규칙과 충돌. 기각.
+
+## R19. API 응답 변경
+
+- **Decision**: `AnswerReviewResult`에 `contextUsed: boolean`(required)를 더한다. 맥락(정리 결과)을 넣어 점검했으면 `true`, 답변만 점검했거나 점검이 실패했으면(`available=false`) `false`. `info.version` 0.11.0 → 0.12.0(응답 필드 추가). "F3 전에는 항상 false" 설명은 지운다.
+- **프론트 영향**: 생성 타입 갱신. `contextUsed=false`이고 `available=true`면 "문의 내용 없이 답변만 점검했어요(근거 누락은 확인하지 않음)" 같은 안내를 둘 수 있다. 필드를 무시하는 예전 빌드도 동작은 같다.

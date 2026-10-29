@@ -15,11 +15,16 @@ class ClasspathPromptSource implements PromptSource {
 
 	private final String classifyCrisis;
 
+	private final String reviewAnswer;
+
 	ClasspathPromptSource(@Value("${damso.gateway.prompts.refine:classpath:gateway/prompts/refine.txt}") Resource refine,
 			@Value("${damso.gateway.prompts.classify-crisis:classpath:gateway/prompts/classify-crisis.txt}")
-			Resource classifyCrisis) {
+			Resource classifyCrisis,
+			@Value("${damso.gateway.prompts.review-answer:classpath:gateway/prompts/review-answer.txt}")
+			Resource reviewAnswer) {
 		this.refine = ResourceLines.read(refine, "정리 지시 파일").strip();
 		this.classifyCrisis = ResourceLines.read(classifyCrisis, "위기 분류 지시 파일").strip();
+		this.reviewAnswer = ResourceLines.read(reviewAnswer, "답변 점검 지시 파일").strip();
 	}
 
 	@Override
@@ -27,6 +32,7 @@ class ClasspathPromptSource implements PromptSource {
 		return switch (task) {
 			case REFINE -> refine;
 			case CLASSIFY_CRISIS -> classifyCrisis;
+			case REVIEW_ANSWER -> reviewAnswer;
 		};
 	}
 
