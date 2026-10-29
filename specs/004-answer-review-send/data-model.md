@@ -60,7 +60,8 @@ F2가 만든 테이블에 컬럼 1개만 추가한다. 기존 컬럼·제약·�
 
 | 필드 | 타입 | 규칙 |
 |---|---|---|
-| `available` | boolean | 점검이 결과를 냈는지. 스텁 단계에서는 항상 `false` |
+| `available` | boolean | 점검이 결과를 냈는지. ~~스텁 단계에서는 항상 `false`~~ (2026-10-29: 실제 점검. 장애·검증 실패·시간 초과면 `false`) |
+| `contextUsed` | boolean | (2026-10-29 추가) 문의 정리 결과를 맥락으로 넣었는지. `available=false`면 `false` |
 | `highlights` | List\<Highlight\> | `available=false`면 빈 목록 |
 
 `Highlight(excerpt, reason, suggestion)` — 모두 문자열, 응답에만 존재.
@@ -119,3 +120,15 @@ F2가 만든 테이블에 컬럼 1개만 추가한다. 기존 컬럼·제약·�
 
 - 상태 전이표(`InquiryStage.canMoveTo`)는 바꾸지 않는다. `TEACHER_CONFIRMED → ANSWERED` 전이는 남아 있고, 설정이 꺼져 있으면 이 전이를 일으키는 경로가 없을 뿐이다.
 - 닫힌 스레드 거부(`SendAnswerService`·`SubmitFollowUpService`의 `THREAD_CLOSED`)와 담당 교사 검증은 그대로 둔다(FR-032).
+
+## 2026-10-29 추가 — 답변 점검 실제 연동 (이슈 #33)
+
+새 테이블·컬럼 없음. 점검 결과·맥락·대응표는 요청 처리 중 메모리에만 있다(FR-009·013).
+
+| 값 객체 | 위치 | 필드 | 비고 |
+|---|---|---|---|
+| `AnswerReviewPort.ReviewContext` | inquiry | facts, requests, emotionLevel, emotionLabels | 맥락 대상 문의의 `InquiryRefinement`(복원된 값). toString은 가린다 |
+| `ReviewAnswerGateway.Context` / `Finding` / `ReviewOutcome` | gateway | 위와 같음 / excerpt·reason·suggestion / findings 또는 failure | toString은 건수·실패 종류만 |
+| `AnswerReviewResult` | inquiry | available, **contextUsed**, highlights | toString은 건수만(원칙 VI) |
+
+검증 규칙(`AnswerReviewFindings`, research R17): highlights 0~5개, excerpt 1~200자·reason/suggestion 1~300자(코드 포인트, 공백만 안 됨), 대응표에 있는 토큰만, excerpt는 가린 초안과 원래 초안 모두에 그대로 있어야 한다. 하나라도 어긋나면 전체 폐기.

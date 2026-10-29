@@ -394,3 +394,70 @@ T049 ─ T050 ─ T051 (사람, 공지) ─┬─ US6: T052·T053 ─ T054 ─ T
 - **docs 갱신**: `docs/security-checklist.md` 보안기능 2(종료 경로 차단·목록 답변 여부 근거), `docs/decisions.md` 2026-10-27 행 미결 ①② → 2026-10-28 해결.
 - **코드 리뷰 반영(2026-10-28)**: ① 학부모 목록은 페이지가 없어 루트 id `IN` 묶음이 문의 수만큼 커지므로, 학부모 기준 조인 쿼리(`SpringDataAnswerRepository.findLastSentAtByParentId`, `AnswerPort.findLastAnsweredAtByParent`)로 바꿨다. 교사 목록(페이지당 최대 50)은 그대로 ② `hasAnswer`를 조회 결과 record의 필드에서 빼고 `hasAnswer()`(= `lastAnsweredAt != null`)로 얻는다. 응답 JSON 모양은 바뀌지 않는다(research R10 Update).
 - **남은 일**: T067 `api-v0.7` 태그는 PR #19 merge 후 main에서 사람이 찍는다.
+
+---
+
+# 2026-10-29 추가 — 답변 점검 실제 연동 (US2, 이슈 #33)
+
+**Input**: spec.md(US2 시나리오 8~10, FR-008b·008c·012a·012b, Clarifications Session 2026-10-29), plan.md "2026-10-29 추가", research.md R4 Update·R16~R19, data-model.md "2026-10-29 추가", [contracts/answer-review-context.openapi.yaml](./contracts/answer-review-context.openapi.yaml)
+
+**Tests**: 포함한다. 테스트를 먼저 쓰고 실패를 확인한 뒤 운영 코드를 쓴다(사용자 요청).
+
+**Branch**: `features/f4-answer-review-gateway` (이슈 #33).
+
+## Phase 13: Setup (2026-10-29 추가분)
+
+- [x] T068 작업 브랜치 확인: `git branch --show-current`가 `features/f4-answer-review-gateway`인지 확인한다
+- [x] T069 **Contract-first** — `docs/api/openapi.yaml`에 `contracts/answer-review-context.openapi.yaml`을 반영한다: `AnswerReviewResult.contextUsed`(required) 추가, `highlights` `maxItems: 5`, `Highlight.excerpt` 설명, `requestAnswerReview` 설명에서 "F3 전 항상 false" 문구 삭제·실제 동작 설명, `SendAnswerRequest.reviewed` 설명에서 "임시 스텁" 문구 삭제, `info.version` 0.11.0 → 0.12.0. `npx -y @redocly/cli@1.34.5 lint docs/api/openapi.yaml` valid. 계약 리뷰(constitution 개발 흐름): 새 경로·ErrorCode·식별자 없음, `contextUsed` 추가는 2026-10-29 팀 승인 범위
+
+## Phase 14: User Story 2 갱신 — 실제 점검 (Priority: P1)
+
+**Goal**: 점검이 가명화 게이트웨이를 거쳐 실제 결과를 내고, 실패하면 fail-open (FR-008~013, 008b·008c·012a·012b, SC-002·009)
+
+**Independent Test**: 정리된 일반 문의에 점검을 요청해 하이라이트·이유·대체 표현과 `contextUsed=true`를 받고, 외부 AI로 간 글에 이름·원문이 없는지, 실패 경로마다 `available=false`이고 전송이 되는지 확인한다
+
+### Tests for User Story 2 (2026-10-29) ⚠️ 먼저 쓰고 실패 확인
+
+- [x] T070 [P] [US2] `src/test/java/damso/gateway/ReviewAnswerGatewayServiceTest.java` — 게이트웨이 단위: 초안과 맥락의 같은 이름이 같은 토큰으로 가려짐 · 외부로 가는 글에 이름·학급·전화번호 없음 · 정상 결과 복원 · 형식 위반(필드 추가·누락·타입·빈 값·길이 초과·6개 이상)·모르는 토큰·초안에 없는 excerpt·맥락에만 있는 excerpt는 전체 `INVALID_OUTPUT` · 응답 없음 `NO_RESPONSE` · 0개는 성공(빈 목록) · 맥락 없음이면 외부로 가는 JSON에 inquiry가 없음 (R16·R17, FR-012a)
+- [x] T071 [P] [US2] `src/test/java/damso/inquiry/AnswerReviewApiTest.java` 갱신 — 가짜 포트를 걷어내고 실제 어댑터 + `FakeExternalAi`로: 정리된 일반 문의 점검 200 `available=true`·`contextUsed=true`·하이라이트·이유·대체 표현(복원된 이름 포함) · 외부 AI로 간 글에 학생·보호자·교사 이름·전화번호·원문 문장 없음 · 긴급 문의(정리 결과 없음)는 `contextUsed=false`이고 외부로 간 글에 맥락 없음 · 재문의가 있으면 최근 재문의의 정리 결과만, 루트 정리 결과·이전 답변은 없음 · 다른 학급 교사 404이고 외부 AI 호출 없음 · 기존 400·403·401·비저장 유지 (FR-008·008a·008b·008c·009·013)
+- [x] T072 [P] [US2] `src/test/java/damso/inquiry/AnswerReviewGatewayFailOpenTest.java` (신규) — 형식 오류 JSON·excerpt 불일치·외부 AI 응답 없음·외부 AI 예외마다 200 `available=false`·`contextUsed=false`·`highlights=[]`, 이어서 답변 전송 201 (FR-012·012a, SC-001·003)
+- [x] T073 [P] [US2] `src/test/java/damso/inquiry/AnswerReviewTimeoutTest.java` (신규) — 상한을 짧게(`damso.answer-review.timeout=300ms`) 두고 외부 AI가 늦게 답하면 상한 근처에서 `available=false`, 이어서 답변 전송 201 (FR-012b, SC-002)
+- [x] T074 [P] [US2] `src/test/java/damso/inquiry/AnswerReviewLoggingTest.java` (신규) — 성공·검증 실패·외부 AI 예외 점검을 한 뒤 로그 전체에 답변 초안·하이라이트·정리 결과·문의 원문·이름이 없음 (원칙 VI, SC-009)
+- [x] T075 [P] [US2] `OpenAiClientTest`·`GatewayResourceTest`·`AnswerReviewFailOpenTest` 갱신 — `REVIEW_ANSWER` 스키마(strict, additionalProperties false)·프롬프트 파일, 바뀐 포트 시그니처
+
+### Implementation for User Story 2 (2026-10-29)
+
+- [x] T076 [US2] gateway: `ExternalAiPort.AiTask.REVIEW_ANSWER`, `OpenAiClient.schemaOf` answer_review 스키마, `ClasspathPromptSource` + `resources/gateway/prompts/review-answer.txt`(입력 안 지시 무시, 토큰 유지, 맥락 없으면 근거 누락 판단 안 함, excerpt는 답변에서 그대로 복사)
+- [x] T077 [US2] gateway: `MaskedAiCall` 세그먼트 입력(구분 문자 U+E000로 이어 가린 뒤 나눔, 기존 단일 입력은 그대로 위임) (R16)
+- [x] T078 [US2] gateway: `domain/AnswerReviewFindings`(R17 검증·복원), `port/in/ReviewAnswerGateway`, `service/ReviewAnswerGatewayService` (depends on T076·T077)
+- [x] T079 [US2] inquiry: `AnswerReviewResult`에 `contextUsed`·toString 가림, `AnswerReviewPort` 시그니처(`ReviewContext`, `Roster`), `RequestAnswerReviewService` 맥락 대상·정리 결과·명단 수집, 응답 DTO `contextUsed`·toString 가림
+- [x] T080 [US2] inquiry: `GatewayAnswerReviewAdapter`(가상 스레드 + `damso.answer-review.timeout` 기본 8s, 실패·상한 초과 `Optional.empty()`), `UnavailableAnswerReviewAdapter` 삭제, `application.yml` 설정 추가 (depends on T078·T079)
+
+**Checkpoint**: T070~T075 통과
+
+## Phase 15: Polish (2026-10-29 추가분)
+
+- [x] T081 [P] `docs/security-checklist.md` — 외부 AI 출력 검증·민감정보 로그·가명화 근거에 답변 점검 추가(테스트 이름)
+- [x] T082 [P] `docs/features.md` F4 상태·점검 설명 갱신(스텁 → 실제 점검)
+- [x] T083 `./gradlew test` 전체 실행 — 실패는 숨기지 않고 보고
+- [x] T084 이 파일 하단에 "구현 메모 (2026-10-29)" — 계획과 달라진 점, T083 결과
+- [ ] T085 (사람 작업, merge 후) main에서 `/api-release api-v0.12`로 태그·프론트 공지
+
+### Dependencies (2026-10-29 추가분)
+
+T068 → T069 → 테스트(T070~T075, 병렬) → T076 ∥ T077 → T078 → T079 → T080 → Polish(T081 ∥ T082 → T083 → T084) → (merge) → T085
+
+---
+
+## 구현 메모 (2026-10-29)
+
+- **순서**: 문서(spec·research·data-model·plan·tasks·계약) → `/speckit-analyze`(CRITICAL·HIGH 0, MEDIUM 1·LOW 3은 문서 한 줄씩 반영) → 테스트 먼저(T070~T075, 새 타입이 없어 컴파일 실패 확인) → 운영 코드 → 문서.
+- **T069 명세**: `docs/api/openapi.yaml` 0.11.0 → 0.12.0. lint valid, 경고 3개는 변경 전과 같다. 계약 파일 `contracts/answer-review-context.openapi.yaml`도 lint valid.
+- **계획과 달라진 점**:
+  - 검증 규칙은 서비스가 아니라 도메인 `gateway/domain/AnswerReviewFindings`에 두고(F3 `RefinementResult`와 같은 자리), 같은 패키지의 `RefinementResult.onlyKnownTokens`를 재사용했다.
+  - `MaskedAiCall.Outcome`에 가린 글 목록(`maskedSegments`)을 더했다 — excerpt를 가린 초안과 비교하려면 필요하다. 단일 입력 `call`은 세그먼트 하나로 위임하며(null 입력도 기존처럼 `MASKING_FAILED`), 정리·위기 분류가 외부로 보내는 글은 바뀌지 않는다.
+  - 점검이 결과를 못 내면 `RequestAnswerReviewService`가 문의 UUID만 담아 info 로그를 남긴다(실패 종류는 어댑터·게이트웨이 로그). 본문은 없다.
+  - 기존 `AnswerSensitiveLoggingTest`의 가짜 포트도 새 시그니처로 바꿨다.
+  - `FakeExternalAi`에 `replyAfter`(지연 응답)·`reviewJson`을 더했다. `REVIEW_ANSWER` 기본 응답은 응답 없음이라 기존 테스트 동작은 그대로다.
+- **T083 전체 테스트**: `./gradlew test` — **756개 모두 통과**(125개 클래스, 실패·오류·건너뜀 0, `build/test-results/test/*.xml` 기준).
+- **남은 일**: T085 `api-v0.12` 태그·프론트 공지는 merge 후 사람이 한다.
