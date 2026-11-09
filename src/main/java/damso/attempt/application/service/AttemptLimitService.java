@@ -90,6 +90,15 @@ public class AttemptLimitService implements AttemptLimitUseCase {
 	}
 
 	@Override
+	public void ensureLoginClientAllowed(String clientIp) {
+		long waitMillis = port.reserveRate(AttemptKind.LOGIN_CLIENT, hasher.hash(clientIp), clock.instant(),
+				Duration.ZERO, AttemptPolicy.LOGIN_CLIENT_WINDOW, AttemptPolicy.LOGIN_MAX_PER_CLIENT);
+		if (waitMillis > 0) {
+			throw new TooManyAttemptsException(ceilSeconds(waitMillis));
+		}
+	}
+
+	@Override
 	public long reserveInquirySubmit(UUID parentId) {
 		long waitMillis = port.reserveRate(AttemptKind.INQUIRY_SUBMIT, hasher.hash(parentId.toString()),
 				clock.instant(), inquirySubmitInterval, inquirySubmitInterval, AttemptPolicy.INQUIRY_MAX_PER_WINDOW);
