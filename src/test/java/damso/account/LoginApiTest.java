@@ -5,23 +5,103 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import damso.account.domain.Role;
 import damso.account.domain.UserAccount;
+import damso.attempt.adapter.out.redis.RedisAttemptLimitAdapter;
+import damso.attempt.application.port.out.AttemptLimitPort;
+import damso.attempt.domain.AttemptKind;
+import damso.attempt.domain.AttemptRule;
+import damso.attempt.domain.AttemptState;
+import damso.common.error.BusinessException;
+import damso.common.error.ErrorCode;
 import damso.support.IntegrationTestSupport;
 
-/** US4 시나리오 1~5, FR-022~024, SC-003·004: 로그인과 단계별 대기. */
+/** US4 시나리오 1~5, FR-022~024a, SC-003·004: 로그인과 단계별 대기, 요청 위치 단위 상한. */
 class LoginApiTest extends IntegrationTestSupport {
+
+	/** 요청 위치 단위 로그인 제한(LOGIN_CLIENT) 저장소만 장애로 만들 수 있다. 이 테스트 클래스에서만 쓴다. */
+	@TestConfiguration
+	static class FailableClientLimitConfig {
+
+		static volatile boolean down;
+
+		@Bean
+		@Primary
+		AttemptLimitPort failableClientLimitPort(RedisAttemptLimitAdapter real) {
+			return new AttemptLimitPort() {
+
+				@Override
+				public AttemptState get(AttemptKind kind, String subjectHash) {
+					return real.get(kind, subjectHash);
+				}
+
+				@Override
+				public AttemptState recordFailure(AttemptKind kind, String subjectHash, Instant now, AttemptRule rule) {
+					return real.recordFailure(kind, subjectHash, now, rule);
+				}
+
+				@Override
+				public void reset(AttemptKind kind, String subjectHash) {
+					real.reset(kind, subjectHash);
+				}
+
+				@Override
+				public long reserveRate(AttemptKind kind, String subjectHash, Instant now, Duration minGap,
+						Duration window, int max) {
+					if (down && kind == AttemptKind.LOGIN_CLIENT) {
+						throw new BusinessException(ErrorCode.INTERNAL_ERROR);
+					}
+					return real.reserveRate(kind, subjectHash, now, minGap, window, max);
+				}
+
+				@Override
+				public long reserveRates(Instant now, List<RateLimit> limits) {
+					return real.reserveRates(now, limits);
+				}
+
+			};
+		}
+
+	}
 
 	private MockHttpServletResponse login(String email, String password) throws Exception {
 		return send(json(post("/api/v1/auth/login"),
 				"{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}"), null);
 	}
 
+	/** 요청 위치(IP)를 지정한 로그인. 운영에서는 Caddy의 X-Forwarded-For가 remoteAddr로 반영된다. */
+	private MockHttpServletResponse loginFrom(String email, String password, String clientIp) throws Exception {
+		return send(json(post("/api/v1/auth/login"),
+				"{\"email\":\"" + email + "\",\"password\":\"" + password + "\"}").with(request -> {
+					request.setRemoteAddr(clientIp);
+					return request;
+				}), null);
+	}
+
+	/** 서로 다른 이메일로 요청 위치 하나의 상한을 모두 쓴다. */
+	private void useUpClientLimit(String clientIp) throws Exception {
+		for (int i = 0; i < CLIENT_LIMIT; i++) {
+			assertThat(loginFrom(uniqueEmail(), WRONG, clientIp).getStatus()).isEqualTo(401);
+		}
+	}
+
 	private static final String WRONG = "Wrong" + "Pass1";
+
+	private static final int CLIENT_LIMIT = 60;
+
+	private static final String CLIENT = "203.0.113.10";
+
+	private static final String OTHER_CLIENT = "203.0.113.20";
 
 	@Test
 	void successReturnsTokensAndTheRole() throws Exception {
@@ -161,6 +241,79 @@ class LoginApiTest extends IntegrationTestSupport {
 		assertThat(login("not-an-email", TEST_PASSWORD).getStatus()).isEqualTo(400);
 		assertThat(send(json(post("/api/v1/auth/login"), "{\"email\":\"a@b.co\"}"), null).getStatus())
 				.isEqualTo(400);
+	}
+
+	@Test
+	void oneClientChangingEmailsIsStoppedWithTheSameResponseAsAnEmailWait() throws Exception {
+		useUpClientLimit(CLIENT);
+
+		MockHttpServletResponse limited = loginFrom(uniqueEmail(), WRONG, CLIENT);
+
+		assertThat(limited.getStatus()).isEqualTo(429);
+		assertThat(Long.parseLong(limited.getHeader("Retry-After"))).isBetween(1L, 600L);
+
+		String waitingEmail = uniqueEmail();
+		for (int i = 0; i < 3; i++) {
+			loginFrom(waitingEmail, WRONG, OTHER_CLIENT);
+		}
+		MockHttpServletResponse emailWait = loginFrom(waitingEmail, TEST_PASSWORD, OTHER_CLIENT);
+		assertThat(emailWait.getStatus()).isEqualTo(429);
+		assertThat(limited.getContentAsString()).isEqualTo(emailWait.getContentAsString());
+
+		Set<String> keys = redis.keys("damso:attempt:LOGIN_CLIENT:*");
+		assertThat(keys).hasSize(2).noneMatch(key -> key.contains(CLIENT) || key.contains(OTHER_CLIENT));
+	}
+
+	@Test
+	void theClientLimitAppliesToCorrectPasswordsOnlyFromThatClientAndEndsWithTheWindow() throws Exception {
+		UserAccount parent = createAccount(Role.PARENT);
+		useUpClientLimit(CLIENT);
+
+		assertThat(loginFrom(parent.getEmail(), TEST_PASSWORD, CLIENT).getStatus()).isEqualTo(429);
+		assertThat(loginFrom(parent.getEmail(), TEST_PASSWORD, OTHER_CLIENT).getStatus()).isEqualTo(200);
+
+		clock.advance(Duration.ofMinutes(10));
+		assertThat(loginFrom(parent.getEmail(), TEST_PASSWORD, CLIENT).getStatus()).isEqualTo(200);
+	}
+
+	@Test
+	void requestsRejectedByTheClientLimitDoNotCountAsEmailFailures() throws Exception {
+		UserAccount parent = createAccount(Role.PARENT);
+		useUpClientLimit(CLIENT);
+
+		for (int i = 0; i < 5; i++) {
+			assertThat(loginFrom(parent.getEmail(), WRONG, CLIENT).getStatus()).isEqualTo(429);
+		}
+
+		assertThat(loginFrom(parent.getEmail(), TEST_PASSWORD, OTHER_CLIENT).getStatus()).isEqualTo(200);
+	}
+
+	@Test
+	void requestsRejectedByAnEmailWaitDoNotUseUpTheClientLimit() throws Exception {
+		String email = uniqueEmail();
+		for (int i = 0; i < 3; i++) {
+			assertThat(loginFrom(email, WRONG, CLIENT).getStatus()).isEqualTo(401);
+		}
+		for (int i = 0; i < CLIENT_LIMIT; i++) {
+			assertThat(loginFrom(email, WRONG, CLIENT).getStatus()).isEqualTo(429);
+		}
+
+		assertThat(loginFrom(uniqueEmail(), WRONG, CLIENT).getStatus()).isEqualTo(401);
+	}
+
+	@Test
+	void aCorrectPasswordIsRefusedWhenTheClientLimitStoreIsDown() throws Exception {
+		UserAccount parent = createAccount(Role.PARENT);
+		FailableClientLimitConfig.down = true;
+		try {
+			MockHttpServletResponse response = loginFrom(parent.getEmail(), TEST_PASSWORD, CLIENT);
+
+			assertThat(response.getStatus()).isEqualTo(500);
+			assertThat(response.getContentAsString()).contains("INTERNAL_ERROR").doesNotContain("accessToken");
+		}
+		finally {
+			FailableClientLimitConfig.down = false;
+		}
 	}
 
 }

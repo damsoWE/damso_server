@@ -30,6 +30,9 @@ public interface AttemptLimitUseCase {
 	 */
 	void ensureResetMailAllowed(String email, String clientIp);
 
+	/** 로그인 요청 한 건을 요청 위치 단위로 예약한다. 상한을 넘으면 TooManyAttemptsException. clientIp도 해시만 저장소에 넘어간다. */
+	void ensureLoginClientAllowed(String clientIp);
+
 	/**
 	 * 일반 문의 제출 한 건을 예약한다(학부모 UUID 기준 60초 1건). 허용되면 0, 거부되면 기다려야 하는 초(올림).
 	 * 거부는 예외가 아니라 반환값이다. 저장소 장애는 BusinessException(INTERNAL_ERROR)로 전파되며 호출자가 정책을 정한다.

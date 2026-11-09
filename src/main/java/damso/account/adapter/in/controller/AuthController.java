@@ -84,9 +84,10 @@ class AuthController {
 		signup.resend(request.pendingSignupId());
 	}
 
+	/** 요청 위치는 Caddy가 넘긴 X-Forwarded-For를 Tomcat이 반영한 remoteAddr이다(server.forward-headers-strategy: native). */
 	@PostMapping("/login")
-	TokenResponseDTO login(@Valid @RequestBody LoginRequestDTO request) {
-		return TokenResponseDTO.from(login.login(request.email(), request.password()));
+	TokenResponseDTO login(@Valid @RequestBody LoginRequestDTO request, HttpServletRequest http) {
+		return TokenResponseDTO.from(login.login(request.email(), request.password(), http.getRemoteAddr()));
 	}
 
 	@PostMapping("/token/refresh")
