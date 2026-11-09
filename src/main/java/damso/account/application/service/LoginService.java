@@ -39,9 +39,11 @@ public class LoginService implements LoginUseCase {
 	}
 
 	@Override
-	public TokenResult login(String email, String password) {
+	public TokenResult login(String email, String password, String clientIp) {
 		String normalized = UserAccount.normalizeEmail(email);
 		attempts.ensureAllowed(AttemptKind.LOGIN, normalized);
+		// 위 대기 확인은 읽기만 하므로 순서가 이래야 거부된 요청이 서로의 횟수를 쓰지 않는다(이슈 #35)
+		attempts.ensureLoginClientAllowed(clientIp);
 
 		UserAccount account = accounts.findByEmail(normalized).filter(UserAccount::isActive).orElse(null);
 		// 계정이 없어도 같은 비용으로 비교해 처리 시간으로 가입 여부가 드러나지 않게 한다

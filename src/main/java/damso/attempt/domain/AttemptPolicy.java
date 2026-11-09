@@ -12,6 +12,8 @@ import java.util.List;
  * - 비밀번호 재설정 메일(이슈 #22): 이메일 하나만으로 세면 남이 내 이메일로 요청해 내 재설정을 막을 수 있으므로
  *   이메일 + 요청 위치(IP) 쌍으로 60초 1회·1시간 5회, 메일 폭탄·대량 요청을 막는 상한으로 이메일 하나 1시간 10통,
  *   요청 위치 하나 1시간 20회. 가입 인증 메일(MAIL_SEND)과는 따로 센다
+ * - LOGIN_CLIENT: 이메일을 바꿔 가며 시도하는 것을 막는 요청 위치(IP) 하나의 로그인 상한 10분 60회(이슈 #35).
+ *   학교 공용망을 막지 않도록 넉넉하게 잡았다
  */
 public final class AttemptPolicy {
 
@@ -28,6 +30,11 @@ public final class AttemptPolicy {
 
 	/** 재설정 메일: 요청 위치 하나(모든 이메일 합산)가 MAIL_WINDOW 안에 요청할 수 있는 최대 횟수. */
 	public static final int RESET_MAIL_MAX_PER_CLIENT = 20;
+
+	public static final Duration LOGIN_CLIENT_WINDOW = Duration.ofMinutes(10);
+
+	/** 로그인: 요청 위치 하나(모든 이메일 합산)가 LOGIN_CLIENT_WINDOW 안에 요청할 수 있는 최대 횟수. */
+	public static final int LOGIN_MAX_PER_CLIENT = 60;
 
 	/** 문의 제출 윈도. 윈도 안 1건만 허용하므로 최소 간격과 같다. */
 	public static final int INQUIRY_MAX_PER_WINDOW = 1;
@@ -47,7 +54,7 @@ public final class AttemptPolicy {
 		return switch (kind) {
 			case LOGIN -> LOGIN_RULE;
 			case INVITE_CODE, SIGNUP_CODE, RESET_CODE -> CODE_RULE;
-			case MAIL_SEND, INQUIRY_SUBMIT, RESET_MAIL_CLIENT, RESET_MAIL_PAIR, RESET_MAIL_EMAIL ->
+			case MAIL_SEND, INQUIRY_SUBMIT, RESET_MAIL_CLIENT, RESET_MAIL_PAIR, RESET_MAIL_EMAIL, LOGIN_CLIENT ->
 				throw new IllegalArgumentException(kind + " has its own limit");
 		};
 	}
