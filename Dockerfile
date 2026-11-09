@@ -15,6 +15,11 @@ RUN ./gradlew --no-daemon bootJar -x test \
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
+# 베이스 이미지에 아직 반영되지 않은 OS 보안 패치를 적용한다 (CI image-scan은 패치가 나온 HIGH·CRITICAL이 있으면 실패)
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd --system damso && useradd --system --gid damso --no-create-home damso
 COPY --from=build /workspace/app.jar app.jar
 USER damso
